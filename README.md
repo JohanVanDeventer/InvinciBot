@@ -8,5 +8,6 @@ InvinciBot plays on Lichess: https://lichess.org/@/InvinciBot
 
 # Acknowledgements
 Many thanks to the following resources I used to get ideas for the engine from:
-- https://github.com/algerbrex/blunder
 - https://www.chessprogramming.org/
+- https://github.com/algerbrex/blunder
+
