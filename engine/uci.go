@@ -159,11 +159,6 @@ stop
 A UCI struct that can handle UCI inputs and passing them to a position.
 */
 
-const (
-	UCI_CONTINUE int = 0
-	UCI_STOP     int = 1
-)
-
 // starts the input loop listening to commands from the GUI
 func (pos *Position) startUCIInputLoop() {
 
@@ -778,9 +773,9 @@ func (pos *Position) command_go(command string) {
 		} else if pos.evalMidVsEndStage >= 8 { // middlegame-endgame
 			timeFactor = 12
 		} else if pos.evalMidVsEndStage >= 4 { // endgame
-			timeFactor = 8
+			timeFactor = 10
 		} else { // endgame checkmate
-			timeFactor = 6
+			timeFactor = 8
 		}
 	} else {
 		timeFactor = 24

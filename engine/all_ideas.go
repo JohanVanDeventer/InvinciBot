@@ -5,6 +5,9 @@ package main
 Ideas to consider / implement
 =============================
 
+--- TT Size ---
+Test whether increasing the TT size helps improve play.
+
 --- Root Better Move Ordering ---
 Better move ordering for the root, because it is called only once at the start of each search, we can afford more time consuming calcs.
 
@@ -25,5 +28,8 @@ Play book moves for the first few moves.
 
 --- Reduce memory ---
 Switch to eg. uint8 where possible.
+
+-- Heatmap Tuning ---
+Tune heatmap values automatically.
 
 */

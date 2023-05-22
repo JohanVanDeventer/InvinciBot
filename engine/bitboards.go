@@ -14,7 +14,6 @@ Explanation of the common types of bit operations:
 &	(AND) Sets 1 in the positions where BOTH bitboards have 1 in those positions
 |	(OR) Sets 1 in the positions where AT LEAST 1 bitboard have 1 in those positions
 ^	(XOR) Sets 1 in the positions where SPECIFICALLY 1 bitboard has 1 in those positions and the other 0
-~	(NOT) Flips all 0's and 1's
 
 */
 
