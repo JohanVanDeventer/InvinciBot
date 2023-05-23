@@ -805,7 +805,6 @@ func (pos *Position) command_go(command string) string {
 	//fmt.Printf("bestmove %v%v%v\n", moveFromStr, moveToStr, promoteStr)
 	output := "bestmove " + moveFromStr + moveToStr + promoteStr
 	return output
-
 }
 
 // --------------------------------------------------------- Stop -----------------------------------------------
