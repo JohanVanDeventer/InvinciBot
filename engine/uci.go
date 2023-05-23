@@ -799,7 +799,6 @@ func (pos *Position) command_go(command string) string {
 
 	// we then return the best move from the search
 	bestMove := pos.bestMove
-	fmt.Printf("%v", bestMove)
 	moveFromStr := getStringFromSq(bestMove.fromSq)
 	moveToStr := getStringFromSq(bestMove.toSq)
 	promoteStr := getPromotionStringFromType(bestMove.promotionType)

@@ -365,7 +365,6 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 		// <<< SPECIAL CODE TO STORE BEST MOVE >>> START
 		if currentDepth == initialDepth { // if we are at the root
-			//fmt.Printf("Move: %v. Move value: %v.\n", move, moveValue)
 			if moveValue > alpha { // if the move is the best move so far
 				pos.bestMoveSoFar = move
 			}
@@ -390,28 +389,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			alpha = moveValue
 		}
 		// <<< ALPHA-BETA >>> END
-
 	}
 
 	// ---------------------------------------------------- TT Store Entry -----------------------------------------------
-	/*
-		// save the current position and search results in the TT
-
-		var ttValue int32 = int32(value)
-
-		var ttFlag uint8 = 99
-		if value <= alphaOriginal {
-			ttFlag = TT_FLAG_UPPER
-		} else if value >= beta {
-			ttFlag = TT_FLAG_LOWER
-		} else {
-			ttFlag = TT_FLAG_EXACT
-		}
-
-		var ttDepth uint8 = uint8(currentDepth)
-
-		tt.storeNewTTEntry(pos.hashOfPos, ttDepth, ttFlag, ttValue)
-	*/
 	if currentDepth > 0 { // store TT entries for non-quiescence nodes because they are fully searched
 		if alpha > alphaOriginal {
 			// if alpha increased in the search, we know the exact value of the node, because:
@@ -430,6 +410,5 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	}
 
 	// ---------------------------------------------------- Return Final Value -----------------------------------------------
-
 	return alpha, false
 }
