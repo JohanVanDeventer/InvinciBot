@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /*
@@ -162,21 +164,21 @@ A UCI struct that can handle UCI inputs and passing them to a position.
 // starts the input loop listening to commands from the GUI
 func (pos *Position) startUCIInputLoop() {
 
-	/*
-		// set up to add logs
-		// Open the file in append mode. If the file doesn't exist, it will be created.
-		file, err := os.OpenFile("logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
+	// set up to add logs
+	// Open the file in append mode. If the file doesn't exist, it will be created.
+	file, err := os.OpenFile("logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
 
-		// Write a new game to the file
-		_, err = fmt.Fprintln(file, "-------------------------- NEW UCI LOOP ------------------------")
-		if err != nil {
-			log.Fatal(err)
-		}
-	*/
+	// <<< LOGGING >>> Write a new game to the file along with the time of the new game
+	logStartTime := time.Now()
+	datedStartString := logStartTime.String() + ". Starting New UCI Loop -------------------------------------------------------------"
+	_, err = fmt.Fprintln(file, datedStartString)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// set up the input reader
 	inputReader := bufio.NewReader(os.Stdin)
@@ -185,18 +187,19 @@ func (pos *Position) startUCIInputLoop() {
 	runCommandLoop := true
 	for runCommandLoop {
 
-		// get the next input to the engine
+		// get the next input command to the engine
 		command, _ := inputReader.ReadString('\n')
 		command = strings.TrimSpace(command)
 
-		/*
-			// Write the command to the file
-			_, err = fmt.Fprintln(file, command)
-			if err != nil {
-				log.Fatal(err)
-			}
-		*/
+		// <<< LOGGING >>> Write the command to the file along with the time of the command
+		logCommandTime := time.Now()
+		datedCommand := logCommandTime.String() + ". Received command: " + command
+		_, err = fmt.Fprintln(file, datedCommand)
+		if err != nil {
+			log.Fatal(err)
+		}
 
+		// respond to the command
 		if command == "uci" { // remember this vs ucinewgame both have "uci" prefix
 			pos.command_uci()
 
@@ -219,7 +222,18 @@ func (pos *Position) startUCIInputLoop() {
 			pos.command_position(command)
 
 		} else if strings.HasPrefix(command, "go") {
-			pos.command_go(command)
+			response := pos.command_go(command)
+
+			// <<< LOGGING >>> Log the best move along with the time of the response sent by the engine
+			logResponseTime := time.Now()
+			datedResponse := logResponseTime.String() + ". Sent response: " + response
+			_, err = fmt.Fprintln(file, datedResponse)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// send the best move response
+			fmt.Printf("%v\n", response)
 
 		} else if strings.HasPrefix(command, "stop") {
 			pos.command_stop()
@@ -710,9 +724,7 @@ Engine to GUI:
 	Directly before that the engine should send a final "info" command with the final search information,
 	the the GUI has the complete statistics about the last search.
 */
-func (pos *Position) command_go(command string) {
-	initEngine()
-
+func (pos *Position) command_go(command string) string {
 	parts := strings.Split(command, " ")
 
 	allowedTimeMs := 0
@@ -787,10 +799,13 @@ func (pos *Position) command_go(command string) {
 
 	// we then return the best move from the search
 	bestMove := pos.bestMove
+	fmt.Printf("%v", bestMove)
 	moveFromStr := getStringFromSq(bestMove.fromSq)
 	moveToStr := getStringFromSq(bestMove.toSq)
 	promoteStr := getPromotionStringFromType(bestMove.promotionType)
-	fmt.Printf("bestmove %v%v%v\n", moveFromStr, moveToStr, promoteStr)
+	//fmt.Printf("bestmove %v%v%v\n", moveFromStr, moveToStr, promoteStr)
+	output := "bestmove " + moveFromStr + moveToStr + promoteStr
+	return output
 
 }
 

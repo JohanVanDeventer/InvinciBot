@@ -37,12 +37,16 @@ Depening on the initial depth we call the search from, we have a certain quiesce
 Therefore deeper depth searches have longer quiescence depths.
 */
 
+const (
+	MAX_DEPTH int = 99 // we set a max depth (otherwise messes with assigning a best move)
+)
+
 var (
-	qsDepthLimitTable [100]int
+	qsDepthLimitTable [MAX_DEPTH + 1]int
 )
 
 func initQSDepthLimits() {
-	for depth := 0; depth < 100; depth++ {
+	for depth := 0; depth <= MAX_DEPTH; depth++ {
 
 		if depth <= 2 {
 			qsDepthLimitTable[depth] = 0
@@ -120,18 +124,21 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 	tt := getNewTT()
 
 	// do an iterative deepening search
-	for {
+	for depth <= MAX_DEPTH {
 
 		// increase the depth and search
 		depth += 1
-		qsDepth := qsDepthLimitTable[depth]
-		score, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, &tt, qsDepth)
-		if score >= 0 {
+
+		qsDepth := 0
+		if depth < 99 {
+			qsDepth = qsDepthLimitTable[depth]
 		}
+
+		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, &tt, qsDepth)
 
 		// store the best move from the search only after each iteration, and continue with the next iteration
 		// in case of terminated searches in the middle of a search, we can't use that move, and exit immediately
-		// we will definitely hit at least one iteration (400 nodes) at depth 2
+		// we will definitely hit at least one iteration (say about 400 nodes) at depth 2
 		// so we will have one best move before the time node limit is checked
 		if !terminated {
 			pos.bestMove = pos.bestMoveSoFar
@@ -141,18 +148,6 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 
 		} else {
 			pos.logSearch.timeMs = int(time.Since(pos.timeStartingTime).Milliseconds())
-
-			/*
-				// ----------- LOG FILE ------------
-				// Write a new game to the file
-				var searchResult string = "Total time in ms for search: " + strconv.Itoa(timeLimitMs) + ". Depth: " + strconv.Itoa(pos.logSearch.depth) + ". Time Ms: " + strconv.Itoa(pos.logSearch.timeMs) + ". Nodes: " + strconv.Itoa(pos.logSearch.getTotalNodes()) + ". TT Hits: " + strconv.Itoa(pos.logSearch.nodesTTHit) + ". TT Stores: " + strconv.Itoa(pos.logSearch.nodesTTStore) + "."
-				_, err = fmt.Fprintln(file, searchResult)
-				if err != nil {
-					log.Fatal(err)
-				}
-				// ----------- LOG FILE ------------
-			*/
-
 			return
 		}
 	}
@@ -252,6 +247,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// we can then determine if the game is over (no legal moves is checkmate or stalemate etc.)
 	pos.generateLegalMoves()
 	pos.getGameStateAndStore()
+
 	if pos.gameState != STATE_ONGOING {
 		switch pos.gameState {
 

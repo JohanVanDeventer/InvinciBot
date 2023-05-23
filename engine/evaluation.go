@@ -498,7 +498,7 @@ func (pos *Position) getGameStateAndStore() {
 
 	// if there are moves, it's ongoing, unless the 50-move rule applies, or there is a 3-fold repetition
 	// 50-move rule: remember it's 50 full moves, so 100 plies
-	if pos.halfMoves >= 100 {
+	if pos.halfMoves > 100 {
 		pos.gameState = STATE_DRAW_50_MOVE_RULE
 		return
 	}

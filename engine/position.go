@@ -63,16 +63,16 @@ type Position struct {
 	ply int // increases by 1 each time white or black moves
 
 	// available moves in the current position
-	availableMoves        [256]Move // available moves in the current positiion
+	availableMoves        [256]Move // available moves in the current positiion (max theoretically is 218)
 	availableMovesCounter int       // counter points to the number of moves added
 
 	// previous game states
-	previousGameStates        [256]PreviousState
+	previousGameStates        [768]PreviousState
 	previousGameStatesCounter int
 
 	// hash of position
 	hashOfPos             Bitboard
-	previousHashes        [256]Bitboard
+	previousHashes        [768]Bitboard
 	previousHashesCounter int
 
 	// game state
