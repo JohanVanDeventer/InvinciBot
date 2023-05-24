@@ -6,7 +6,8 @@ package main
 // logs details about a search
 
 type LogSearch struct {
-	depth int // stores the depth for the last search
+	depth   int // stores the depth for the last search
+	qsDepth int // stores the qs depth of the last search
 
 	nodesAtDepth1Plus int // non-leaf nodes
 	nodesAtDepth0     int // leaf nodes where quiescence search is started
@@ -23,6 +24,7 @@ type LogSearch struct {
 
 func (log *LogSearch) resetLog() {
 	log.depth = 0
+	log.qsDepth = 0
 
 	log.nodesAtDepth1Plus = 0
 	log.nodesAtDepth0 = 0

@@ -134,6 +134,7 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 			pos.bestMoveSoFar = BLANK_MOVE
 
 			pos.logSearch.depth = depth
+			pos.logSearch.qsDepth = qsDepth
 
 		} else {
 			pos.logSearch.timeMs = int(time.Since(pos.timeStartingTime).Milliseconds())
@@ -283,9 +284,10 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// if we are not at a leaf node, we start ordering moves for the search to try optimise cutoffs
 	// we assume there are moves, because if there were no moves, we already would have returned checkmate or stalemate before
 	// move ordering is expensive, so we only sort moves certain number of plies away from the leaf nodes
+	// note, if we order at qsDepth + 1 then we will never hit unordered nodes (because at leaf nodes we just evaluate)
 	copyOfMoves := make([]Move, pos.availableMovesCounter)
 
-	if currentDepth >= qsDepth+1 { // we do order moves
+	if currentDepth >= (qsDepth + 1) { // we do order moves
 		copy(copyOfMoves, pos.getOrderedMoves())
 		pos.logSearch.moveOrderedNodes += 1
 	} else { // we don't order moves

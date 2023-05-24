@@ -145,10 +145,12 @@ func (pos *Position) printBoardToTerminal() {
 
 		case 6:
 			knps := math.Round((float64(pos.logSearch.getTotalNodes()) / (float64(pos.logSearch.timeMs) / 1000)) / 1000)
-			fmt.Printf("Search depth: %v. Nodes: %v. Knps: %v.\n", pos.logSearch.depth, pos.logSearch.getTotalNodes(), knps)
+			fmt.Printf("Search depth: %v. QS Depth: %v. Nodes: %v. Knps: %v.\n", pos.logSearch.depth, pos.logSearch.qsDepth, pos.logSearch.getTotalNodes(), knps)
 
 		case 5:
-			fmt.Printf("TT Uses: %v. TT Stores: %v.\n", pos.logSearch.nodesTTHit, pos.logSearch.nodesTTStore)
+			fmt.Printf("Nodes+1: %v. Nodes=0: %v. Nodes-1: %v. TT Uses: %v. TT Stores: %v. Ordered move nodes: %v. Unordered move nodes: %v.\n", pos.logSearch.nodesAtDepth1Plus,
+				pos.logSearch.nodesAtDepth0, pos.logSearch.nodesAtDepth1Min, pos.logSearch.nodesTTHit, pos.logSearch.nodesTTStore, pos.logSearch.moveOrderedNodes,
+				pos.logSearch.moveUnorderedNodes)
 
 		case 4:
 			fmt.Printf("Current move: %v. 50-move counter: %v.\n", pos.fullMoves, pos.halfMoves)
@@ -249,6 +251,7 @@ func (pos *Position) startGameLoopTerminalGUI() {
 
 		// if the game is over, break the loop
 		if pos.gameState != STATE_ONGOING {
+			pos.logOther.printLoggedDetails()
 			break
 		}
 
