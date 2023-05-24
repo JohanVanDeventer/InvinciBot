@@ -142,19 +142,50 @@ func (pos *Position) printBoardToTerminal() {
 			} else {
 				fmt.Printf("Turn: Black. Game Status: %v.\n", gameStateToText[pos.gameState])
 			}
+
 		case 6:
 			knps := math.Round((float64(pos.logSearch.getTotalNodes()) / (float64(pos.logSearch.timeMs) / 1000)) / 1000)
 			fmt.Printf("Search depth: %v. Nodes: %v. Knps: %v.\n", pos.logSearch.depth, pos.logSearch.getTotalNodes(), knps)
+
 		case 5:
 			fmt.Printf("TT Uses: %v. TT Stores: %v.\n", pos.logSearch.nodesTTHit, pos.logSearch.nodesTTStore)
+
 		case 4:
 			fmt.Printf("Current move: %v. 50-move counter: %v.\n", pos.fullMoves, pos.halfMoves)
+
 		case 3:
 			fmt.Printf("Eval material: %v. Eval heatmaps: %v. Eval other: %v.\n", pos.evalMaterial, pos.evalHeatmaps, pos.evalOther)
+
 		case 2:
-			fmt.Printf("\n")
+
+			// get the average ns per call
+			avgMoveGen := 0
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_KING].getAverageNsPerCall()
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_QUEEN].getAverageNsPerCall()
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_ROOK].getAverageNsPerCall()
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_KNIGHT].getAverageNsPerCall()
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_BISHOP].getAverageNsPerCall()
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_PAWN].getAverageNsPerCall()
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_KING_ATTACKS].getAverageNsPerCall()
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_PINS].getAverageNsPerCall()
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_EN_PASSANT].getAverageNsPerCall()
+			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_CASTLING].getAverageNsPerCall()
+
+			avgMakeMove := pos.logOther.allLogTypes[LOG_MAKE_MOVE].getAverageNsPerCall()
+			avgUndoMove := pos.logOther.allLogTypes[LOG_UNDO_MOVE].getAverageNsPerCall()
+			avgEval := pos.logOther.allLogTypes[LOG_EVAL].getAverageNsPerCall()
+			avgGameState := pos.logOther.allLogTypes[LOG_GAME_STATE].getAverageNsPerCall()
+
+			fmt.Printf("<<Average ns>> Move Gen: %v. Make Move: %v. Undo Move: %v. Eval: %v. Game State: %v.\n", avgMoveGen, avgMakeMove, avgUndoMove, avgEval, avgGameState)
+
 		case 1:
-			fmt.Printf("\n")
+			avgOrderMoves := pos.logOther.allLogTypes[LOG_ORDER_MOVES].getAverageNsPerCall()
+			avgTTGet := pos.logOther.allLogTypes[LOG_TT_GET].getAverageNsPerCall()
+			avgTTStore := pos.logOther.allLogTypes[LOG_TT_STORE].getAverageNsPerCall()
+			avgIterDeepOrder := pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].getAverageNsPerCall()
+
+			fmt.Printf("<<Average ns>> Order moves: %v. TT Get: %v. TT Store: %v. IterDeep Ordering: %v.\n", avgOrderMoves, avgTTGet, avgTTStore, avgIterDeepOrder)
+
 		case 0:
 			fmt.Printf("\n")
 		}
@@ -218,7 +249,6 @@ func (pos *Position) startGameLoopTerminalGUI() {
 
 		// if the game is over, break the loop
 		if pos.gameState != STATE_ONGOING {
-			pos.logOther.printLoggedDetails()
 			break
 		}
 

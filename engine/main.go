@@ -12,7 +12,7 @@ func main() {
 	pos := Position{}
 
 	// start either uci loop waiting for gui input, or start a gui loop for playing in the terminal
-	startAsUCI := true
+	startAsUCI := false
 
 	if startAsUCI {
 		pos.startUCIInputLoop()

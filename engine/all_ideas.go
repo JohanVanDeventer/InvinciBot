@@ -6,8 +6,12 @@ Ideas to consider / implement
 =============================
 
 --- Better eval ---
-Add eval for doubled pawns?
-Add eval for mobility?
+Note: needs to check both sides.
+
+Doubled pawns?
+Isolated pawns?
+Mobility? Simple pseudo legal moves masked with all blockers (don't go into legal moves only)?
+Bishop pair bonus?
 
 --- TT Size ---
 Test whether increasing the TT size helps improve play.

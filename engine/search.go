@@ -200,6 +200,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	alphaOriginal := alpha // store alpha before the search, if alpha is not increased (no better move found), then we know this is an upper bound
 
 	if currentDepth > 0 {
+		start_time_tt_get := time.Now()
+
 		// we only check the TT for non-quiescence nodes
 		// because we only save non-quiescence nodes in the TT
 		// this can be changed later if needed
@@ -231,6 +233,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				}
 			}
 		}
+
+		duration_time_tt_get := time.Since(start_time_tt_get).Nanoseconds()
+		pos.logOther.allLogTypes[LOG_TT_GET].addTime(int(duration_time_tt_get))
 	}
 
 	// -------------------------------------------------------- Game Over ------------------------------------------------------
@@ -282,8 +287,10 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	if currentDepth >= qsDepth+1 { // we do order moves
 		copy(copyOfMoves, pos.getOrderedMoves())
+		pos.logSearch.moveOrderedNodes += 1
 	} else { // we don't order moves
 		copy(copyOfMoves, pos.availableMoves[:pos.availableMovesCounter])
+		pos.logSearch.moveUnorderedNodes += 1
 	}
 
 	// ***** <<< SPECIAL CODE TO USE ITERATIVE DEEPENING BEST MOVE >>> ***** START
@@ -292,6 +299,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	if currentDepth == initialDepth { // if we are at the root depth
 		if pos.bestMove != BLANK_MOVE { // we need to first get a best move from iterative deepening before we can put it at the front
 
+			start_time_iter_deep_ordering := time.Now()
+
 			// find the index of the best move
 			bestIndex := -1
 			for index, move := range copyOfMoves {
@@ -299,6 +308,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					bestIndex = index
 				}
 			}
+
+			duration_time_iter_deep_ordering := time.Since(start_time_iter_deep_ordering).Nanoseconds()
+			pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].addTime(int(duration_time_iter_deep_ordering))
 
 			// remove the best move from the original position
 			copyOfMoves = append(copyOfMoves[:bestIndex], copyOfMoves[bestIndex+1:]...)
@@ -377,8 +389,13 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// store TT entries for non-quiescence nodes
 				// if we have a beta cut, this node failed high
 				// so beta is the lowest bound for next searches
+				start_time_tt_store := time.Now()
+
 				tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta))
 				pos.logSearch.nodesTTStore += 1
+
+				duration_time_tt_store := time.Since(start_time_tt_store).Nanoseconds()
+				pos.logOther.allLogTypes[LOG_TT_STORE].addTime(int(duration_time_tt_store))
 			}
 
 			return beta, false
@@ -394,7 +411,11 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// after iteration over all the moves, we store the node in the TT
 
 	// we store TT entries for non-quiescence nodes because they are fully searched
+
 	if currentDepth > 0 {
+
+		start_time_tt_store := time.Now()
+
 		if alpha > alphaOriginal {
 			// if alpha increased in the search, we know the exact value of the node, because:
 			// we also did not fail high, because we already would have had a beta cut before this code
@@ -408,6 +429,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_UPPERBOUND, int32(alpha))
 			pos.logSearch.nodesTTStore += 1
 		}
+
+		duration_time_tt_store := time.Since(start_time_tt_store).Nanoseconds()
+		pos.logOther.allLogTypes[LOG_TT_STORE].addTime(int(duration_time_tt_store))
 
 	}
 

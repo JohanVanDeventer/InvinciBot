@@ -16,6 +16,9 @@ type LogSearch struct {
 	nodesTTStore int // number of times a TT entry was stored
 
 	timeMs int // stores the time of the last search in milliseconds
+
+	moveOrderedNodes   int // nodes where moves were ordered
+	moveUnorderedNodes int // nodes where moves were unordered
 }
 
 func (log *LogSearch) resetLog() {
@@ -29,6 +32,9 @@ func (log *LogSearch) resetLog() {
 	log.nodesTTStore = 0
 
 	log.timeMs = 0
+
+	log.moveOrderedNodes = 0
+	log.moveUnorderedNodes = 0
 }
 
 func (log *LogSearch) getTotalNodes() int {

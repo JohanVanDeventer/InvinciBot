@@ -15,11 +15,13 @@ type LoggedType struct {
 	total int
 }
 
+// log a new entry and the time it took
 func (log *LoggedType) addTime(time int) {
 	log.count += 1
 	log.total += time
 }
 
+// print the logged details to the terminal
 func (log *LoggedType) printLoggedDetails() {
 	average := 0
 	if log.count > 0 {
@@ -27,6 +29,19 @@ func (log *LoggedType) printLoggedDetails() {
 	}
 	fmt.Printf("%v. Took %v ns for %v calls. Avg of %v per call.\n", log.name, log.total, log.count, average)
 }
+
+// get the average nanoseconds per call
+func (log *LoggedType) getAverageNsPerCall() int {
+	average := 0
+	if log.count > 0 {
+		average = log.total / log.count
+	}
+	return average
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------- Logging Manager -----------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 
 const (
 
@@ -60,15 +75,17 @@ const (
 
 	// order moves
 	LOG_ORDER_MOVES int = 15
+
+	// search logging
+	LOG_TT_GET   int = 16
+	LOG_TT_STORE int = 17
+
+	LOG_ITER_DEEP_MOVE_FIRST int = 18
 )
 
-// --------------------------------------------------------------------------------------------------------------------
-// ---------------------------------------------------- Logging Manager -----------------------------------------------
-// --------------------------------------------------------------------------------------------------------------------
 // logging manager to manage all the LoggedType structs for a position
-
 type LogOther struct {
-	allLogTypes [16]LoggedType
+	allLogTypes [19]LoggedType
 }
 
 // get a new logging manager when a position is initialized
@@ -105,6 +122,11 @@ func getLoggingManager() LogOther {
 
 	// order moves
 	newLoggingManager.allLogTypes[LOG_ORDER_MOVES] = LoggedType{"Order Moves      ", 0, 0}
+
+	// search logging
+	newLoggingManager.allLogTypes[LOG_TT_GET] = LoggedType{"Get TT Entry     ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_TT_STORE] = LoggedType{"Store TT Entry   ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST] = LoggedType{"IterDeep Ordering", 0, 0}
 
 	return newLoggingManager
 }
