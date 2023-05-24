@@ -11,8 +11,11 @@ var initEngineWasDone bool = false
 
 func initEngine() {
 	if !initEngineWasDone {
+
+		// general
 		initBBReferenceArray()
 
+		// move generation
 		initMoveLookupTablePawns()
 		initMoveLookupTableKings()
 		initMoveLookupTableKnights()
@@ -21,16 +24,22 @@ func initEngine() {
 		initMovePawnAttackingKingMasks()
 		initMovePinnedPiecesMasks()
 
+		// perft and tests
 		initTestPositions()
 		initBestMovePositions()
 
+		// hashing
 		initHashTables()
 
+		// eval
 		initEvalTables()
 		initEvalMaterialAndStageTables()
+		initEvalColumnMasks()
 
+		// terminal gui
 		initGameStateToText()
 
+		// search
 		initQSDepthLimits()
 
 		initEngineWasDone = true

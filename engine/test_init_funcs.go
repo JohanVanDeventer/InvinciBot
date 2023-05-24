@@ -235,4 +235,14 @@ func printInitTestResults() {
 
 	fmt.Println("---- Combined Eval Table: End: Black Pawn: Sq 33 ----")
 	fmt.Printf("%v\n", evalTableCombinedEnd[SIDE_BLACK][PIECE_PAWN][33])
+
+	// eval: column masks
+	fmt.Println("---- Column Masks: Col 0 ----")
+	columnMasks[0].printBitboardFancy8x8()
+
+	fmt.Println("---- Column Masks: Col 4 ----")
+	columnMasks[4].printBitboardFancy8x8()
+
+	fmt.Println("---- Column Masks: Col 7 ----")
+	columnMasks[7].printBitboardFancy8x8()
 }

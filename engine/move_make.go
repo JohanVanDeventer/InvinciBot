@@ -69,7 +69,18 @@ func (pos *Position) makeMove(move Move) {
 	// ^^^^^^^^^ HASH ^^^^^^^^^ hash the "from" friendly piece out
 	pos.hashOfPos ^= hashTablePieces[move.fromSq][frSide][move.piece]
 
-	// ^^^^^^^^^ EVAL ^^^^^^^^^ no eval yet, no piece is taken
+	// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ no eval yet, no piece is taken
+
+	// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ remove the weighted heatmap value of the "from" square
+	// this is done on the "before" stage, because that stage was used to add the value previously (after captures on the previous move)
+	evalMidVsEndStageBefore := pos.evalMidVsEndStage
+	if evalMidVsEndStageBefore > 24 { // cap to 24
+		evalMidVsEndStageBefore = 24
+	}
+	midValueFriendlyFrom := evalTableCombinedMid[frSide][move.piece][move.fromSq]
+	endValueFriendlyFrom := evalTableCombinedEnd[frSide][move.piece][move.fromSq]
+	weightedValueFriendlyFrom := ((midValueFriendlyFrom * evalMidVsEndStageBefore) + (endValueFriendlyFrom * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+	pos.evalHeatmaps -= weightedValueFriendlyFrom
 
 	// add the piece on the "to" square on all friendly bitboards
 	pos.piecesAll[SIDE_BOTH].setBit(move.toSq)
@@ -79,18 +90,26 @@ func (pos *Position) makeMove(move Move) {
 	// ^^^^^^^^^ HASH ^^^^^^^^^ hash the "to" friendly piece in
 	pos.hashOfPos ^= hashTablePieces[move.toSq][frSide][move.piece]
 
-	// ^^^^^^^^^ EVAL ^^^^^^^^^ no eval yet, no piece is taken
+	// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ no eval yet, no piece is taken
+
+	// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ wait before we add this, we need to first update the new game stage value (captures, promotions) before it's added
 
 	// now depending on the move type, remove enemy pieces, capture en-passant, or castle
 	switch move.moveType {
 
-	// case MOVE_TYPE_QUIET:
-	// for quiet moves, just place the piece on the new square
-	// already done above
+	case MOVE_TYPE_QUIET:
+		// for quiet moves, just place the piece on the new square
+		// already done above
 
-	// ^^^^^^^^^ HASH ^^^^^^^^^ nothing extra required
+		// ^^^^^^^^^ HASH ^^^^^^^^^ nothing extra required
 
-	// ^^^^^^^^^ EVAL ^^^^^^^^^ nothing extra required
+		// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ nothing extra required
+
+		// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ we add the friendly piece new heatmap value (use the stage value before, no changes were made to the stage value)
+		midValueFriendlyTo := evalTableCombinedMid[frSide][move.piece][move.toSq]
+		endValueFriendlyTo := evalTableCombinedEnd[frSide][move.piece][move.toSq]
+		weightedValueFriendlyTo := ((midValueFriendlyTo * evalMidVsEndStageBefore) + (endValueFriendlyTo * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+		pos.evalHeatmaps += weightedValueFriendlyTo
 
 	case MOVE_TYPE_CAPTURE:
 		// remove the enemy piece
@@ -100,9 +119,26 @@ func (pos *Position) makeMove(move Move) {
 		// ^^^^^^^^^ HASH ^^^^^^^^^ hash the "to" enemy piece out
 		pos.hashOfPos ^= hashTablePieces[move.toSq][enSide][enemyPiece]
 
-		// ^^^^^^^^^ EVAL ^^^^^^^^^ remove the captured piece from the material eval and game stage eval
+		// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ remove the captured piece from the material eval and game stage eval
 		pos.evalMaterial -= evalTableMaterial[enSide][enemyPiece]
 		pos.evalMidVsEndStage -= evalTableGameStage[enemyPiece]
+
+		// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ add the friendly piece, and remove the enemy piece from the heatmap value
+		// we add the friendly piece using the stage after captures
+		// but we remove the enemy piece using the stage before captures (that was used to record it's value initially)
+		midValueEnemyTo := evalTableCombinedMid[enSide][enemyPiece][move.toSq]
+		endValueEnemyTo := evalTableCombinedEnd[enSide][enemyPiece][move.toSq]
+		weightedValueEnemyTo := ((midValueEnemyTo * evalMidVsEndStageBefore) + (endValueEnemyTo * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+		pos.evalHeatmaps -= weightedValueEnemyTo
+
+		evalMidVsEndStageAfter := pos.evalMidVsEndStage
+		if evalMidVsEndStageAfter > 24 {
+			evalMidVsEndStageAfter = 24
+		}
+		midValueFriendlyTo := evalTableCombinedMid[frSide][move.piece][move.toSq]
+		endValueFriendlyTo := evalTableCombinedEnd[frSide][move.piece][move.toSq]
+		weightedValueFriendlyTo := ((midValueFriendlyTo * evalMidVsEndStageAfter) + (endValueFriendlyTo * (STAGE_VAL_STARTING - evalMidVsEndStageAfter))) / STAGE_VAL_STARTING
+		pos.evalHeatmaps += weightedValueFriendlyTo
 
 	case MOVE_TYPE_EN_PASSANT:
 		// remove the en-passant captured pawn
@@ -114,9 +150,26 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the "en-passant" enemy piece out
 			pos.hashOfPos ^= hashTablePieces[move.toSq-8][enSide][PIECE_PAWN]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ remove the captured piece from the material eval and game stage eval
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ remove the captured piece from the material eval and game stage eval
 			pos.evalMaterial -= evalTableMaterial[enSide][PIECE_PAWN]
 			pos.evalMidVsEndStage -= evalTableGameStage[PIECE_PAWN]
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ add the friendly piece, and remove the enemy piece from the heatmap value
+			// we add the friendly piece using the stage after captures
+			// but we remove the enemy piece using the stage before captures (that was used to record it's value initially)
+			midValueEnemyTo := evalTableCombinedMid[enSide][PIECE_PAWN][move.toSq-8]
+			endValueEnemyTo := evalTableCombinedEnd[enSide][PIECE_PAWN][move.toSq-8]
+			weightedValueEnemyTo := ((midValueEnemyTo * evalMidVsEndStageBefore) + (endValueEnemyTo * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps -= weightedValueEnemyTo
+
+			evalMidVsEndStageAfter := pos.evalMidVsEndStage
+			if evalMidVsEndStageAfter > 24 {
+				evalMidVsEndStageAfter = 24
+			}
+			midValueFriendlyTo := evalTableCombinedMid[frSide][PIECE_PAWN][move.toSq]
+			endValueFriendlyTo := evalTableCombinedEnd[frSide][PIECE_PAWN][move.toSq]
+			weightedValueFriendlyTo := ((midValueFriendlyTo * evalMidVsEndStageAfter) + (endValueFriendlyTo * (STAGE_VAL_STARTING - evalMidVsEndStageAfter))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyTo
 
 		} else {
 			pos.piecesAll[SIDE_BOTH].clearBit(move.toSq + 8)
@@ -126,9 +179,26 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the "en-passant" enemy piece out
 			pos.hashOfPos ^= hashTablePieces[move.toSq+8][enSide][PIECE_PAWN]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ remove the captured piece from the material eval and game stage eval
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ remove the captured piece from the material eval and game stage eval
 			pos.evalMaterial -= evalTableMaterial[enSide][PIECE_PAWN]
 			pos.evalMidVsEndStage -= evalTableGameStage[PIECE_PAWN]
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ add the friendly piece, and remove the enemy piece from the heatmap value
+			// we add the friendly piece using the stage after captures
+			// but we remove the enemy piece using the stage before captures (that was used to record it's value initially)
+			midValueEnemyTo := evalTableCombinedMid[enSide][PIECE_PAWN][move.toSq+8]
+			endValueEnemyTo := evalTableCombinedEnd[enSide][PIECE_PAWN][move.toSq+8]
+			weightedValueEnemyTo := ((midValueEnemyTo * evalMidVsEndStageBefore) + (endValueEnemyTo * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps -= weightedValueEnemyTo
+
+			evalMidVsEndStageAfter := pos.evalMidVsEndStage
+			if evalMidVsEndStageAfter > 24 {
+				evalMidVsEndStageAfter = 24
+			}
+			midValueFriendlyTo := evalTableCombinedMid[frSide][PIECE_PAWN][move.toSq]
+			endValueFriendlyTo := evalTableCombinedEnd[frSide][PIECE_PAWN][move.toSq]
+			weightedValueFriendlyTo := ((midValueFriendlyTo * evalMidVsEndStageAfter) + (endValueFriendlyTo * (STAGE_VAL_STARTING - evalMidVsEndStageAfter))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyTo
 		}
 
 	case MOVE_TYPE_CASTLE:
@@ -141,7 +211,13 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the rook out
 			pos.hashOfPos ^= hashTablePieces[7][frSide][PIECE_ROOK]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ nothing extra required
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ nothing extra required
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ remove the value of the removed rook (using value before, no captures were made)
+			midValueFriendlyToRemove := evalTableCombinedMid[frSide][PIECE_ROOK][7]
+			endValueFriendlyToRemove := evalTableCombinedEnd[frSide][PIECE_ROOK][7]
+			weightedValueFriendlyToRemove := ((midValueFriendlyToRemove * evalMidVsEndStageBefore) + (endValueFriendlyToRemove * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps -= weightedValueFriendlyToRemove
 
 			// and add to the new square
 			pos.piecesAll[SIDE_BOTH].setBit(5)
@@ -151,7 +227,18 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the rook in
 			pos.hashOfPos ^= hashTablePieces[5][frSide][PIECE_ROOK]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ nothing extra required
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ nothing extra required
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ add the value of the moved rook (using value before, no captures were made)
+			// also add the king value on the "to" square (not done yet)
+			midValueFriendlyToAdd := evalTableCombinedMid[frSide][PIECE_ROOK][5]
+			endValueFriendlyToAdd := evalTableCombinedEnd[frSide][PIECE_ROOK][5]
+			weightedValueFriendlyToAdd := ((midValueFriendlyToAdd * evalMidVsEndStageBefore) + (endValueFriendlyToAdd * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyToAdd
+			midValueFriendlyKing := evalTableCombinedMid[frSide][PIECE_KING][move.toSq]
+			endValueFriendlyKing := evalTableCombinedEnd[frSide][PIECE_KING][move.toSq]
+			weightedValueFriendlyKing := ((midValueFriendlyKing * evalMidVsEndStageBefore) + (endValueFriendlyKing * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyKing
 		}
 
 		if move.toSq == 2 {
@@ -163,7 +250,13 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the rook out
 			pos.hashOfPos ^= hashTablePieces[0][frSide][PIECE_ROOK]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ nothing extra required
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ nothing extra required
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ remove the value of the removed rook (using value before, no captures were made)
+			midValueFriendlyToRemove := evalTableCombinedMid[frSide][PIECE_ROOK][0]
+			endValueFriendlyToRemove := evalTableCombinedEnd[frSide][PIECE_ROOK][0]
+			weightedValueFriendlyToRemove := ((midValueFriendlyToRemove * evalMidVsEndStageBefore) + (endValueFriendlyToRemove * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps -= weightedValueFriendlyToRemove
 
 			// and add to the new square
 			pos.piecesAll[SIDE_BOTH].setBit(3)
@@ -173,7 +266,18 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the rook in
 			pos.hashOfPos ^= hashTablePieces[3][frSide][PIECE_ROOK]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ nothing extra required
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ nothing extra required
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ add the value of the moved rook (using value before, no captures were made)
+			// also add the king value on the "to" square (not done yet)
+			midValueFriendlyToAdd := evalTableCombinedMid[frSide][PIECE_ROOK][3]
+			endValueFriendlyToAdd := evalTableCombinedEnd[frSide][PIECE_ROOK][3]
+			weightedValueFriendlyToAdd := ((midValueFriendlyToAdd * evalMidVsEndStageBefore) + (endValueFriendlyToAdd * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyToAdd
+			midValueFriendlyKing := evalTableCombinedMid[frSide][PIECE_KING][move.toSq]
+			endValueFriendlyKing := evalTableCombinedEnd[frSide][PIECE_KING][move.toSq]
+			weightedValueFriendlyKing := ((midValueFriendlyKing * evalMidVsEndStageBefore) + (endValueFriendlyKing * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyKing
 		}
 
 		if move.toSq == 62 {
@@ -185,7 +289,13 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the rook out
 			pos.hashOfPos ^= hashTablePieces[63][frSide][PIECE_ROOK]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ nothing extra required
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ nothing extra required
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ remove the value of the removed rook (using value before, no captures were made)
+			midValueFriendlyToRemove := evalTableCombinedMid[frSide][PIECE_ROOK][63]
+			endValueFriendlyToRemove := evalTableCombinedEnd[frSide][PIECE_ROOK][63]
+			weightedValueFriendlyToRemove := ((midValueFriendlyToRemove * evalMidVsEndStageBefore) + (endValueFriendlyToRemove * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps -= weightedValueFriendlyToRemove
 
 			// and add to the new square
 			pos.piecesAll[SIDE_BOTH].setBit(61)
@@ -195,7 +305,18 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the rook in
 			pos.hashOfPos ^= hashTablePieces[61][frSide][PIECE_ROOK]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ nothing extra required
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ nothing extra required
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ add the value of the moved rook (using value before, no captures were made)
+			// also add the king value on the "to" square (not done yet)
+			midValueFriendlyToAdd := evalTableCombinedMid[frSide][PIECE_ROOK][61]
+			endValueFriendlyToAdd := evalTableCombinedEnd[frSide][PIECE_ROOK][61]
+			weightedValueFriendlyToAdd := ((midValueFriendlyToAdd * evalMidVsEndStageBefore) + (endValueFriendlyToAdd * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyToAdd
+			midValueFriendlyKing := evalTableCombinedMid[frSide][PIECE_KING][move.toSq]
+			endValueFriendlyKing := evalTableCombinedEnd[frSide][PIECE_KING][move.toSq]
+			weightedValueFriendlyKing := ((midValueFriendlyKing * evalMidVsEndStageBefore) + (endValueFriendlyKing * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyKing
 		}
 
 		if move.toSq == 58 {
@@ -207,7 +328,13 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the rook out
 			pos.hashOfPos ^= hashTablePieces[56][frSide][PIECE_ROOK]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ nothing extra required
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ nothing extra required
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ remove the value of the removed rook (using value before, no captures were made)
+			midValueFriendlyToRemove := evalTableCombinedMid[frSide][PIECE_ROOK][56]
+			endValueFriendlyToRemove := evalTableCombinedEnd[frSide][PIECE_ROOK][56]
+			weightedValueFriendlyToRemove := ((midValueFriendlyToRemove * evalMidVsEndStageBefore) + (endValueFriendlyToRemove * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps -= weightedValueFriendlyToRemove
 
 			// and add to the new square
 			pos.piecesAll[SIDE_BOTH].setBit(59)
@@ -217,12 +344,26 @@ func (pos *Position) makeMove(move Move) {
 			// ^^^^^^^^^ HASH ^^^^^^^^^ hash the rook in
 			pos.hashOfPos ^= hashTablePieces[59][frSide][PIECE_ROOK]
 
-			// ^^^^^^^^^ EVAL ^^^^^^^^^ nothing extra required
+			// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ nothing extra required
+
+			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ add the value of the moved rook (using value before, no captures were made)
+			// also add the king value on the "to" square (not done yet)
+			midValueFriendlyToAdd := evalTableCombinedMid[frSide][PIECE_ROOK][56]
+			endValueFriendlyToAdd := evalTableCombinedEnd[frSide][PIECE_ROOK][56]
+			weightedValueFriendlyToAdd := ((midValueFriendlyToAdd * evalMidVsEndStageBefore) + (endValueFriendlyToAdd * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyToAdd
+			midValueFriendlyKing := evalTableCombinedMid[frSide][PIECE_KING][move.toSq]
+			endValueFriendlyKing := evalTableCombinedEnd[frSide][PIECE_KING][move.toSq]
+			weightedValueFriendlyKing := ((midValueFriendlyKing * evalMidVsEndStageBefore) + (endValueFriendlyKing * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
+			pos.evalHeatmaps += weightedValueFriendlyKing
 		}
 	}
 
 	// handle promotions if there are any
 	if move.promotionType != PROMOTION_NONE {
+
+		// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ save the "after" game stage used for pawn captures and quiet moves but before promotions (used below)
+		evalMidVsEndStageAfterCapturesBeforePromotions := pos.evalMidVsEndStage
 
 		// remove the friendly pawn on that square
 		pos.pieces[frSide][PIECE_PAWN].clearBit(move.toSq)
@@ -230,9 +371,11 @@ func (pos *Position) makeMove(move Move) {
 		// ^^^^^^^^^ HASH ^^^^^^^^^ remove the friendly pawn
 		pos.hashOfPos ^= hashTablePieces[move.toSq][frSide][PIECE_PAWN]
 
-		// ^^^^^^^^^ EVAL ^^^^^^^^^ remove the pawn from the eval
+		// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ remove the pawn from the eval
 		pos.evalMaterial -= evalTableMaterial[frSide][PIECE_PAWN]
 		pos.evalMidVsEndStage -= evalTableGameStage[PIECE_PAWN]
+
+		// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ do both below after the whole game stage has been updated (remove pawn and add promoted piece)
 
 		// add the promoted piece to the relevant bitboard
 		pos.pieces[frSide][move.promotionType].setBit(move.toSq)
@@ -240,9 +383,22 @@ func (pos *Position) makeMove(move Move) {
 		// ^^^^^^^^^ HASH ^^^^^^^^^ add the promoted piece
 		pos.hashOfPos ^= hashTablePieces[move.toSq][frSide][move.promotionType]
 
-		// ^^^^^^^^^ EVAL ^^^^^^^^^ add the promoted piece to the eval
+		// ^^^^^^^^^ EVAL: MATERIAL AND GAME STAGE ^^^^^^^^^ add the promoted piece to the eval
 		pos.evalMaterial += evalTableMaterial[frSide][move.promotionType]
 		pos.evalMidVsEndStage += evalTableGameStage[move.promotionType]
+
+		// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ remove the friendly pawn and add the promoted piece
+		// remove the friendly pawn using the stage value after captures and other moves but before updating for promotions
+		// add the promoted piece using the stage value after updating for promotions
+		midValueFriendlyPawn := evalTableCombinedMid[frSide][PIECE_PAWN][move.toSq]
+		endValueFriendlyPawn := evalTableCombinedEnd[frSide][PIECE_PAWN][move.toSq]
+		weightedValueFriendlyPawn := ((midValueFriendlyPawn * evalMidVsEndStageAfterCapturesBeforePromotions) + (endValueFriendlyPawn * (STAGE_VAL_STARTING - evalMidVsEndStageAfterCapturesBeforePromotions))) / STAGE_VAL_STARTING
+		pos.evalHeatmaps -= weightedValueFriendlyPawn
+
+		midValueFriendlyPiece := evalTableCombinedMid[frSide][move.promotionType][move.toSq]
+		endValueFriendlyPiece := evalTableCombinedEnd[frSide][move.promotionType][move.toSq]
+		weightedValueFriendlyPiece := ((midValueFriendlyPiece * pos.evalMidVsEndStage) + (endValueFriendlyPiece * (STAGE_VAL_STARTING - pos.evalMidVsEndStage))) / STAGE_VAL_STARTING
+		pos.evalHeatmaps += weightedValueFriendlyPiece
 	}
 
 	// ^^^^^^^^^ HASH ^^^^^^^^^ store the castling rights before changes
