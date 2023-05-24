@@ -4,6 +4,9 @@ import (
 	"fmt"
 )
 
+// --------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------- Perft Positions -----------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // various test positions used to test move generation
 
 type TestPosition struct {
@@ -95,6 +98,11 @@ func initTestPositions() {
 
 }
 
+// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------- Perft ----------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+
+// count nodes visited
 func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 
 	// check for depth limit
@@ -136,6 +144,7 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 	return totalNodeCount
 }
 
+// loop over each perft position and print the results to the terminal
 func printPerftResults() {
 
 	fmt.Println(" ")

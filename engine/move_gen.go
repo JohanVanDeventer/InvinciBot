@@ -4,12 +4,10 @@ import (
 	"time"
 )
 
-/*
-
 // --------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------- Legal Move Generation -----------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
-
+/*
 -------------------------------------------------------- Move Struct ----------------------------------------------------
 A move needs to have the following information:
 1. From square (easy to obtain when generating moves from that square).
@@ -69,10 +67,10 @@ At the end, valid moves will be a combination of:
 
 func (pos *Position) generateLegalMoves() {
 
-	// reset the counter
+	// reset the moves counter
 	pos.availableMovesCounter = 0
 
-	// assign the friendly and enemy pieces
+	// assign the friendly and enemy pieces and sides
 	var frKing Bitboard
 	var frQueens Bitboard
 	var frRooks Bitboard
@@ -142,7 +140,6 @@ func (pos *Position) generateLegalMoves() {
 			pos.pieces[enSide][PIECE_KING],
 			pos.isWhiteTurn) {
 			if pos.piecesAll[enSide]&bbReferenceArray[nextMoveSq] != 0 { // capture
-				//pos.availableMoves = append(pos.availableMoves, Move{kingSq, nextMoveSq, MOVE_TYPE_CAPTURE, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = kingSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextMoveSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_KING
@@ -152,7 +149,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
-				//pos.availableMoves = append(pos.availableMoves, Move{kingSq, nextMoveSq, MOVE_TYPE_QUIET, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = kingSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextMoveSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_KING
@@ -237,7 +233,6 @@ func (pos *Position) generateLegalMoves() {
 		for nextQueenMoves != 0 {
 			nextQueenTargetSq := nextQueenMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextQueenTargetSq] != 0 { // capture
-				//pos.availableMoves = append(pos.availableMoves, Move{nextQueenOriginSq, nextQueenTargetSq, MOVE_TYPE_CAPTURE, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextQueenOriginSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextQueenTargetSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_QUEEN
@@ -247,7 +242,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
-				//pos.availableMoves = append(pos.availableMoves, Move{nextQueenOriginSq, nextQueenTargetSq, MOVE_TYPE_QUIET, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextQueenOriginSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextQueenTargetSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_QUEEN
@@ -292,7 +286,6 @@ func (pos *Position) generateLegalMoves() {
 		for nextRookMoves != 0 {
 			nextRookTargetSq := nextRookMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextRookTargetSq] != 0 { // capture
-				//pos.availableMoves = append(pos.availableMoves, Move{nextRookOriginSq, nextRookTargetSq, MOVE_TYPE_CAPTURE, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextRookOriginSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextRookTargetSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_ROOK
@@ -302,7 +295,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
-				//pos.availableMoves = append(pos.availableMoves, Move{nextRookOriginSq, nextRookTargetSq, MOVE_TYPE_QUIET, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextRookOriginSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextRookTargetSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_ROOK
@@ -347,7 +339,6 @@ func (pos *Position) generateLegalMoves() {
 		for nextBishopMoves != 0 {
 			nextBishopTargetSq := nextBishopMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextBishopTargetSq] != 0 { // capture
-				//pos.availableMoves = append(pos.availableMoves, Move{nextBishopOriginSq, nextBishopTargetSq, MOVE_TYPE_CAPTURE, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextBishopOriginSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextBishopTargetSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_BISHOP
@@ -357,7 +348,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
-				//pos.availableMoves = append(pos.availableMoves, Move{nextBishopOriginSq, nextBishopTargetSq, MOVE_TYPE_QUIET, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextBishopOriginSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextBishopTargetSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_BISHOP
@@ -401,7 +391,6 @@ func (pos *Position) generateLegalMoves() {
 		for nextKnightMoves != 0 {
 			nextKnightTargetSq := nextKnightMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextKnightTargetSq] != 0 { // capture
-				//pos.availableMoves = append(pos.availableMoves, Move{nextKnightOriginSq, nextKnightTargetSq, MOVE_TYPE_CAPTURE, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextKnightOriginSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextKnightTargetSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_KNIGHT
@@ -411,7 +400,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
-				//pos.availableMoves = append(pos.availableMoves, Move{nextKnightOriginSq, nextKnightTargetSq, MOVE_TYPE_QUIET, PROMOTION_NONE, 0, 0})
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextKnightOriginSq
 				pos.availableMoves[pos.availableMovesCounter].toSq = nextKnightTargetSq
 				pos.availableMoves[pos.availableMovesCounter].piece = PIECE_KNIGHT
@@ -467,7 +455,6 @@ func (pos *Position) generateLegalMoves() {
 			nextPawnTargetSq := nextPawnMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextPawnTargetSq] != 0 { // capture
 				if nextPawnTargetSq >= 56 || nextPawnTargetSq <= 7 { // if there is a promotion
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_PROMOTION, PROMOTION_QUEEN, 0, 0})
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -476,7 +463,7 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
 					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_PROMOTION, PROMOTION_ROOK, 0, 0})
+
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -485,7 +472,7 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
 					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_PROMOTION, PROMOTION_KNIGHT, 0, 0})
+
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -494,7 +481,7 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
 					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_PROMOTION, PROMOTION_BISHOP, 0, 0})
+
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -504,7 +491,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 				} else { // if there is not a promotion
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_CAPTURE, PROMOTION_NONE, 0, 0})
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -516,7 +502,6 @@ func (pos *Position) generateLegalMoves() {
 				}
 			} else { // quiet move
 				if nextPawnTargetSq >= 56 || nextPawnTargetSq <= 7 { // if there is a promotion
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_PROMOTION, PROMOTION_QUEEN, 0, 0})
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -525,7 +510,7 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
 					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_PROMOTION, PROMOTION_ROOK, 0, 0})
+
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -534,7 +519,7 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
 					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_PROMOTION, PROMOTION_KNIGHT, 0, 0})
+
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -543,7 +528,7 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
 					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_PROMOTION, PROMOTION_BISHOP, 0, 0})
+
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -553,7 +538,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 				} else { // if there is not a promotion
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnTargetSq, MOVE_TYPE_QUIET, PROMOTION_NONE, 0, 0})
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnTargetSq
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -635,7 +619,6 @@ func (pos *Position) generateLegalMoves() {
 				}
 
 				if nextPawnMoves != 0 { // if there are still moves remaining
-					//pos.availableMoves = append(pos.availableMoves, Move{nextPawnOriginSq, nextPawnMoves.popBitGetSq(), MOVE_TYPE_CAPTURE, PROMOTION_NONE, 0, 0})
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
 					pos.availableMoves[pos.availableMovesCounter].toSq = nextPawnMoves.popBitGetSq()
 					pos.availableMoves[pos.availableMovesCounter].piece = PIECE_PAWN
@@ -682,7 +665,7 @@ func (pos *Position) generateLegalMoves() {
 						pos.pieces[enSide][PIECE_PAWN],
 						pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) {
-						//pos.availableMoves = append(pos.availableMoves, Move{4, 6, MOVE_TYPE_CASTLE, PROMOTION_NONE, 0, 0})
+
 						pos.availableMoves[pos.availableMovesCounter].fromSq = 4
 						pos.availableMoves[pos.availableMovesCounter].toSq = 6
 						pos.availableMoves[pos.availableMovesCounter].piece = PIECE_KING
@@ -722,7 +705,7 @@ func (pos *Position) generateLegalMoves() {
 						pos.pieces[enSide][PIECE_PAWN],
 						pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) {
-						//pos.availableMoves = append(pos.availableMoves, Move{4, 2, MOVE_TYPE_CASTLE, PROMOTION_NONE, 0, 0})
+
 						pos.availableMoves[pos.availableMovesCounter].fromSq = 4
 						pos.availableMoves[pos.availableMovesCounter].toSq = 2
 						pos.availableMoves[pos.availableMovesCounter].piece = PIECE_KING
@@ -762,7 +745,7 @@ func (pos *Position) generateLegalMoves() {
 						pos.pieces[enSide][PIECE_PAWN],
 						pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) {
-						//pos.availableMoves = append(pos.availableMoves, Move{60, 62, MOVE_TYPE_CASTLE, PROMOTION_NONE, 0, 0})
+
 						pos.availableMoves[pos.availableMovesCounter].fromSq = 60
 						pos.availableMoves[pos.availableMovesCounter].toSq = 62
 						pos.availableMoves[pos.availableMovesCounter].piece = PIECE_KING
@@ -802,7 +785,7 @@ func (pos *Position) generateLegalMoves() {
 						pos.pieces[enSide][PIECE_PAWN],
 						pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) {
-						//pos.availableMoves = append(pos.availableMoves, Move{60, 58, MOVE_TYPE_CASTLE, PROMOTION_NONE, 0, 0})
+
 						pos.availableMoves[pos.availableMovesCounter].fromSq = 60
 						pos.availableMoves[pos.availableMovesCounter].toSq = 58
 						pos.availableMoves[pos.availableMovesCounter].piece = PIECE_KING
@@ -857,8 +840,6 @@ func getRookMovesPseudo(sq int, blockers Bitboard) Bitboard {
 		newBitboard &= ^moveRaysTable[blockerSq][RAY_LEFT]
 	}
 
-	// filter out friendly pieces from the final bitboard
-	//return newBitboard & ^frPieces
 	return newBitboard
 
 }
@@ -894,8 +875,6 @@ func getBishopMovesPseudo(sq int, blockers Bitboard) Bitboard {
 		newBitboard &= ^moveRaysTable[blockerSq][RAY_DL]
 	}
 
-	// filter out friendly pieces from the final bitboard
-	//return newBitboard & ^frPieces
 	return newBitboard
 }
 
@@ -909,12 +888,10 @@ func getQueenMovesPseudo(sq int, blockers Bitboard) Bitboard {
 }
 
 func getKingMovesPseudo(sq int) Bitboard {
-	//return moveKingsTable[sq] & ^frPieces
 	return moveKingsTable[sq]
 }
 
 func getKnightMovesPseudo(sq int) Bitboard {
-	//return moveKnightsTable[sq] & ^frPieces
 	return moveKnightsTable[sq]
 }
 
@@ -1160,7 +1137,7 @@ func isSqAttacked(sq int, blockers Bitboard, frKing Bitboard, enQ Bitboard, enR 
 // ----------------------------------------------- Check for Pinned Pieces --------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 
-// return 4 bitboards, each with the pieces pinned in the 4 main directions
+// return 4 bitboards, each with the pieces pinned in the 4 main directions (vertical, horizontal, and both diagonals)
 func getPinnedPieces(
 	kingSq int, blockers Bitboard, frPieces Bitboard, frPawns Bitboard, enPieces Bitboard, enQ Bitboard, enR Bitboard, enB Bitboard, enPTarget Bitboard, isWhiteTurn bool) (
 	Bitboard, Bitboard, Bitboard, Bitboard) {

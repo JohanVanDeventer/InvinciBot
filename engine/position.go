@@ -4,8 +4,13 @@ import (
 	"time"
 )
 
+// --------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------- Position --------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+
 /*
 
+------- Board ----------
 8 | . . . . . . . .
 7 | . . . . . . . .
 6 | . . . . . . . .
@@ -15,7 +20,7 @@ import (
 2 | . . . . . . . .
 1 | . . . . . . . .
 ----------------
-a b c d e f g h
+    a b c d e f g h
 
 ------- Coordinates ----------
 56, 57, 58, 59, 60, 61, 62, 63 (63 is least significant (right most) bit)
@@ -27,8 +32,8 @@ a b c d e f g h
 08, 09, 10, 11, 12, 13, 14, 15
 00, 01, 02, 03, 04, 05, 06, 07 (0 is the most significant (left most) bit)
 
-position 00: 1000000000000000000000000000000000000000000000000000000000000000
-position 63: 0000000000000000000000000000000000000000000000000000000000000001
+square 00: 1000000000000000000000000000000000000000000000000000000000000000
+square 63: 0000000000000000000000000000000000000000000000000000000000000001
 
 */
 
@@ -99,19 +104,21 @@ type Position struct {
 	logOther  LogOther
 }
 
+// --------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------- Position Setup ------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+// steps needed to get a new position ready to play a game
+
 // -------------------------------------------------- Step 1: Load the Fen String -----------------------------------------------
 // load only the fen string into the position
 func (pos *Position) step1InitFen(fen string) {
 
-	// reset the position variables before loading new
-
 	// load the fen string into the position
 	pos.loadFenIntoPosition(fen)
-
 }
 
 // ---------------------------------------- Step 2: Initialize the rest of the position -----------------------------------------
-// init the rest of the position ready to start
+// init the rest of the position variables
 func (pos *Position) step2InitRest() {
 
 	// add the initialized logging manager
@@ -126,7 +133,9 @@ func (pos *Position) step2InitRest() {
 
 }
 
-// ----------------------------------------------------------- Reset Position ---------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------- Reset Position ------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // sets the position values to the default to allow a new position to be loaded after a previous position was already loaded
 // only some variables need to be reset (for example eval, game state etc are set in other functions already)
 func (pos *Position) reset() {
@@ -155,7 +164,7 @@ func (pos *Position) reset() {
 	pos.halfMoves = 0
 	pos.fullMoves = 0
 
-	// reset the other variables
+	// reset the other position variables
 	pos.ply = 0
 
 	pos.availableMovesCounter = 0

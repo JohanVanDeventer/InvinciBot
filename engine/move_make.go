@@ -84,7 +84,7 @@ func (pos *Position) makeMove(move Move) {
 	// now depending on the move type, remove enemy pieces, capture en-passant, or castle
 	switch move.moveType {
 
-	//case MOVE_TYPE_QUIET:
+	// case MOVE_TYPE_QUIET:
 	// for quiet moves, just place the piece on the new square
 	// already done above
 
@@ -221,7 +221,7 @@ func (pos *Position) makeMove(move Move) {
 		}
 	}
 
-	// for promotions, also handle those pieces
+	// handle promotions if there are any
 	if move.promotionType != PROMOTION_NONE {
 
 		// remove the friendly pawn on that square

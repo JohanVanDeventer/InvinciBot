@@ -6,6 +6,9 @@ import (
 	"strconv"
 )
 
+// --------------------------------------------------------------------------------------------------------------------
+// ------------------------------------------------- Terminal GUI -----------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // simple homemade gui code for playing the game in the console
 
 // translate the user move input to a move recognized by the engine
@@ -78,11 +81,13 @@ func (pos *Position) playInputMove(input string) bool {
 	return false
 }
 
+// lookup table for each chess character
 var unicodeChessIcons [2][6]string = [2][6]string{
 	{"♚", "♛", "♜", "♞", "♝", "♟"},
 	{"♔", "♕", "♖", "♘", "♗", "♙"},
 }
 
+// prints the board to the terminal
 func (pos *Position) printBoardToTerminal() {
 
 	pos.generateLegalMoves()
@@ -158,6 +163,7 @@ func (pos *Position) printBoardToTerminal() {
 	fmt.Println("    a b c d e f g h")
 }
 
+// computer looks for and plays the best move in the position
 func (pos *Position) searchAndPlayBestMove(timePerMoveMs int) {
 	pos.searchForBestMove(timePerMoveMs)
 	pos.makeMove(pos.bestMove)
@@ -174,6 +180,7 @@ func initGameStateToText() {
 	gameStateToText[STATE_DRAW_50_MOVE_RULE] = "Draw by 50-move rule"
 }
 
+// start the terminal GUI loop until the game is over
 func (pos *Position) startGameLoopTerminalGUI() {
 
 	// set up the user preferences

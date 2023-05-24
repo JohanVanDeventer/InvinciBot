@@ -13,7 +13,7 @@ import (
 Explanation of the common types of bit operations:
 &	(AND) Sets 1 in the positions where BOTH bitboards have 1 in those positions
 |	(OR) Sets 1 in the positions where AT LEAST 1 bitboard have 1 in those positions
-^	(XOR) Sets 1 in the positions where SPECIFICALLY 1 bitboard has 1 in those positions and the other 0
+^	(XOR) Sets 1 in the positions where EXACTLY 1 bitboard has 1 in those positions and the other 0
 
 */
 
@@ -35,8 +35,10 @@ const emptyBB Bitboard = 0x0
 var bbReferenceArray [64]Bitboard
 
 func initBBReferenceArray() {
-	var startingBit = emptyBB + 1 // sets the right most bit to 1
+	// sets the right most bit to 1
+	var startingBit = emptyBB + 1
 
+	// set each square's bit in the table
 	for sq := 0; sq < 64; sq++ {
 		bbReferenceArray[63-sq] = startingBit
 		startingBit = startingBit << 1

@@ -11,7 +11,8 @@ import (
 The following things are applied during search:
 - Negamax (alpha-beta in one function)
 - Iterative deepening (searches at increasing depth until the time limit is reached)
-
+- Transposition table (allows lookups to previously encountered positions)
+- Quiescence search (search captures only until a position is quiet)
 */
 
 // helper functions
@@ -38,7 +39,7 @@ Therefore deeper depth searches have longer quiescence depths.
 */
 
 const (
-	MAX_DEPTH int = 99 // we set a max depth (otherwise messes with assigning a best move)
+	MAX_DEPTH int = 99 // we set a max depth for the search (otherwise messes with assigning a best move)
 )
 
 var (
@@ -93,18 +94,6 @@ var (
 // function to initiate a search on the current position and store the best move
 func (pos *Position) searchForBestMove(timeLimitMs int) {
 
-	/*
-		// ----------- LOG FILE ------------
-		// set up to add logs
-		// Open the file in append mode. If the file doesn't exist, it will be created.
-		file, err := os.OpenFile("logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
-		// ----------- LOG FILE ------------
-	*/
-
 	// reset the depth, we start searching at depth 2
 	depth := 1
 
@@ -138,7 +127,7 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 
 		// store the best move from the search only after each iteration, and continue with the next iteration
 		// in case of terminated searches in the middle of a search, we can't use that move, and exit immediately
-		// we will definitely hit at least one iteration (say about 400 nodes) at depth 2
+		// we will definitely hit at least one iteration (say about 400 nodes) at depth 2 with 0 quiescence depth
 		// so we will have one best move before the time node limit is checked
 		if !terminated {
 			pos.bestMove = pos.bestMoveSoFar
@@ -161,12 +150,12 @@ const (
 	WHITE_WIN_VALUE int = 10000000  // win value is 10mil (arbitrarily large)
 	BLACK_WIN_VALUE int = -10000000 // win value is 10mil  (arbitrarily large)
 
-	PLY_PENALTY int = 5000 // ply penalty is to get the shortest checkmate path: queen is 900 so 5k is enough
+	PLY_PENALTY int = 5000 // ply penalty is to get the shortest checkmate path: queen is 900 value so 5k is enough
 
 	NODES_BEFORE_CHECK_INTERRUPT = 5000 // after this many nodes, we check whether we need to stop the search
 )
 
-// return the evaluation, along with a flag for whether the search aborted
+// return the score, along with a flag for whether the search was aborted
 func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta int, tt *TranspositionTable, qsDepth int) (int, bool) {
 
 	// ---------------------------------------------- Time Management and UCI --------------------------------------------
@@ -212,25 +201,28 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	if currentDepth > 0 {
 		// we only check the TT for non-quiescence nodes
-		// because we only save non-quiescence nodes
+		// because we only save non-quiescence nodes in the TT
 		// this can be changed later if needed
 
 		ttEntry, success := tt.getTTEntry(pos.hashOfPos)
 		if success { // if there is a node in the TT
 			if ttEntry.depth >= uint8(currentDepth) { // and if the depth is at least as deep as the current search
 
+				// if the flag is EXACT and the value is within our current bounds, we can use it
 				if ttEntry.flag == TT_FLAG_EXACT {
 					if int(ttEntry.value) > alpha && int(ttEntry.value) < beta {
 						pos.logSearch.nodesTTHit += 1
 						return int(ttEntry.value), false
 					}
 
+					// else if the flag was a LOWERBOUND, and it is already higher than out current UPPERBOUND (beta), we can use it
 				} else if ttEntry.flag == TT_FLAG_LOWERBOUND {
 					if int(ttEntry.value) >= beta {
 						pos.logSearch.nodesTTHit += 1
 						return beta, false
 					}
 
+					// else if the flag was an UPPERBOUND, and it is already lower than our current LOWERBOUND (alpha), we can use it
 				} else {
 					if int(ttEntry.value) <= alpha {
 						pos.logSearch.nodesTTHit += 1
@@ -242,8 +234,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	}
 
 	// -------------------------------------------------------- Game Over ------------------------------------------------------
-	// if there is not a TT hit, we need to start with work on the current node.
-	// first, we generate all legal moves.
+	// if there is not a TT hit, we need to start with work on the current node
+	// first, we generate all legal moves
 	// we can then determine if the game is over (no legal moves is checkmate or stalemate etc.)
 	pos.generateLegalMoves()
 	pos.getGameStateAndStore()
@@ -272,6 +264,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	// ---------------------------------------------------- Normal Evaluation -----------------------------------------------
 	// if the game is not over, and we are at the leaf nodes, we return the search score
+	// we return the eval relative to the side to move (not an absolute eval)
 	if currentDepth <= qsDepth {
 		pos.evalPosAfter()
 		if pos.isWhiteTurn {
@@ -282,14 +275,14 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	}
 
 	// ------------------------------------------------------- Order Moves --------------------------------------------------
+	// if we are not at a leaf node, we start ordering moves for the search to try optimise cutoffs
 	// we assume there are moves, because if there were no moves, we already would have returned checkmate or stalemate before
-	// also, we order the moves before searching to optimise cutoffs
 	// move ordering is expensive, so we only sort moves certain number of plies away from the leaf nodes
 	copyOfMoves := make([]Move, pos.availableMovesCounter)
 
-	if currentDepth >= qsDepth+1 {
+	if currentDepth >= qsDepth+1 { // we do order moves
 		copy(copyOfMoves, pos.getOrderedMoves())
-	} else {
+	} else { // we don't order moves
 		copy(copyOfMoves, pos.availableMoves[:pos.availableMovesCounter])
 	}
 
@@ -317,9 +310,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// ***** <<< SPECIAL CODE TO USE ITERATIVE DEEPENING BEST MOVE >>> ***** END
 
 	// ------------------------------------------------------- Main Search --------------------------------------------------
-	// iterate over each move
 
 	// <<< QUIESCENCE SEARCH >>> Start
+	// if we are at a quiescence search node
 	// we use a standPat score as a floor on the evaluation for alpha
 	// this is done for the case that there is no capture moves, so we at least return the evaluation
 	if currentDepth <= 0 {
@@ -332,20 +325,24 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			standPat = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
 		}
 
-		if standPat >= beta { // beta is not changed in the search, so if it is already above that, return beta
+		// beta (UPPERBOUND) is not changed in the search, so if it is already above that, return beta
+		if standPat >= beta {
 			return beta, false
 		}
 
-		if alpha < standPat { // else, set alpha to be at least the evaluation score
+		// else, set alpha to be at least the evaluation score
+		// because we assume captures can either improve the position, otherwise we won't make the capture
+		if alpha < standPat {
 			alpha = standPat
 		}
 	}
 	// <<< QUIESCENCE SEARCH >>> End
 
+	// start the search and iterate over each move
 	for _, move := range copyOfMoves {
 
 		// <<< QUIESCENCE SEARCH >>> Start
-		// at the depth of zero or lower, we only consider captures and promotions, and skip other moves
+		// at the depth of zero or lower, we only consider captures, en-passant and promotions, and skip other moves
 		if currentDepth <= 0 {
 			if (move.moveType != MOVE_TYPE_CAPTURE) && (move.moveType != MOVE_TYPE_EN_PASSANT) && (move.promotionType == PROMOTION_NONE) {
 				continue
@@ -353,25 +350,27 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 		// <<< QUIESCENCE SEARCH >>> End
 
+		// play the move, get the score of the node, and undo the move again
 		pos.makeMove(move)
 		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth)
 		moveValue := 0 - score
 		pos.undoMove()
 
-		// if the search is terminated, return with a zero value
+		// if the search was terminated, return with a zero value
 		if terminated {
 			return 0, true
 		}
 
 		// <<< SPECIAL CODE TO STORE BEST MOVE >>> START
 		if currentDepth == initialDepth { // if we are at the root
-			if moveValue > alpha { // if the move is the best move so far
+			if moveValue > alpha { // if the move is the best move so far, we store the move as the best so far
 				pos.bestMoveSoFar = move
 			}
 		}
 		// <<< SPECIAL CODE TO STORE BEST MOVE >>> END
 
-		// <<< ALPHA-BETA >>> START
+		// alpha-beta checks
+		// beta cutoff
 		if moveValue >= beta {
 
 			if currentDepth > 0 {
@@ -385,14 +384,17 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			return beta, false
 		}
 
+		// improvement of alpha
 		if moveValue > alpha {
 			alpha = moveValue
 		}
-		// <<< ALPHA-BETA >>> END
 	}
 
 	// ---------------------------------------------------- TT Store Entry -----------------------------------------------
-	if currentDepth > 0 { // store TT entries for non-quiescence nodes because they are fully searched
+	// after iteration over all the moves, we store the node in the TT
+
+	// we store TT entries for non-quiescence nodes because they are fully searched
+	if currentDepth > 0 {
 		if alpha > alphaOriginal {
 			// if alpha increased in the search, we know the exact value of the node, because:
 			// we also did not fail high, because we already would have had a beta cut before this code

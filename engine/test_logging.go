@@ -8,6 +8,7 @@ import (
 // ---------------------------------------------------- Logged Type ---------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 // logged type struct to log times taken for individual functions
+
 type LoggedType struct {
 	name  string
 	count int

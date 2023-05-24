@@ -13,7 +13,7 @@ Each node stored in the TT is a struct and needs to have information about:
 
 The TT has a max number of nodes it can store.
 We index the TT through: (ZobristHash) mod (TT Size).
-Therefore each unique Zobrist key can map to a specific TT entry.
+Therefore each unique Zobrist key can map to a specific TT entry based on the TT size.
 
 This will cause some key collisions (different zobrist hashes map to the same key).
 In that case, we simply overwrite the old entry (other approaches may be implemented later).
@@ -32,11 +32,6 @@ The TT index also needs to be stored:
 - 1 x uint32 (max value of 4bil) = 1 x 4 = 4 bytes
 
 So the total per TT entry is 22 bytes.
-
-Let's try keep the TT within 12Mb to fit inside my CPU L3 cache,
-which is roughly 12 x 1024 x 1024 = about 12mil bytes.
-
-12 mil bytes / 22 bytes = about 500,000 nodes.
 
 */
 
@@ -80,12 +75,12 @@ func getNewTT() TranspositionTable {
 	return newTT
 }
 
-// this will give keys from 0 (inclusive) to TT_SIZE_MAX (exclusive)
+// this will give TT index keys from 0 (inclusive) to TT_SIZE_MAX (exclusive)
 func getTTKeyFromPosHash(posHash Bitboard) TTKey {
 	return TTKey(posHash % TT_SIZE_MAX_BB)
 }
 
-// this will store a new TT entry with the provided values
+// this will store a new TT entry with the provided values (overwrite the old value if present)
 func (tt *TranspositionTable) storeNewTTEntry(zobristHash Bitboard, depth uint8, flag uint8, value int32) {
 	ttKey := getTTKeyFromPosHash(zobristHash)
 	newTTEntry := TTEntry{zobristHash, depth, flag, value}
@@ -93,11 +88,11 @@ func (tt *TranspositionTable) storeNewTTEntry(zobristHash Bitboard, depth uint8,
 }
 
 // this will search the TT for a given hash, and return the TT Entry and whether it exists or not
-// the TT Entry will have zero values if "success" is false
+// the TT Entry will have zero values if "success" is false, so only use the entry when "success" is true
 func (tt *TranspositionTable) getTTEntry(zobristHash Bitboard) (TTEntry, bool) {
 	ttLookup, lookupSuccess := tt.entries[getTTKeyFromPosHash(zobristHash)]
 
-	// in this case the key is the same, but we need to determine whether the actual hash is the same
+	// in this case the key is the same, but we need to determine whether the actual hash is the same (possible key collision)
 	entrySuccess := false
 	if lookupSuccess {
 		if ttLookup.zobristHash == zobristHash {

@@ -3,11 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 /*
@@ -157,28 +155,27 @@ stop
 // --------------------------------------------------------------------------------------------------------------------
 // -------------------------------------------------------- UCI Commands ----------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
-/*
-A UCI struct that can handle UCI inputs and passing them to a position.
-*/
 
 // starts the input loop listening to commands from the GUI
 func (pos *Position) startUCIInputLoop() {
 
-	// set up to add logs
-	// Open the file in append mode. If the file doesn't exist, it will be created.
-	file, err := os.OpenFile("logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
+	/*
+		// set up to add logs
+		// Open the file in append mode. If the file doesn't exist, it will be created.
+		file, err := os.OpenFile("logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer file.Close()
 
-	// <<< LOGGING >>> Write a new game to the file along with the time of the new game
-	logStartTime := time.Now()
-	datedStartString := logStartTime.String() + ". Starting New UCI Loop -------------------------------------------------------------"
-	_, err = fmt.Fprintln(file, datedStartString)
-	if err != nil {
-		log.Fatal(err)
-	}
+		// <<< LOGGING >>> Write a new game to the file along with the time of the new game
+		logStartTime := time.Now()
+		datedStartString := logStartTime.String() + ". Starting New UCI Loop -------------------------------------------------------------"
+		_, err = fmt.Fprintln(file, datedStartString)
+		if err != nil {
+			log.Fatal(err)
+		}
+	*/
 
 	// set up the input reader
 	inputReader := bufio.NewReader(os.Stdin)
@@ -191,13 +188,15 @@ func (pos *Position) startUCIInputLoop() {
 		command, _ := inputReader.ReadString('\n')
 		command = strings.TrimSpace(command)
 
-		// <<< LOGGING >>> Write the command to the file along with the time of the command
-		logCommandTime := time.Now()
-		datedCommand := logCommandTime.String() + ". Received command: " + command
-		_, err = fmt.Fprintln(file, datedCommand)
-		if err != nil {
-			log.Fatal(err)
-		}
+		/*
+			// <<< LOGGING >>> Write the command to the file along with the time of the command
+			logCommandTime := time.Now()
+			datedCommand := logCommandTime.String() + ". Received command: " + command
+			_, err = fmt.Fprintln(file, datedCommand)
+			if err != nil {
+				log.Fatal(err)
+			}
+		*/
 
 		// respond to the command
 		if command == "uci" { // remember this vs ucinewgame both have "uci" prefix
@@ -224,13 +223,22 @@ func (pos *Position) startUCIInputLoop() {
 		} else if strings.HasPrefix(command, "go") {
 			response := pos.command_go(command)
 
-			// <<< LOGGING >>> Log the best move along with the time of the response sent by the engine
-			logResponseTime := time.Now()
-			datedResponse := logResponseTime.String() + ". Sent response: " + response
-			_, err = fmt.Fprintln(file, datedResponse)
-			if err != nil {
-				log.Fatal(err)
-			}
+			/*
+				// <<< LOGGING >>> Log the best move along with the time of the response sent by the engine
+				logResponseTime := time.Now()
+				datedResponse := logResponseTime.String() + ". Sent response: " + response
+				_, err = fmt.Fprintln(file, datedResponse)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// <<< LOGGING >>> Log details about the search, such as depth, nodes etc.
+				searchDetails := "<<< Search Info >>> Depth: " + strconv.Itoa(pos.logSearch.depth) + ". Nodes: " + strconv.Itoa(pos.logSearch.getTotalNodes()) + ". Time ms: " + strconv.Itoa(pos.logSearch.timeMs) + ". Game stage value: " + strconv.Itoa(pos.evalMidVsEndStage) + "."
+				_, err = fmt.Fprintln(file, searchDetails)
+				if err != nil {
+					log.Fatal(err)
+				}
+			*/
 
 			// send the best move response
 			fmt.Printf("%v\n", response)
@@ -425,6 +433,7 @@ func (pos *Position) command_uci() {
 	fmt.Printf("id author Johan vD\n")
 
 	// <<< 2 >>> Options
+	// none for now
 
 	// <<< 2 >>> Final response
 	fmt.Printf("uciok\n")
@@ -603,7 +612,7 @@ func (pos *Position) command_position(command string) {
 	}
 }
 
-// translate the uci move input to a move recognized by the engine
+// translates the uci move input to a move recognized by the engine
 // it will do nothing if a move is not recognized
 func (pos *Position) makeUCIMove(input string) {
 
@@ -725,15 +734,18 @@ Engine to GUI:
 	the the GUI has the complete statistics about the last search.
 */
 func (pos *Position) command_go(command string) string {
+
+	// split the command into a slice of strings
 	parts := strings.Split(command, " ")
 
+	// reset the time management variables
 	allowedTimeMs := 0
 	hasIncrement := false
 
-	// don't support all commands yet
+	// loop over the command parts
 	for i, part := range parts {
 
-		// add to allowed time
+		// add time to allowed time
 		if part == "wtime" {
 			if pos.isWhiteTurn {
 				timeGain, _ := strconv.Atoi(parts[i+1])
@@ -741,6 +753,7 @@ func (pos *Position) command_go(command string) string {
 			}
 		}
 
+		// add time to allowed time
 		if part == "btime" {
 			if !pos.isWhiteTurn {
 				timeGain, _ := strconv.Atoi(parts[i+1])
@@ -748,12 +761,14 @@ func (pos *Position) command_go(command string) string {
 			}
 		}
 
+		// flag so we know there is increment or not
 		if part == "winc" {
 			if pos.isWhiteTurn {
 				hasIncrement = true
 			}
 		}
 
+		// flag so we know there is increment or not
 		if part == "binc" {
 			if !pos.isWhiteTurn {
 				hasIncrement = true
@@ -766,6 +781,8 @@ func (pos *Position) command_go(command string) string {
 			allowedTimeMs = specificTime
 		}
 
+		// search infinitely
+		// note: the engine still needs to properly implement stop, so this command will likely give errors for now
 		if part == "infinite" {
 			allowedTimeMs = 1000000 // 1000 sec
 		}
@@ -773,7 +790,7 @@ func (pos *Position) command_go(command string) string {
 
 	// after getting total time, we allocate time for a search
 	// we estimate the game stage using the stage from the position
-	// we can take a bit longer in the endgame (normally less moves to play still)
+	// we can take a bit longer in the endgame (normally less moves to play because of less pieces but also less time remaining)
 	var timeFactor int
 	if hasIncrement {
 		if pos.evalMidVsEndStage >= 20 { // opening
@@ -786,12 +803,14 @@ func (pos *Position) command_go(command string) string {
 			timeFactor = 12
 		} else if pos.evalMidVsEndStage >= 4 { // endgame
 			timeFactor = 10
-		} else { // endgame checkmate
+		} else { // endgame try checkmate
 			timeFactor = 8
 		}
-	} else {
+	} else { // if there is no increment, we just set a constant factor
 		timeFactor = 24
 	}
+
+	// calculate the time we have for the search
 	timeForSearch := allowedTimeMs / timeFactor
 
 	// we then do the search with the calculated time
@@ -802,7 +821,7 @@ func (pos *Position) command_go(command string) string {
 	moveFromStr := getStringFromSq(bestMove.fromSq)
 	moveToStr := getStringFromSq(bestMove.toSq)
 	promoteStr := getPromotionStringFromType(bestMove.promotionType)
-	//fmt.Printf("bestmove %v%v%v\n", moveFromStr, moveToStr, promoteStr)
+
 	output := "bestmove " + moveFromStr + moveToStr + promoteStr
 	return output
 }
@@ -907,7 +926,7 @@ GUI to engine:
     the user has played. The engine should continue searching but switch from pondering to normal search.
 */
 func (pos *Position) command_ponderHit() {
-	// not for this engine
+	// this engine cannot ponder
 }
 
 // --------------------------------------------------------- Quit -----------------------------------------------

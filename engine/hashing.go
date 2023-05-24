@@ -5,13 +5,11 @@ import (
 	"time"
 )
 
-// a hash is the same as a bitboard (uint64)
-// initialize
-
 // --------------------------------------------------------------------------------------------------------------------
 // -------------------------------------------------- Init Hash Tables ------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 /*
+A hash value is the same as a bitboard (uint64)
 
 Initialize unique hash values for unique position identifiers:
 1. Every piece type on every square
@@ -95,8 +93,8 @@ func initHashTables() {
 // --------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------- Hash Position ----------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
-// hash the current position and store the value
 
+// hash the current position and store the value
 func (pos *Position) hashPosAndStore() {
 
 	start_time := time.Now()

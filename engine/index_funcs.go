@@ -3,6 +3,7 @@ package main
 // --------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------- Index Functions------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
+// functions to translate between row numbers, column numbers, the position squares and UCI moves and back.
 
 func sqFromRowAndCol(row int, col int) int {
 	return row*8 + col

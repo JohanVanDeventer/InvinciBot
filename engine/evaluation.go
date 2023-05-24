@@ -5,18 +5,21 @@ import (
 )
 
 // --------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------- Background ----------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+/*
+Evaluation is rounded to the nearest centipawn.
+Pawns are worth 100 centipawns as reference.
+*/
+
+// --------------------------------------------------------------------------------------------------------------------
 // -------------------------------------------------- Heatmap Tables --------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 /*
-
-Evaluation is rounded to the nearest centipawn.
-Pawns are worth 100 centipawns.
-
-Heatmap tables for each piece on each square, but blended for the current game stage.
-Certain pieces have different heatmaps for the endgame and the middlegame (such as the king near the middle in the endgame).
-
+Heatmap tables for each piece on each square, but blended later for the current game stage.
 */
 
+// not used
 var evalTableBLANK [8][8]int = [8][8]int{
 	{000, 000, 000, 000, 000, 000, 000, 000},
 	{000, 000, 000, 000, 000, 000, 000, 000},
@@ -28,7 +31,7 @@ var evalTableBLANK [8][8]int = [8][8]int{
 	{000, 000, 000, 000, 000, 000, 000, 000},
 }
 
-// kings: need to castle early, but in the endgame get closer to the middle
+// kings
 var evalTableKingsMid8x8 [8][8]int = [8][8]int{
 	{-30, -40, -40, -40, -40, -40, -40, -30},
 	{-30, -40, -50, -50, -50, -50, -40, -30},
@@ -51,7 +54,7 @@ var evalTableKingsEnd8x8 [8][8]int = [8][8]int{
 	{-40, -30, -20, -20, -20, -20, -30, -40},
 }
 
-// queens: same table for mid and endgame, just try to not go near the edge
+// queens
 var evalTableQueensMid8x8 [8][8]int = [8][8]int{
 	{-20, -10, -10, -10, -10, -10, -10, -20},
 	{-10, 000, 000, 000, 000, 000, 000, -10},
@@ -74,7 +77,7 @@ var evalTableQueensEnd8x8 [8][8]int = [8][8]int{
 	{-20, -10, -10, -10, -10, -10, -10, -20},
 }
 
-// rooks: favour the 7th rank of opponent, and also incentivize to castle, and generally not favour the sides
+// rooks
 var evalTableRooksMid8x8 [8][8]int = [8][8]int{
 	{000, 000, 000, 000, 000, 000, 000, 000},
 	{+05, +10, +10, +10, +10, +10, +10, +05},
@@ -97,8 +100,7 @@ var evalTableRooksEnd8x8 [8][8]int = [8][8]int{
 	{000, 000, 000, 000, 000, 000, 000, 000},
 }
 
-// bishops: favour the centre and not the sides, and also favout fianchetto a bit
-// also favour sitting in front of pawns as protected on the 3rd rank
+// bishops
 var evalTableBishopsMid8x8 [8][8]int = [8][8]int{
 	{-20, -10, -10, -10, -10, -10, -10, -20},
 	{-10, 000, 000, 000, 000, 000, 000, -10},
@@ -121,7 +123,7 @@ var evalTableBishopsEnd8x8 [8][8]int = [8][8]int{
 	{-20, -10, -10, -10, -10, -10, -10, -20},
 }
 
-// knights: get the biggest penalties for on the edge, and also a bit bigger bonus to try move out before bishops
+// knights
 var evalTableKnightsMid8x8 [8][8]int = [8][8]int{
 	{-50, -30, -20, -20, -20, -20, -30, -50},
 	{-30, -10, 000, 000, 000, 000, -10, -30},
@@ -144,8 +146,7 @@ var evalTableKnightsEnd8x8 [8][8]int = [8][8]int{
 	{-50, -30, -20, -20, -20, -20, -30, -50},
 }
 
-// pawns: try move 2 squares, and also don't move pawns in front of king; also bonus for close to promotion
-// in the endgame try push pawns from the 2nd rank (but not too hard in middlegame)
+// pawns
 var evalTablePawnsMid8x8 [8][8]int = [8][8]int{
 	{000, 000, 000, 000, 000, 000, 000, 000},
 	{+40, +40, +40, +40, +40, +40, +40, +40},
@@ -339,19 +340,11 @@ func initEvalTables() {
 // --------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------ Eval: Summary -----------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
-
 /*
-
 The eval is always done from the white side (absolute value).
 Positive is good for white, negative is good for black.
 
-The following is done during make/undo move:
-- Pure material count.
-- Game stage count (mid vs endgame).
-because it is faster to do incrementally.
-
-However, other evaluations is done for each position as required.
-
+Some eval is done incrementally, some for each position from the start.
 */
 
 const (
@@ -459,11 +452,12 @@ func (pos *Position) evalPosAfter() {
 // --------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------ Game State --------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
-
-// returns the state of the current position, which can be:
-// - game ongoing
-// - checkmate (white or black wins)
-// - draw (stalemate, 3-fold repetition, or 50-move rule)
+/*
+Returns the state of the current position, which can be:
+- game ongoing
+- checkmate (white or black wins)
+- draw (stalemate, 3-fold repetition, or 50-move rule)
+*/
 
 const (
 	STATE_ONGOING                int = 0
@@ -475,12 +469,13 @@ const (
 )
 
 // only call this after generating moves in a position
+// because it uses the number of available moves to determine checkmate and stalemate
 func (pos *Position) getGameStateAndStore() {
 
 	start_time := time.Now()
 	defer pos.logOther.allLogTypes[LOG_GAME_STATE].addTime(int(time.Since(start_time).Nanoseconds()))
 
-	// if there are no moves remaining, the king is either in checkmate, or it's a stalemate
+	// if there are no moves remaining, the king is either in checkmate, or it's stalemate
 	if pos.availableMovesCounter == 0 {
 		if pos.kingChecks > 0 {
 			if !pos.isWhiteTurn {
@@ -515,7 +510,7 @@ func (pos *Position) getGameStateAndStore() {
 		return
 	}
 
-	// game ongoing
+	// game ongoing if noting else applies
 	pos.gameState = STATE_ONGOING
 
 }
