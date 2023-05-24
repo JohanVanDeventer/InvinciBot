@@ -5,9 +5,9 @@ package main
 Ideas to consider / implement
 =============================
 
---- Incremental Heatmap Eval ---
-Adjust the heatmap eval incrementally during make move (undo move just restores the previous value).
-Need to then take into account the game stage also during captures (not needed for quiet moves, castling, en-passant), and promotions
+--- Better eval ---
+Add eval for doubled pawns?
+Add eval for mobility?
 
 --- TT Size ---
 Test whether increasing the TT size helps improve play.

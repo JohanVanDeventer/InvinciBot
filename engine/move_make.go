@@ -74,8 +74,8 @@ func (pos *Position) makeMove(move Move) {
 	// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ remove the weighted heatmap value of the "from" square
 	// this is done on the "before" stage, because that stage was used to add the value previously (after captures on the previous move)
 	evalMidVsEndStageBefore := pos.evalMidVsEndStage
-	if evalMidVsEndStageBefore > 24 { // cap to 24
-		evalMidVsEndStageBefore = 24
+	if evalMidVsEndStageBefore > STAGE_VAL_STARTING { // cap to the max stage value
+		evalMidVsEndStageBefore = STAGE_VAL_STARTING
 	}
 	midValueFriendlyFrom := evalTableCombinedMid[frSide][move.piece][move.fromSq]
 	endValueFriendlyFrom := evalTableCombinedEnd[frSide][move.piece][move.fromSq]
@@ -132,8 +132,8 @@ func (pos *Position) makeMove(move Move) {
 		pos.evalHeatmaps -= weightedValueEnemyTo
 
 		evalMidVsEndStageAfter := pos.evalMidVsEndStage
-		if evalMidVsEndStageAfter > 24 {
-			evalMidVsEndStageAfter = 24
+		if evalMidVsEndStageAfter > STAGE_VAL_STARTING {
+			evalMidVsEndStageAfter = STAGE_VAL_STARTING
 		}
 		midValueFriendlyTo := evalTableCombinedMid[frSide][move.piece][move.toSq]
 		endValueFriendlyTo := evalTableCombinedEnd[frSide][move.piece][move.toSq]
@@ -163,8 +163,8 @@ func (pos *Position) makeMove(move Move) {
 			pos.evalHeatmaps -= weightedValueEnemyTo
 
 			evalMidVsEndStageAfter := pos.evalMidVsEndStage
-			if evalMidVsEndStageAfter > 24 {
-				evalMidVsEndStageAfter = 24
+			if evalMidVsEndStageAfter > STAGE_VAL_STARTING {
+				evalMidVsEndStageAfter = STAGE_VAL_STARTING
 			}
 			midValueFriendlyTo := evalTableCombinedMid[frSide][PIECE_PAWN][move.toSq]
 			endValueFriendlyTo := evalTableCombinedEnd[frSide][PIECE_PAWN][move.toSq]
@@ -192,8 +192,8 @@ func (pos *Position) makeMove(move Move) {
 			pos.evalHeatmaps -= weightedValueEnemyTo
 
 			evalMidVsEndStageAfter := pos.evalMidVsEndStage
-			if evalMidVsEndStageAfter > 24 {
-				evalMidVsEndStageAfter = 24
+			if evalMidVsEndStageAfter > STAGE_VAL_STARTING {
+				evalMidVsEndStageAfter = STAGE_VAL_STARTING
 			}
 			midValueFriendlyTo := evalTableCombinedMid[frSide][PIECE_PAWN][move.toSq]
 			endValueFriendlyTo := evalTableCombinedEnd[frSide][PIECE_PAWN][move.toSq]
@@ -364,6 +364,9 @@ func (pos *Position) makeMove(move Move) {
 
 		// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ save the "after" game stage used for pawn captures and quiet moves but before promotions (used below)
 		evalMidVsEndStageAfterCapturesBeforePromotions := pos.evalMidVsEndStage
+		if evalMidVsEndStageAfterCapturesBeforePromotions > STAGE_VAL_STARTING {
+			evalMidVsEndStageAfterCapturesBeforePromotions = STAGE_VAL_STARTING
+		}
 
 		// remove the friendly pawn on that square
 		pos.pieces[frSide][PIECE_PAWN].clearBit(move.toSq)
@@ -395,9 +398,13 @@ func (pos *Position) makeMove(move Move) {
 		weightedValueFriendlyPawn := ((midValueFriendlyPawn * evalMidVsEndStageAfterCapturesBeforePromotions) + (endValueFriendlyPawn * (STAGE_VAL_STARTING - evalMidVsEndStageAfterCapturesBeforePromotions))) / STAGE_VAL_STARTING
 		pos.evalHeatmaps -= weightedValueFriendlyPawn
 
+		evalStageAfterPromote := pos.evalMidVsEndStage
+		if evalStageAfterPromote > STAGE_VAL_STARTING {
+			evalStageAfterPromote = STAGE_VAL_STARTING
+		}
 		midValueFriendlyPiece := evalTableCombinedMid[frSide][move.promotionType][move.toSq]
 		endValueFriendlyPiece := evalTableCombinedEnd[frSide][move.promotionType][move.toSq]
-		weightedValueFriendlyPiece := ((midValueFriendlyPiece * pos.evalMidVsEndStage) + (endValueFriendlyPiece * (STAGE_VAL_STARTING - pos.evalMidVsEndStage))) / STAGE_VAL_STARTING
+		weightedValueFriendlyPiece := ((midValueFriendlyPiece * evalStageAfterPromote) + (endValueFriendlyPiece * (STAGE_VAL_STARTING - evalStageAfterPromote))) / STAGE_VAL_STARTING
 		pos.evalHeatmaps += weightedValueFriendlyPiece
 	}
 

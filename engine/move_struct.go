@@ -23,10 +23,10 @@ const (
 
 	// specify the type of promotion
 	PROMOTION_NONE   int = 0
-	PROMOTION_QUEEN  int = 1
-	PROMOTION_ROOK   int = 2
-	PROMOTION_KNIGHT int = 3
-	PROMOTION_BISHOP int = 4
+	PROMOTION_QUEEN  int = PIECE_QUEEN
+	PROMOTION_ROOK   int = PIECE_ROOK
+	PROMOTION_KNIGHT int = PIECE_KNIGHT
+	PROMOTION_BISHOP int = PIECE_BISHOP
 
 	// specify the type of castling
 	CASTLE_WHITE_KINGSIDE  int = 0

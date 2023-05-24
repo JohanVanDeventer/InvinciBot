@@ -360,7 +360,7 @@ const (
 	STAGE_VAL_ROOK     int = 2
 	STAGE_VAL_KNIGHT   int = 1
 	STAGE_VAL_BISHOP   int = 1
-	STAGE_VAL_STARTING int = STAGE_VAL_QUEEN*2 + STAGE_VAL_ROOK*4 + STAGE_VAL_KNIGHT*2 + STAGE_VAL_BISHOP*2 // normally 24
+	STAGE_VAL_STARTING int = STAGE_VAL_QUEEN*2 + STAGE_VAL_ROOK*4 + STAGE_VAL_KNIGHT*4 + STAGE_VAL_BISHOP*4 // normally 24
 
 )
 
@@ -392,29 +392,7 @@ func initEvalMaterialAndStageTables() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------
-// ----------------------------------------------- Eval: Doubled Pawns Setup ------------------------------------------
-// --------------------------------------------------------------------------------------------------------------------
-// setup for evaluating doubled pawns
-
-const (
-	DOUBLED_PAWN_PENALTY int = 15 // penalty for a pawn if there are other pawns on that column
-)
-
-var columnMasks [8]Bitboard // masks where all the bits for that column only is set
-
-// create masks for each column on the board
-func initEvalColumnMasks() {
-	for col := 0; col < 8; col++ {
-		newBitboard := emptyBB
-		for row := 0; row < 8; row++ {
-			newBitboard.setBit(sqFromRowAndCol(row, col))
-		}
-		columnMasks[col] = newBitboard
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------ Eval: Material Value and Game Stage -------------------------------------
+// --------------------------------------- Eval: Material, Game Stage, and Heatmaps -----------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 
 // evaluate a fresh starting position
@@ -451,19 +429,43 @@ func (pos *Position) evalPosAtStart() {
 				nextPieceSq := pieces.popBitGetSq()
 
 				// add the heatmap value of that piece on that square to the eval
-				if pos.evalMidVsEndStage >= 24 { // if the game stage is still in the opening, no weighting is needed, use the mid table
-					pos.evalHeatmaps += evalTableCombinedMid[side][pieceType][nextPieceSq]
-
-				} else { // else, need to weight based on the game stage
-					midValue := evalTableCombinedMid[side][pieceType][nextPieceSq]
-					endValue := evalTableCombinedEnd[side][pieceType][nextPieceSq]
-					pos.evalHeatmaps += ((midValue * pos.evalMidVsEndStage) + (endValue * (STAGE_VAL_STARTING - pos.evalMidVsEndStage))) / STAGE_VAL_STARTING
+				evalStage := pos.evalMidVsEndStage
+				if evalStage > STAGE_VAL_STARTING { // cap to the max stage value
+					evalStage = STAGE_VAL_STARTING
 				}
+				midValue := evalTableCombinedMid[side][pieceType][nextPieceSq]
+				endValue := evalTableCombinedEnd[side][pieceType][nextPieceSq]
+				pos.evalHeatmaps += ((midValue * evalStage) + (endValue * (STAGE_VAL_STARTING - evalStage))) / STAGE_VAL_STARTING
 			}
 		}
 	}
 }
 
+// --------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------- Eval: Doubled Pawns Setup ------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+// setup for evaluating doubled pawns
+
+const (
+	DOUBLED_PAWN_PENALTY int = 10 // penalty for a pawn if there are other pawns on that column
+)
+
+var columnMasks [8]Bitboard // masks where all the bits for that column only is set
+
+// create masks for each column on the board
+func initEvalColumnMasks() {
+	for col := 0; col < 8; col++ {
+		newBitboard := emptyBB
+		for row := 0; row < 8; row++ {
+			newBitboard.setBit(sqFromRowAndCol(row, col))
+		}
+		columnMasks[col] = newBitboard
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------- Eval: Other --------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 // evalue a position after for non-incremental evaluations
 func (pos *Position) evalPosAfter() {
 
@@ -471,77 +473,26 @@ func (pos *Position) evalPosAfter() {
 
 	/*
 		// reset other evaluation scores
-		//pos.evalHeatmaps = 0
 		pos.evalOther = 0
 
-		// evaluation per piece
-		// -------------------------------------------- PIECES EXCEPT FOR PAWNS --------------------------------------------
-		for side := 0; side < 2; side++ {
-			for pieceType := 0; pieceType < 5; pieceType++ {
-
-				// get the pieces bitboard
-				pieces := pos.pieces[side][pieceType]
-				for pieces != 0 {
-
-					// get the next piece square
-					nextPieceSq := pieces.popBitGetSq()
-
-					// ------------------- HEATMAPS ----------------------
-					// add the heatmap value of that piece on that square to the eval
-					if pos.evalMidVsEndStage >= 24 { // if the game stage is still in the opening, no weighting is needed, use the mid table
-						pos.evalHeatmaps += evalTableCombinedMid[side][pieceType][nextPieceSq]
-
-					} else { // else, need to weight based on the game stage
-						midValue := evalTableCombinedMid[side][pieceType][nextPieceSq]
-						endValue := evalTableCombinedEnd[side][pieceType][nextPieceSq]
-						pos.evalHeatmaps += ((midValue * pos.evalMidVsEndStage) + (endValue * (STAGE_VAL_STARTING - pos.evalMidVsEndStage))) / STAGE_VAL_STARTING
-					}
-				}
+		// ------------------------------------------------- DOUBLED PAWNS --------------------------------------------------
+		// white pawns
+		for col := 0; col < 8; col++ {
+			colMask := columnMasks[col]                                 // get the column mask
+			maskedPawns := colMask & pos.pieces[SIDE_WHITE][PIECE_PAWN] // get the pawns on that mask
+			pawnsOnColCount := maskedPawns.countBits()                  // count the pawns
+			if pawnsOnColCount > 1 {                                    // if there are more than 1 pawn, we have doubled pawns
+				pos.evalOther -= DOUBLED_PAWN_PENALTY * pawnsOnColCount
 			}
 		}
-	*/
 
-	// ------------------------------------------------- PAWNS ONLY --------------------------------------------------
-	/*
-		for side := 0; side < 2; side++ {
-			pieceType := PIECE_PAWN
-
-			// get the pieces bitboard
-			pieces := pos.pieces[side][pieceType]
-			for pieces != 0 {
-
-				// get the next piece square
-				nextPieceSq := pieces.popBitGetSq()
-
-				// ------------------- HEATMAPS ----------------------
-
-					// add the heatmap value of that piece on that square to the eval
-					if pos.evalMidVsEndStage >= 24 { // if the game stage is still in the opening, no weighting is needed, use the mid table
-						pos.evalHeatmaps += evalTableCombinedMid[side][pieceType][nextPieceSq]
-
-					} else { // else, need to weight based on the game stage
-						midValue := evalTableCombinedMid[side][pieceType][nextPieceSq]
-						endValue := evalTableCombinedEnd[side][pieceType][nextPieceSq]
-						pos.evalHeatmaps += ((midValue * pos.evalMidVsEndStage) + (endValue * (STAGE_VAL_STARTING - pos.evalMidVsEndStage))) / STAGE_VAL_STARTING
-					}
-
-
-				// ------------------- DOUBLED PAWNS ----------------------
-				// we add a penalty for each pawn if that pawn is on a column with other pawns
-				// note: the penalty will be doubled, tripled etc., because each pawn on the column will get the penalty
-				_, pawnCol := rowAndColFromSq(nextPieceSq)           // get the column
-				colMask := columnMasks[pawnCol]                      // get the column mask
-				pawnsOnCol := pos.pieces[side][PIECE_PAWN] & colMask // get all friendly pawns on that column
-				pawnsOnCol &= ^bbReferenceArray[nextPieceSq]         // mask out the pawn we are looking at
-				if pawnsOnCol != 0 {                                 // if there are other remaining pawns, then we know it is a doubled pawn
-
-					if side == SIDE_WHITE {
-						pos.evalOther -= DOUBLED_PAWN_PENALTY
-					} else {
-						pos.evalOther += DOUBLED_PAWN_PENALTY
-					}
-				}
-
+		// black pawns
+		for col := 0; col < 8; col++ {
+			colMask := columnMasks[col]                                 // get the column mask
+			maskedPawns := colMask & pos.pieces[SIDE_BLACK][PIECE_PAWN] // get the pawns on that mask
+			pawnsOnColCount := maskedPawns.countBits()                  // count the pawns
+			if pawnsOnColCount > 1 {                                    // if there are more than 1 pawn, we have doubled pawns
+				pos.evalOther += DOUBLED_PAWN_PENALTY * pawnsOnColCount
 			}
 		}
 	*/
