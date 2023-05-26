@@ -797,72 +797,87 @@ func (pos *Position) generateLegalMoves() {
 
 func getRookMovesPseudo(sq int, blockers Bitboard) Bitboard {
 
-	var newBitboard = emptyBB
+	/*
+		var newBitboard = emptyBB
 
-	// ------------ UP ----------------
-	newBitboard |= moveRaysTable[sq][RAY_UP]
-	if moveRaysTable[sq][RAY_UP]&blockers != 0 {
-		blockerSq := (moveRaysTable[sq][RAY_UP] & blockers).getMSBSq()
-		newBitboard &= ^moveRaysTable[blockerSq][RAY_UP]
-	}
+		// ------------ UP ----------------
+		newBitboard |= moveRaysTable[sq][RAY_UP]
+		if moveRaysTable[sq][RAY_UP]&blockers != 0 {
+			blockerSq := (moveRaysTable[sq][RAY_UP] & blockers).getMSBSq()
+			newBitboard &= ^moveRaysTable[blockerSq][RAY_UP]
+		}
 
-	// ------------ RIGHT ----------------
-	newBitboard |= moveRaysTable[sq][RAY_RIGHT]
-	if moveRaysTable[sq][RAY_RIGHT]&blockers != 0 {
-		blockerSq := (moveRaysTable[sq][RAY_RIGHT] & blockers).getMSBSq()
-		newBitboard &= ^moveRaysTable[blockerSq][RAY_RIGHT]
-	}
+		// ------------ RIGHT ----------------
+		newBitboard |= moveRaysTable[sq][RAY_RIGHT]
+		if moveRaysTable[sq][RAY_RIGHT]&blockers != 0 {
+			blockerSq := (moveRaysTable[sq][RAY_RIGHT] & blockers).getMSBSq()
+			newBitboard &= ^moveRaysTable[blockerSq][RAY_RIGHT]
+		}
 
-	// ------------ DOWN ----------------
-	newBitboard |= moveRaysTable[sq][RAY_DOWN]
-	if moveRaysTable[sq][RAY_DOWN]&blockers != 0 {
-		blockerSq := (moveRaysTable[sq][RAY_DOWN] & blockers).getLSBSq()
-		newBitboard &= ^moveRaysTable[blockerSq][RAY_DOWN]
-	}
+		// ------------ DOWN ----------------
+		newBitboard |= moveRaysTable[sq][RAY_DOWN]
+		if moveRaysTable[sq][RAY_DOWN]&blockers != 0 {
+			blockerSq := (moveRaysTable[sq][RAY_DOWN] & blockers).getLSBSq()
+			newBitboard &= ^moveRaysTable[blockerSq][RAY_DOWN]
+		}
 
-	// ------------ LEFT ----------------
-	newBitboard |= moveRaysTable[sq][RAY_LEFT]
-	if moveRaysTable[sq][RAY_LEFT]&blockers != 0 {
-		blockerSq := (moveRaysTable[sq][RAY_LEFT] & blockers).getLSBSq()
-		newBitboard &= ^moveRaysTable[blockerSq][RAY_LEFT]
-	}
+		// ------------ LEFT ----------------
+		newBitboard |= moveRaysTable[sq][RAY_LEFT]
+		if moveRaysTable[sq][RAY_LEFT]&blockers != 0 {
+			blockerSq := (moveRaysTable[sq][RAY_LEFT] & blockers).getLSBSq()
+			newBitboard &= ^moveRaysTable[blockerSq][RAY_LEFT]
+		}
 
-	return newBitboard
+		return newBitboard
+	*/
+
+	blockers &= magicStructsRooks[sq].mask
+	blockers *= magicStructsRooks[sq].magic
+	blockers >>= (64 - magicStructsRooks[sq].shift)
+	return magicRookMovesTable[sq][blockers]
 
 }
 
 func getBishopMovesPseudo(sq int, blockers Bitboard) Bitboard {
-	var newBitboard = emptyBB
 
-	// ------------ UP LEFT ----------------
-	newBitboard |= moveRaysTable[sq][RAY_UL]
-	if moveRaysTable[sq][RAY_UL]&blockers != 0 {
-		blockerSq := (moveRaysTable[sq][RAY_UL] & blockers).getMSBSq()
-		newBitboard &= ^moveRaysTable[blockerSq][RAY_UL]
-	}
+	/*
+		var newBitboard = emptyBB
 
-	// ------------ UP RIGHT ----------------
-	newBitboard |= moveRaysTable[sq][RAY_UR]
-	if moveRaysTable[sq][RAY_UR]&blockers != 0 {
-		blockerSq := (moveRaysTable[sq][RAY_UR] & blockers).getMSBSq()
-		newBitboard &= ^moveRaysTable[blockerSq][RAY_UR]
-	}
+		// ------------ UP LEFT ----------------
+		newBitboard |= moveRaysTable[sq][RAY_UL]
+		if moveRaysTable[sq][RAY_UL]&blockers != 0 {
+			blockerSq := (moveRaysTable[sq][RAY_UL] & blockers).getMSBSq()
+			newBitboard &= ^moveRaysTable[blockerSq][RAY_UL]
+		}
 
-	// ------------ DOWN RIGHT ----------------
-	newBitboard |= moveRaysTable[sq][RAY_DR]
-	if moveRaysTable[sq][RAY_DR]&blockers != 0 {
-		blockerSq := (moveRaysTable[sq][RAY_DR] & blockers).getLSBSq()
-		newBitboard &= ^moveRaysTable[blockerSq][RAY_DR]
-	}
+		// ------------ UP RIGHT ----------------
+		newBitboard |= moveRaysTable[sq][RAY_UR]
+		if moveRaysTable[sq][RAY_UR]&blockers != 0 {
+			blockerSq := (moveRaysTable[sq][RAY_UR] & blockers).getMSBSq()
+			newBitboard &= ^moveRaysTable[blockerSq][RAY_UR]
+		}
 
-	// ------------ DOWN LEFT ----------------
-	newBitboard |= moveRaysTable[sq][RAY_DL]
-	if moveRaysTable[sq][RAY_DL]&blockers != 0 {
-		blockerSq := (moveRaysTable[sq][RAY_DL] & blockers).getLSBSq()
-		newBitboard &= ^moveRaysTable[blockerSq][RAY_DL]
-	}
+		// ------------ DOWN RIGHT ----------------
+		newBitboard |= moveRaysTable[sq][RAY_DR]
+		if moveRaysTable[sq][RAY_DR]&blockers != 0 {
+			blockerSq := (moveRaysTable[sq][RAY_DR] & blockers).getLSBSq()
+			newBitboard &= ^moveRaysTable[blockerSq][RAY_DR]
+		}
 
-	return newBitboard
+		// ------------ DOWN LEFT ----------------
+		newBitboard |= moveRaysTable[sq][RAY_DL]
+		if moveRaysTable[sq][RAY_DL]&blockers != 0 {
+			blockerSq := (moveRaysTable[sq][RAY_DL] & blockers).getLSBSq()
+			newBitboard &= ^moveRaysTable[blockerSq][RAY_DL]
+		}
+
+		return newBitboard
+	*/
+
+	blockers &= magicStructsBishops[sq].mask
+	blockers *= magicStructsBishops[sq].magic
+	blockers >>= (64 - magicStructsBishops[sq].shift)
+	return magicBishopMovesTable[sq][blockers]
 }
 
 func getQueenMovesPseudo(sq int, blockers Bitboard) Bitboard {

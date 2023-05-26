@@ -12,17 +12,17 @@ Code for generating the moves will ultimately be to make a magic struct that we 
 to generate the pseudo-legal moves of bishops and rooks given the input blockers.
 
 func getRookMovesPseudo(blockers Bitboard, sq int) Bitboard {
-	blockers &= magicRookTable[sq].mask          // PART 1
-	blockers *= magicRookTable[sq].magic         // PART 2
-	blockers >>= (64 - magicRookTable[sq].shift) // PART 3
-	return magicRookMovesTable[sq][blockers]     // PART 4
+	blockers &= magicStructsRooks[sq].mask          // PART 1
+	blockers *= magicStructsRooks[sq].magic         // PART 2
+	blockers >>= (64 - magicStructsRooks[sq].shift) // PART 3
+	return magicRookMovesTable[sq][blockers]        // PART 4
 }
 
 func getBishopMovesPseudo(blockers Bitboard, sq int) Bitboard {
-	blockers &= magicBishopTable[sq].mask          // PART 1
-	blockers *= magicBishopTable[sq].magic         // PART 2
-	blockers >>= (64 - magicBishopTable[sq].shift) // PART 3
-	return magicBishopMovesTable[sq][blockers]     // PART 4
+	blockers &= magicStructsBishops[sq].mask          // PART 1
+	blockers *= magicStructsBishops[sq].magic         // PART 2
+	blockers >>= (64 - magicStructsBishops[sq].shift) // PART 3
+	return magicBishopMovesTable[sq][blockers]        // PART 4
 }
 
 PART 1
@@ -225,12 +225,12 @@ func initMagicNumbers() {
 
 	// rook magic numbers
 	for sq := 0; sq < 64; sq++ {
-		magicStructsRooks[sq].magic = Bitboard(rookMagics[sq])
+		magicStructsRooks[sq].magic = Bitboard(rookMagics[63-sq])
 	}
 
 	// bishop magic numbers
 	for sq := 0; sq < 64; sq++ {
-		magicStructsBishops[sq].magic = Bitboard(bishopMagics[sq])
+		magicStructsBishops[sq].magic = Bitboard(bishopMagics[63-sq])
 	}
 }
 

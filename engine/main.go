@@ -5,8 +5,8 @@ func main() {
 	// --- tests ---
 	initEngine()
 	//playBestMoveGames(1000)
-	printInitTestResults()
-	//printPerftResults()
+	//printInitTestResults()
+	printPerftResults()
 
 	// create a new position for the engine to start with
 	pos := Position{}
