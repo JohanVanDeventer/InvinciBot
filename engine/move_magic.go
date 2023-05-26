@@ -12,19 +12,17 @@ Code for generating the moves will ultimately be to make a magic struct that we 
 to generate the pseudo-legal moves of bishops and rooks given the input blockers.
 
 func getRookMovesPseudo(blockers Bitboard, sq int) Bitboard {
-	blockers &= magicRookTable[sq].mask   // PART 1
-	blockers *= magicRookTable[sq].magic  // PART 2
-	blockers >>= magicRookTable[sq].shift // PART 2
-	aptr := magicRookTable[sq].ptr        // PART 3
-	return aptr[blockers]
+	blockers &= magicRookTable[sq].mask          // PART 1
+	blockers *= magicRookTable[sq].magic         // PART 2
+	blockers >>= (64 - magicRookTable[sq].shift) // PART 3
+	return magicRookMovesTable[sq][blockers]     // PART 4
 }
 
 func getBishopMovesPseudo(blockers Bitboard, sq int) Bitboard {
-	blockers &= magicBishopTable[sq].mask   // PART 1
-	blockers *= magicBishopTable[sq].magic  // PART 2
-	blockers >>= magicBishopTable[sq].shift // PART 2
-	aptr := magicBishopTable[sq].ptr        // PART 3
-	return aptr[blockers]
+	blockers &= magicBishopTable[sq].mask          // PART 1
+	blockers *= magicBishopTable[sq].magic         // PART 2
+	blockers >>= (64 - magicBishopTable[sq].shift) // PART 3
+	return magicBishopMovesTable[sq][blockers]     // PART 4
 }
 
 PART 1
@@ -46,8 +44,8 @@ Only these squares can block the piece moves to LESS than it's full pseudo-legal
 We "&" this mask with the blockers to obtain only the blockers that influence the piece moves.
 
 
-PART 2
-------
+PART 2 and 3
+------------
 Now that we have the blockers that influence the piece moves, we need to transform it into a key.
 We use the key we get to look up a precalculated move table that gives the moves based on this key.
 
@@ -64,10 +62,9 @@ The result is a key used for the table lookup.
 // --------------------------------------------------------------------------------------------------------------------
 
 type MagicForSq struct {
-	mask  Bitboard  // PART 1
-	magic Bitboard  // PART 2
-	shift int       // PART 2
-	ptr   *Bitboard // PART 3
+	mask  Bitboard // PART 1
+	magic Bitboard // PART 2
+	shift int      // PART 3
 }
 
 // store a magic struct for each square
@@ -75,7 +72,9 @@ var magicStructsRooks [64]MagicForSq
 var magicStructsBishops [64]MagicForSq
 
 // stores moves that are looked up later using a magic struct
-var magicGlobalMovesTable []Bitboard
+// the table is indexed as: [sq][key]
+var magicRookMovesTable [64][4096]Bitboard
+var magicBishopMovesTable [64][512]Bitboard
 
 /*
 // --------------------------------------------------------------------------------------------------------------------
@@ -178,57 +177,25 @@ func initMagicMasks() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------
-// --------------------------------------- Magic Bitboards: PART 2: Magic Numbers -------------------------------------
+// ---------------------------------------- Magic Bitboards: PART 2: Magic Numbers ------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 /*
-Generate the magic numbers, alongside the shift we will use.
+Obtained the magic numbers from: https://github.com/GunshipPenguin/shallow-blue/blob/c6d7e9615514a86533a9e0ffddfc96e058fc9cfd/src/attacks.h#L120
 */
-
-// helper function to get a Bitboard/uint64 with only a few bits set
-// we "&"" various random Bitboards to leave only overlapping bits
-func getRandomSparseBitboard() Bitboard {
-	filledBitboard := fullBB
-	return filledBitboard & Bitboard(rand.Uint64()) & Bitboard(rand.Uint64()) & Bitboard(rand.Uint64())
-}
-
-// constant shift values for each square (obtained from the chessprogramming wiki)
-var rookIndexBits = [64]int{
-	12, 11, 11, 11, 11, 11, 11, 12,
-	11, 10, 10, 10, 10, 10, 10, 11,
-	11, 10, 10, 10, 10, 10, 10, 11,
-	11, 10, 10, 10, 10, 10, 10, 11,
-	11, 10, 10, 10, 10, 10, 10, 11,
-	11, 10, 10, 10, 10, 10, 10, 11,
-	11, 10, 10, 10, 10, 10, 10, 11,
-	12, 11, 11, 11, 11, 11, 11, 12,
-}
-
-var bishopIndexBits = [64]int{
-	6, 5, 5, 5, 5, 5, 5, 6,
-	5, 5, 5, 5, 5, 5, 5, 5,
-	5, 5, 7, 7, 7, 7, 5, 5,
-	5, 5, 7, 9, 9, 7, 5, 5,
-	5, 5, 7, 9, 9, 7, 5, 5,
-	5, 5, 7, 7, 7, 7, 5, 5,
-	5, 5, 5, 5, 5, 5, 5, 5,
-	6, 5, 5, 5, 5, 5, 5, 6,
-}
-
-/*
 var rookMagics = [64]uint64{
-    0xa8002c000108020, 0x6c00049b0002001, 0x100200010090040, 0x2480041000800801, 0x280028004000800,
-    0x900410008040022, 0x280020001001080, 0x2880002041000080, 0xa000800080400034, 0x4808020004000,
-    0x2290802004801000, 0x411000d00100020, 0x402800800040080, 0xb000401004208, 0x2409000100040200,
-    0x1002100004082, 0x22878001e24000, 0x1090810021004010, 0x801030040200012, 0x500808008001000,
-    0xa08018014000880, 0x8000808004000200, 0x201008080010200, 0x801020000441091, 0x800080204005,
-    0x1040200040100048, 0x120200402082, 0xd14880480100080, 0x12040280080080, 0x100040080020080,
-    0x9020010080800200, 0x813241200148449, 0x491604001800080, 0x100401000402001, 0x4820010021001040,
-    0x400402202000812, 0x209009005000802, 0x810800601800400, 0x4301083214000150, 0x204026458e001401,
-    0x40204000808000, 0x8001008040010020, 0x8410820820420010, 0x1003001000090020, 0x804040008008080,
-    0x12000810020004, 0x1000100200040208, 0x430000a044020001, 0x280009023410300, 0xe0100040002240,
-    0x200100401700, 0x2244100408008080, 0x8000400801980, 0x2000810040200, 0x8010100228810400,
-    0x2000009044210200, 0x4080008040102101, 0x40002080411d01, 0x2005524060000901, 0x502001008400422,
-    0x489a000810200402, 0x1004400080a13, 0x4000011008020084, 0x26002114058042,
+	0xa8002c000108020, 0x6c00049b0002001, 0x100200010090040, 0x2480041000800801, 0x280028004000800,
+	0x900410008040022, 0x280020001001080, 0x2880002041000080, 0xa000800080400034, 0x4808020004000,
+	0x2290802004801000, 0x411000d00100020, 0x402800800040080, 0xb000401004208, 0x2409000100040200,
+	0x1002100004082, 0x22878001e24000, 0x1090810021004010, 0x801030040200012, 0x500808008001000,
+	0xa08018014000880, 0x8000808004000200, 0x201008080010200, 0x801020000441091, 0x800080204005,
+	0x1040200040100048, 0x120200402082, 0xd14880480100080, 0x12040280080080, 0x100040080020080,
+	0x9020010080800200, 0x813241200148449, 0x491604001800080, 0x100401000402001, 0x4820010021001040,
+	0x400402202000812, 0x209009005000802, 0x810800601800400, 0x4301083214000150, 0x204026458e001401,
+	0x40204000808000, 0x8001008040010020, 0x8410820820420010, 0x1003001000090020, 0x804040008008080,
+	0x12000810020004, 0x1000100200040208, 0x430000a044020001, 0x280009023410300, 0xe0100040002240,
+	0x200100401700, 0x2244100408008080, 0x8000400801980, 0x2000810040200, 0x8010100228810400,
+	0x2000009044210200, 0x4080008040102101, 0x40002080411d01, 0x2005524060000901, 0x502001008400422,
+	0x489a000810200402, 0x1004400080a13, 0x4000011008020084, 0x26002114058042,
 }
 
 var bishopMagics = [64]uint64{
@@ -246,4 +213,244 @@ var bishopMagics = [64]uint64{
 	0x822088220820214, 0x40808090012004, 0x910224040218c9, 0x402814422015008, 0x90014004842410,
 	0x1000042304105, 0x10008830412a00, 0x2520081090008908, 0x40102000a0a60140,
 }
+
+// helper function to get a Bitboard/uint64 with only a few bits set
+// we "&"" various random Bitboards to leave only overlapping bits
+func getRandomSparseBitboard() Bitboard {
+	filledBitboard := fullBB
+	return filledBitboard & Bitboard(rand.Uint64()) & Bitboard(rand.Uint64()) & Bitboard(rand.Uint64())
+}
+
+func initMagicNumbers() {
+
+	// rook magic numbers
+	for sq := 0; sq < 64; sq++ {
+		magicStructsRooks[sq].magic = Bitboard(rookMagics[sq])
+	}
+
+	// bishop magic numbers
+	for sq := 0; sq < 64; sq++ {
+		magicStructsBishops[sq].magic = Bitboard(bishopMagics[sq])
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------- Magic Bitboards: PART 3: Magic Shifts -------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+/*
+Generate the magic shifts.
+
+Note: the numbers below represent the maximum number of blockers from each square on the board.
+For example, a rook on d4 has 10 blockers (3 up, 2 down, 3 right, 2 left) excluding edge bits.
+For example, a rook on a1 has 12 blockers (6 up and 6 right).
+For example, a bishop on d4 has 9 blockers (2 UL, 3 DR, 2 DL, 2 UR).const
+
+This max amount of blockers represent the shift value.
+
+This is also the reason for the 4096 and 512 in the tables above.
+It is the max amount of permutations of the blockers.
+2 ^ 12 = 4096.
+2 ^ 9 = 512.
 */
+
+// constant shift values for each square
+var rookShifts = [64]int{
+	12, 11, 11, 11, 11, 11, 11, 12,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	12, 11, 11, 11, 11, 11, 11, 12,
+}
+
+var bishopShifts = [64]int{
+	6, 5, 5, 5, 5, 5, 5, 6,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	5, 5, 7, 7, 7, 7, 5, 5,
+	5, 5, 7, 9, 9, 7, 5, 5,
+	5, 5, 7, 9, 9, 7, 5, 5,
+	5, 5, 7, 7, 7, 7, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	6, 5, 5, 5, 5, 5, 5, 6,
+}
+
+func initMagicShifts() {
+
+	// rook shifts
+	for sq := 0; sq < 64; sq++ {
+		magicStructsRooks[sq].shift = rookShifts[sq]
+	}
+
+	// bishop shifts
+	for sq := 0; sq < 64; sq++ {
+		magicStructsBishops[sq].shift = bishopShifts[sq]
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+// ------------------------------------- Magic Bitboards: PART 4: Global Move Table -----------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+/*
+Generate the global move lookup tables.
+*/
+
+// original function used to get rook moves
+// now used to fill the magic move tables
+func getRookMovesPseudoOriginal(sq int, blockers Bitboard) Bitboard {
+
+	var newBitboard = emptyBB
+
+	// ------------ UP ----------------
+	newBitboard |= moveRaysTable[sq][RAY_UP]
+	if moveRaysTable[sq][RAY_UP]&blockers != 0 {
+		blockerSq := (moveRaysTable[sq][RAY_UP] & blockers).getMSBSq()
+		newBitboard &= ^moveRaysTable[blockerSq][RAY_UP]
+	}
+
+	// ------------ RIGHT ----------------
+	newBitboard |= moveRaysTable[sq][RAY_RIGHT]
+	if moveRaysTable[sq][RAY_RIGHT]&blockers != 0 {
+		blockerSq := (moveRaysTable[sq][RAY_RIGHT] & blockers).getMSBSq()
+		newBitboard &= ^moveRaysTable[blockerSq][RAY_RIGHT]
+	}
+
+	// ------------ DOWN ----------------
+	newBitboard |= moveRaysTable[sq][RAY_DOWN]
+	if moveRaysTable[sq][RAY_DOWN]&blockers != 0 {
+		blockerSq := (moveRaysTable[sq][RAY_DOWN] & blockers).getLSBSq()
+		newBitboard &= ^moveRaysTable[blockerSq][RAY_DOWN]
+	}
+
+	// ------------ LEFT ----------------
+	newBitboard |= moveRaysTable[sq][RAY_LEFT]
+	if moveRaysTable[sq][RAY_LEFT]&blockers != 0 {
+		blockerSq := (moveRaysTable[sq][RAY_LEFT] & blockers).getLSBSq()
+		newBitboard &= ^moveRaysTable[blockerSq][RAY_LEFT]
+	}
+
+	return newBitboard
+
+}
+
+// original function used to get bishop moves
+// now used to fill the magic move tables
+func getBishopMovesPseudoOriginal(sq int, blockers Bitboard) Bitboard {
+	var newBitboard = emptyBB
+
+	// ------------ UP LEFT ----------------
+	newBitboard |= moveRaysTable[sq][RAY_UL]
+	if moveRaysTable[sq][RAY_UL]&blockers != 0 {
+		blockerSq := (moveRaysTable[sq][RAY_UL] & blockers).getMSBSq()
+		newBitboard &= ^moveRaysTable[blockerSq][RAY_UL]
+	}
+
+	// ------------ UP RIGHT ----------------
+	newBitboard |= moveRaysTable[sq][RAY_UR]
+	if moveRaysTable[sq][RAY_UR]&blockers != 0 {
+		blockerSq := (moveRaysTable[sq][RAY_UR] & blockers).getMSBSq()
+		newBitboard &= ^moveRaysTable[blockerSq][RAY_UR]
+	}
+
+	// ------------ DOWN RIGHT ----------------
+	newBitboard |= moveRaysTable[sq][RAY_DR]
+	if moveRaysTable[sq][RAY_DR]&blockers != 0 {
+		blockerSq := (moveRaysTable[sq][RAY_DR] & blockers).getLSBSq()
+		newBitboard &= ^moveRaysTable[blockerSq][RAY_DR]
+	}
+
+	// ------------ DOWN LEFT ----------------
+	newBitboard |= moveRaysTable[sq][RAY_DL]
+	if moveRaysTable[sq][RAY_DL]&blockers != 0 {
+		blockerSq := (moveRaysTable[sq][RAY_DL] & blockers).getLSBSq()
+		newBitboard &= ^moveRaysTable[blockerSq][RAY_DL]
+	}
+
+	return newBitboard
+}
+
+// function to get all the permutations of a blocker bitboard (max 12 bits set for rooks and 9 bits set for bishops, but can be less)
+func generateBlockerPermutations(num uint64) []uint64 {
+
+	// count the number of bits set to 1
+	var count uint64 = 0
+	tempNum := num
+	for tempNum != 0 {
+		count++
+		tempNum &= tempNum - 1
+	}
+
+	// generate permutations recursively
+	result := make([]uint64, 0)
+	generatePermutationsRecursively(num, count, 0, 0, &result)
+	return result
+}
+
+func generatePermutationsRecursively(num uint64, count, index, current uint64, result *[]uint64) {
+	if count == 0 {
+		*result = append(*result, current)
+		return
+	}
+
+	// iterate through each bit position
+	for i := index; i < 64; i++ {
+
+		// check if the bit is set to 1
+		if num&(1<<i) != 0 {
+
+			// generate permutation with this bit set to 0
+			generatePermutationsRecursively(num, count-1, i+1, current, result)
+
+			// generate permutation with this bit set to 1
+			generatePermutationsRecursively(num, count-1, i+1, current|(1<<i), result)
+		}
+	}
+}
+
+// we now init the magic tables
+// by filling in each possible square and key we can get
+// with the old move generation bitboard
+func initMagicMoveTables() {
+
+	// ------------ rooks -------------
+
+	// for each square on the board
+	for sq := 0; sq < 64; sq++ {
+
+		// get the mask with all possible blockers
+		blockers := magicStructsRooks[sq].mask
+
+		// get all the permutations from those blockers
+		blockerPermutations := generateBlockerPermutations(uint64(blockers))
+
+		// for each permutation, generate the key for the square, and set the moves of that key to the actual moves generated using the old way
+		for _, blockerPermutation := range blockerPermutations {
+			key := Bitboard(blockerPermutation) // this already is after applying the mask above
+			key *= magicStructsRooks[sq].magic
+			key >>= (64 - magicStructsRooks[sq].shift)
+			magicRookMovesTable[sq][key] = getRookMovesPseudoOriginal(sq, Bitboard(blockerPermutation))
+		}
+
+	}
+
+	// ------------ bishops -------------
+
+	// for each square on the board
+	for sq := 0; sq < 64; sq++ {
+
+		// get the mask with all possible blockers
+		blockers := magicStructsBishops[sq].mask
+
+		// get all the permutations from those blockers
+		blockerPermutations := generateBlockerPermutations(uint64(blockers))
+
+		// for each permutation, generate the key for the square, and set the moves of that key to the actual moves generated using the old way
+		for _, blockerPermutation := range blockerPermutations {
+			key := Bitboard(blockerPermutation) // this already is after applying the mask above
+			key *= magicStructsBishops[sq].magic
+			key >>= (64 - magicStructsBishops[sq].shift)
+			magicBishopMovesTable[sq][key] = getBishopMovesPseudoOriginal(sq, Bitboard(blockerPermutation))
+		}
+	}
+}

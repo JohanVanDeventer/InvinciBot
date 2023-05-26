@@ -26,6 +26,9 @@ func initEngine() {
 
 		// move generation - magic
 		initMagicMasks()
+		initMagicNumbers()
+		initMagicShifts()
+		initMagicMoveTables()
 
 		// perft and tests
 		initTestPositions()
