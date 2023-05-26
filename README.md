@@ -10,4 +10,4 @@ InvinciBot plays on Lichess: https://lichess.org/@/InvinciBot
 Many thanks to the following resources I used to get ideas for the engine from:
 - https://www.chessprogramming.org/
 - https://github.com/algerbrex/blunder
-
+- https://github.com/GunshipPenguin/shallow-blue
