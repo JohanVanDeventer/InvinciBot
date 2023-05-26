@@ -67,6 +67,7 @@ At the end, valid moves will be a combination of:
 
 func (pos *Position) generateLegalMoves() {
 
+	// ------------------------------------------------- Setup ---------------------------------------------
 	// reset the moves counter
 	pos.availableMovesCounter = 0
 
@@ -101,6 +102,7 @@ func (pos *Position) generateLegalMoves() {
 	}
 	kingSq := frKing.popBitGetSq()
 
+	// ------------------------------------------------- King Attacks ---------------------------------------------
 	// get attacks on the king
 	start_1 := time.Now()
 
@@ -119,6 +121,7 @@ func (pos *Position) generateLegalMoves() {
 	duration_1 := time.Since(start_1).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_MOVES_KING_ATTACKS].addTime(int(duration_1))
 
+	// ------------------------------------------------- King Moves ---------------------------------------------
 	// get king pseudo-legal moves
 	// filter out attacked squares
 	// the rest are legal moves
@@ -146,7 +149,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
 				pos.availableMoves[pos.availableMovesCounter].fromSq = kingSq
@@ -155,7 +157,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			}
 		}
@@ -163,6 +164,7 @@ func (pos *Position) generateLegalMoves() {
 	duration_2 := time.Since(start_2).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_MOVES_KING].addTime(int(duration_2))
 
+	// ------------------------------------------------- Pins ---------------------------------------------
 	// get pinned pieces bitboards
 	start_3 := time.Now()
 	pinsUD, pinsLR, pinsULtDR, pinsDLtUR := getPinnedPieces(
@@ -202,6 +204,7 @@ func (pos *Position) generateLegalMoves() {
 		generateCastlingMoves = false
 	}
 
+	// ------------------------------------------------- Queen Moves ---------------------------------------------
 	// now we are ready to generate the other piece moves
 	// queens
 	start_4 := time.Now()
@@ -239,7 +242,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextQueenOriginSq
@@ -248,7 +250,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			}
 		}
@@ -256,6 +257,7 @@ func (pos *Position) generateLegalMoves() {
 	duration_4 := time.Since(start_4).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_MOVES_QUEEN].addTime(int(duration_4))
 
+	// ------------------------------------------------- Rook Moves ---------------------------------------------
 	// rooks
 	start_5 := time.Now()
 	for frRooks != 0 { // while there are pieces left
@@ -292,7 +294,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextRookOriginSq
@@ -301,7 +302,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			}
 		}
@@ -309,6 +309,7 @@ func (pos *Position) generateLegalMoves() {
 	duration_5 := time.Since(start_5).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_MOVES_ROOK].addTime(int(duration_5))
 
+	// ------------------------------------------------- Bishop Moves ---------------------------------------------
 	// bishops
 	start_6 := time.Now()
 	for frBishops != 0 { // while there are pieces left
@@ -345,7 +346,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextBishopOriginSq
@@ -354,7 +354,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			}
 		}
@@ -362,6 +361,7 @@ func (pos *Position) generateLegalMoves() {
 	duration_6 := time.Since(start_6).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_MOVES_BISHOP].addTime(int(duration_6))
 
+	// ------------------------------------------------- Knight Moves ---------------------------------------------
 	// knights
 	start_7 := time.Now()
 	for frKnights != 0 { // while there are pieces left
@@ -397,7 +397,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			} else { // quiet move
 				pos.availableMoves[pos.availableMovesCounter].fromSq = nextKnightOriginSq
@@ -406,7 +405,6 @@ func (pos *Position) generateLegalMoves() {
 				pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 				pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 				pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-				pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 				pos.availableMovesCounter += 1
 			}
 		}
@@ -414,6 +412,7 @@ func (pos *Position) generateLegalMoves() {
 	duration_7 := time.Since(start_7).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_MOVES_KNIGHT].addTime(int(duration_7))
 
+	// ------------------------------------------------- Pawn Moves ---------------------------------------------
 	// pawns
 	start_8 := time.Now()
 	for frPawns != 0 { // while there are pieces left
@@ -461,7 +460,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_QUEEN
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
@@ -470,7 +468,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_ROOK
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
@@ -479,7 +476,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_KNIGHT
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
@@ -488,7 +484,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_BISHOP
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 				} else { // if there is not a promotion
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
@@ -497,7 +492,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CAPTURE
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 				}
 			} else { // quiet move
@@ -508,7 +502,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_QUEEN
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
@@ -517,7 +510,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_ROOK
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
@@ -526,7 +518,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_KNIGHT
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
@@ -535,7 +526,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_BISHOP
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 				} else { // if there is not a promotion
 					pos.availableMoves[pos.availableMovesCounter].fromSq = nextPawnOriginSq
@@ -544,7 +534,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_QUIET
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 				}
 			}
@@ -553,6 +542,7 @@ func (pos *Position) generateLegalMoves() {
 	duration_8 := time.Since(start_8).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_MOVES_PAWN].addTime(int(duration_8))
 
+	// ------------------------------------------------- En-Passant Moves ---------------------------------------------
 	// captures en-passant (includes checking for en-passant pawn on pin bitmask)
 	// separate check based on the 2 pawn squares that can attack the en-passant target
 	start_9 := time.Now()
@@ -625,7 +615,6 @@ func (pos *Position) generateLegalMoves() {
 					pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_EN_PASSANT
 					pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 					pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-					pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 					pos.availableMovesCounter += 1
 				}
 			}
@@ -634,6 +623,7 @@ func (pos *Position) generateLegalMoves() {
 	duration_9 := time.Since(start_9).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_MOVES_EN_PASSANT].addTime(int(duration_9))
 
+	// ------------------------------------------------- Castling Moves ---------------------------------------------
 	// castling moves
 	start_10 := time.Now()
 	if generateCastlingMoves {
@@ -672,7 +662,6 @@ func (pos *Position) generateLegalMoves() {
 						pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CASTLE
 						pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 						pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-						pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 						pos.availableMovesCounter += 1
 					}
 				}
@@ -712,7 +701,6 @@ func (pos *Position) generateLegalMoves() {
 						pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CASTLE
 						pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 						pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-						pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 						pos.availableMovesCounter += 1
 					}
 				}
@@ -752,7 +740,6 @@ func (pos *Position) generateLegalMoves() {
 						pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CASTLE
 						pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 						pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-						pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 						pos.availableMovesCounter += 1
 					}
 				}
@@ -792,7 +779,6 @@ func (pos *Position) generateLegalMoves() {
 						pos.availableMoves[pos.availableMovesCounter].moveType = MOVE_TYPE_CASTLE
 						pos.availableMoves[pos.availableMovesCounter].promotionType = PROMOTION_NONE
 						pos.availableMoves[pos.availableMovesCounter].moveOrderScore = 0
-						pos.availableMoves[pos.availableMovesCounter].searchScore = 0
 						pos.availableMovesCounter += 1
 					}
 				}
@@ -810,6 +796,7 @@ func (pos *Position) generateLegalMoves() {
 // the result is then also filtered for any friendly pieces (cannot capture friendly pieces)
 
 func getRookMovesPseudo(sq int, blockers Bitboard) Bitboard {
+
 	var newBitboard = emptyBB
 
 	// ------------ UP ----------------

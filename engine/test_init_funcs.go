@@ -245,4 +245,42 @@ func printInitTestResults() {
 
 	fmt.Println("---- Column Masks: Col 7 ----")
 	columnMasks[7].printBitboardFancy8x8()
+
+	// magic masks: rooks
+	fmt.Println("---- Magic Masks: Rook Sq 0 ----")
+	magicStructsRooks[0].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Rook Sq 56 ----")
+	magicStructsRooks[56].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Rook Sq 27----")
+	magicStructsRooks[27].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Rook Sq 39 ----")
+	magicStructsRooks[39].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Rook Sq 63 ----")
+	magicStructsRooks[63].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Rook Sq 58 ----")
+	magicStructsRooks[58].mask.printBitboardFancy8x8()
+
+	// magic masks: bishops
+	fmt.Println("---- Magic Masks: Bishop Sq 0 ----")
+	magicStructsBishops[0].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Bishop Sq 56 ----")
+	magicStructsBishops[56].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Bishop Sq 27----")
+	magicStructsBishops[27].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Bishop Sq 39 ----")
+	magicStructsBishops[39].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Bishop Sq 63 ----")
+	magicStructsBishops[63].mask.printBitboardFancy8x8()
+
+	fmt.Println("---- Magic Masks: Bishop Sq 58 ----")
+	magicStructsBishops[58].mask.printBitboardFancy8x8()
 }

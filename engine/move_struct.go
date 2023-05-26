@@ -7,7 +7,6 @@ type Move struct {
 	moveType       int // quiet, capture, castle
 	promotionType  int // none, queen, rook, knight, bishop
 	moveOrderScore int // for move ordering later
-	searchScore    int // for searching later
 }
 
 // --------------------------------------------------------------------------------------------------------------------

@@ -32,6 +32,7 @@ const (
 // --------------------------------------------------------------------------------------------------------------------
 
 // returns a slice of moves ordered from best to worst
+
 func (pos *Position) getOrderedMoves() []Move {
 
 	start_time := time.Now()
@@ -88,12 +89,8 @@ func (pos *Position) getOrderedMoves() []Move {
 
 	// now sort the moves
 	// define the custom comparator function
-	scoreComparator := func(i, j int) bool {
-		return moves[i].moveOrderScore > moves[j].moveOrderScore
-	}
-
 	// sort the slice based on the score field using the comparator function
-	sort.Slice(moves, scoreComparator)
+	sort.Slice(moves, func(i, j int) bool { return moves[i].moveOrderScore > moves[j].moveOrderScore })
 
 	duration_time := time.Since(start_time).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_ORDER_MOVES].addTime(int(duration_time))

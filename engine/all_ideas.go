@@ -5,6 +5,16 @@ package main
 Ideas to consider / implement
 =============================
 
+--- Faster move gen ---
+Only calculate pinned pieces where sliders are in line with the enemy king.
+
+--- Branching factor ---
+Log the branching factor during search to roughly measure improvements.
+
+--- TT Lookup Qs ---
+Don't save Qs nodes but look up in the TT for Qs nodes?
+Test whether there is an improvement.
+
 --- Better eval ---
 Note: needs to check both sides.
 

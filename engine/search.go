@@ -15,21 +15,6 @@ The following things are applied during search:
 - Quiescence search (search captures only until a position is quiet)
 */
 
-// helper functions
-func getMax(a int, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func getMin(a int, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // --------------------------------------------------------------------------------------------------------------------
 // --------------------------------------------------- Quiescence Limits ----------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
@@ -88,7 +73,7 @@ const (
 )
 
 var (
-	BLANK_MOVE Move = Move{-1, -1, -1, -1, -1, -1, -1} // dummy move to catch errors
+	BLANK_MOVE Move = Move{-1, -1, -1, -1, -1, -1} // dummy move to catch errors
 )
 
 // function to initiate a search on the current position and store the best move
@@ -285,6 +270,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// we assume there are moves, because if there were no moves, we already would have returned checkmate or stalemate before
 	// move ordering is expensive, so we only sort moves certain number of plies away from the leaf nodes
 	// note, if we order at qsDepth + 1 then we will never hit unordered nodes (because at leaf nodes we just evaluate)
+
 	copyOfMoves := make([]Move, pos.availableMovesCounter)
 
 	if currentDepth >= (qsDepth + 1) { // we do order moves

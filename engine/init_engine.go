@@ -15,7 +15,7 @@ func initEngine() {
 		// general
 		initBBReferenceArray()
 
-		// move generation
+		// move generation - normal
 		initMoveLookupTablePawns()
 		initMoveLookupTableKings()
 		initMoveLookupTableKnights()
@@ -23,6 +23,9 @@ func initEngine() {
 		initMoveCastlingMasks()
 		initMovePawnAttackingKingMasks()
 		initMovePinnedPiecesMasks()
+
+		// move generation - magic
+		initMagicMasks()
 
 		// perft and tests
 		initTestPositions()
