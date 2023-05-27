@@ -266,23 +266,38 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 	}
 
-	// ------------------------------------------------------- Order Moves --------------------------------------------------
+	// ------------------------------------------------------- Order Moves: Normal --------------------------------------------------
 	// if we are not at a leaf node, we start ordering moves for the search to try optimise cutoffs
 	// we assume there are moves, because if there were no moves, we already would have returned checkmate or stalemate before
 	// move ordering is expensive, so we only sort moves certain number of plies away from the leaf nodes
 	// note, if we order at qsDepth + 1 then we will never hit unordered nodes (because at leaf nodes we just evaluate)
 
+	// create a slice with the length of the available moves
+	start_time_create_move_slice := time.Now()
+
 	copyOfMoves := make([]Move, pos.availableMovesCounter)
 
+	duration_time_create_move_slice := time.Since(start_time_create_move_slice).Nanoseconds()
+	pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].addTime(int(duration_time_create_move_slice))
+
+	// now copy the moves into the created slice
 	if currentDepth >= (qsDepth + 1) { // we do order moves
 		copy(copyOfMoves, pos.getOrderedMoves())
 		pos.logSearch.moveOrderedNodes += 1
+
 	} else { // we don't order moves
-		copy(copyOfMoves, pos.availableMoves[:pos.availableMovesCounter])
+		start_time_copy_into_move_slice := time.Now()
+
+		originalMoves := pos.availableMoves[:pos.availableMovesCounter]
+		copy(copyOfMoves, originalMoves)
 		pos.logSearch.moveUnorderedNodes += 1
+
+		duration_time_copy_into_move_slice := time.Since(start_time_copy_into_move_slice).Nanoseconds()
+		pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].addTime(int(duration_time_copy_into_move_slice))
+
 	}
 
-	// ***** <<< SPECIAL CODE TO USE ITERATIVE DEEPENING BEST MOVE >>> ***** START
+	// ------------------------------------------------------- Order Moves: Iterative Deepening --------------------------------------------------
 	// we also use the previous iterative deepening search's best move first, if we are at the root
 	// this code will therefore only run once each time the depth is increased (acceptable because the code takes long)
 	if currentDepth == initialDepth { // if we are at the root depth
@@ -298,21 +313,17 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				}
 			}
 
-			duration_time_iter_deep_ordering := time.Since(start_time_iter_deep_ordering).Nanoseconds()
-			pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].addTime(int(duration_time_iter_deep_ordering))
-
 			// remove the best move from the original position
 			copyOfMoves = append(copyOfMoves[:bestIndex], copyOfMoves[bestIndex+1:]...)
 
 			// append the best move at the start of the list of moves after ordering
 			copyOfMoves = append([]Move{pos.bestMove}, copyOfMoves...)
+
+			duration_time_iter_deep_ordering := time.Since(start_time_iter_deep_ordering).Nanoseconds()
+			pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].addTime(int(duration_time_iter_deep_ordering))
 		}
 	}
-	// ***** <<< SPECIAL CODE TO USE ITERATIVE DEEPENING BEST MOVE >>> ***** END
-
-	// ------------------------------------------------------- Main Search --------------------------------------------------
-
-	// <<< QUIESCENCE SEARCH >>> Start
+	// ------------------------------------------------------- Main Search: Quiescence Eval --------------------------------------------------
 	// if we are at a quiescence search node
 	// we use a standPat score as a floor on the evaluation for alpha
 	// this is done for the case that there is no capture moves, so we at least return the evaluation
@@ -337,12 +348,12 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			alpha = standPat
 		}
 	}
-	// <<< QUIESCENCE SEARCH >>> End
 
+	// ------------------------------------------------------- Main Search --------------------------------------------------
 	// start the search and iterate over each move
 	for _, move := range copyOfMoves {
 
-		// <<< QUIESCENCE SEARCH >>> Start
+		// ___________________________________________ Quiescence Moves ___________________________________
 		// at the depth of zero or lower, we only consider captures, en-passant and promotions, and skip other moves
 		if currentDepth <= 0 {
 			moveType := move.getMoveType()
@@ -351,8 +362,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				continue
 			}
 		}
-		// <<< QUIESCENCE SEARCH >>> End
 
+		// ___________________________________________ Make and Undo Move ___________________________________
 		// play the move, get the score of the node, and undo the move again
 		pos.makeMove(move)
 		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth)
@@ -364,15 +375,16 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			return 0, true
 		}
 
-		// <<< SPECIAL CODE TO STORE BEST MOVE >>> START
-		if currentDepth == initialDepth { // if we are at the root
-			if moveValue > alpha { // if the move is the best move so far, we store the move as the best so far
+		// ___________________________________________ Store Best Move at Root ___________________________________
+		// if we are at the root and the move is the best move so far, we store the move as the best so far
+		if currentDepth == initialDepth {
+			if moveValue > alpha {
 				pos.bestMoveSoFar = move
 			}
 		}
-		// <<< SPECIAL CODE TO STORE BEST MOVE >>> END
 
-		// alpha-beta checks
+		// ___________________________________________ Alpha-Beta Cutoffs ___________________________________
+
 		// beta cutoff
 		if moveValue >= beta {
 
@@ -400,7 +412,6 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	// ---------------------------------------------------- TT Store Entry -----------------------------------------------
 	// after iteration over all the moves, we store the node in the TT
-
 	// we store TT entries for non-quiescence nodes because they are fully searched
 
 	if currentDepth > 0 {

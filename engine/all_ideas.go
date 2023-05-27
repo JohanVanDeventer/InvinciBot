@@ -5,6 +5,9 @@ package main
 Ideas to consider / implement
 =============================
 
+--- TT Buckets ---
+2 entries for each TT slot/index to improve hit rates.
+
 --- Faster move gen ---
 Only calculate pinned pieces where sliders are in line with the enemy king.
 

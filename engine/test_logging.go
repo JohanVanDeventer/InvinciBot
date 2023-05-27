@@ -87,11 +87,14 @@ const (
 	LOG_TT_STORE int = 19
 
 	LOG_ITER_DEEP_MOVE_FIRST int = 20
+
+	LOG_CREATE_MOVE_SLICE    int = 21
+	LOG_COPY_INTO_MOVE_SLICE int = 22
 )
 
 // logging manager to manage all the LoggedType structs for a position
 type LogOther struct {
-	allLogTypes [21]LoggedType
+	allLogTypes [23]LoggedType
 }
 
 // get a new logging manager when a position is initialized
@@ -99,46 +102,49 @@ func getLoggingManager() LogOther {
 	var newLoggingManager LogOther
 
 	// move generation - individual pieces
-	newLoggingManager.allLogTypes[LOG_MOVES_KING] = LoggedType{"King Moves       ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_MOVES_QUEEN] = LoggedType{"Queen Moves      ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_MOVES_ROOK] = LoggedType{"Rook Moves       ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_MOVES_KNIGHT] = LoggedType{"Knight Moves     ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_MOVES_BISHOP] = LoggedType{"Bishop Moves     ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_MOVES_PAWN] = LoggedType{"Pawn Moves       ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_KING] = LoggedType{"King Moves           ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_QUEEN] = LoggedType{"Queen Moves          ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_ROOK] = LoggedType{"Rook Moves           ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_KNIGHT] = LoggedType{"Knight Moves         ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_BISHOP] = LoggedType{"Bishop Moves         ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_PAWN] = LoggedType{"Pawn Moves           ", 0, 0}
 
-	newLoggingManager.allLogTypes[LOG_MOVES_KING_ATTACKS] = LoggedType{"King Attacks     ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_MOVES_PINS] = LoggedType{"Pins             ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_MOVES_EN_PASSANT] = LoggedType{"En Passant       ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_MOVES_CASTLING] = LoggedType{"Castling         ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_KING_ATTACKS] = LoggedType{"King Attacks         ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_PINS] = LoggedType{"Pins                 ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_EN_PASSANT] = LoggedType{"En Passant           ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVES_CASTLING] = LoggedType{"Castling             ", 0, 0}
 
 	// move generation - storing individual moves
-	newLoggingManager.allLogTypes[LOG_STORE_MOVE_TIME] = LoggedType{"Store Move       ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_STORE_MOVE_TIME] = LoggedType{"Store Move           ", 0, 0}
 
 	// move generation - complete generation of all moves
-	newLoggingManager.allLogTypes[LOG_MOVE_GEN] = LoggedType{"Move Gen         ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MOVE_GEN] = LoggedType{"Move Gen             ", 0, 0}
 
 	// make move
-	newLoggingManager.allLogTypes[LOG_MAKE_MOVE] = LoggedType{"Make Move        ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_MAKE_MOVE] = LoggedType{"Make Move            ", 0, 0}
 
 	// undo move
-	newLoggingManager.allLogTypes[LOG_UNDO_MOVE] = LoggedType{"Undo Move        ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_UNDO_MOVE] = LoggedType{"Undo Move            ", 0, 0}
 
 	// hashing
-	newLoggingManager.allLogTypes[LOG_HASHING] = LoggedType{"Hash Position    ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_HASHING] = LoggedType{"Hash Position        ", 0, 0}
 
 	// evaluation
-	newLoggingManager.allLogTypes[LOG_EVAL] = LoggedType{"Eval Position    ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_EVAL] = LoggedType{"Eval Position        ", 0, 0}
 
 	// game state check
-	newLoggingManager.allLogTypes[LOG_GAME_STATE] = LoggedType{"Get Game State   ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_GAME_STATE] = LoggedType{"Get Game State       ", 0, 0}
 
 	// order moves
-	newLoggingManager.allLogTypes[LOG_ORDER_MOVES] = LoggedType{"Order Moves      ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_ORDER_MOVES] = LoggedType{"Order Moves          ", 0, 0}
 
 	// search logging
-	newLoggingManager.allLogTypes[LOG_TT_PROBE] = LoggedType{"Probe TT Entry   ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_TT_STORE] = LoggedType{"Store TT Entry   ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST] = LoggedType{"IterDeep Ordering", 0, 0}
+	newLoggingManager.allLogTypes[LOG_TT_PROBE] = LoggedType{"Probe TT Entry       ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_TT_STORE] = LoggedType{"Store TT Entry       ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST] = LoggedType{"IterDeep Ordering    ", 0, 0}
+
+	newLoggingManager.allLogTypes[LOG_TT_PROBE] = LoggedType{"Create Move Slice    ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_TT_PROBE] = LoggedType{"Copy Into Move Slice ", 0, 0}
 
 	return newLoggingManager
 }

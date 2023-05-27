@@ -1,15 +1,7 @@
 package main
 
 /*
-Old move struct now removed:
-type Move struct {
-	fromSq         int // 0-63
-	toSq           int // 0-63
-	piece          int // PIECE_TYPE
-	moveType       int // quiet, capture, castle
-	promotionType  int // none, queen, rook, knight, bishop
-	moveOrderScore int // for move ordering later
-}
+We encode a move in a single uint64.
 */
 
 type Move uint64
@@ -47,7 +39,7 @@ const (
 // --------------------------------------------------------------------------------------------------------------------
 /*
 
-To try and reduce memory and copy overhead during search, we encode moves as a single uint64.
+To try and reduce memory and copy overhead during search and move ordering, we encode moves as a single uint64.
 
 0000000000000000000000000000000000000000000000000000000000000000
                                                     	|------| From Sq: 0
@@ -55,19 +47,18 @@ To try and reduce memory and copy overhead during search, we encode moves as a s
 											|--|                 Piece: 16
 										|--|                     Move Type: 20
 									|--|                         Promotion Type: 24
-								|--|                             Unused Bits: 28
-|------------------------------|                                 Move Ordering Score: 32
+								|--|                             Unused Bits: 28+
 
 */
 
 // constants specifying the location of encoding each move part
 const (
-	MOVE_SHIFT_FROM                int = 0
-	MOVE_SHIFT_TO                  int = 8
-	MOVE_SHIFT_PIECE               int = 16
-	MOVE_SHIFT_MOVE_TYPE           int = 20
-	MOVE_SHIFT_PROMOTION_TYPE      int = 28
-	MOVE_SHIFT_MOVE_ORDERING_SCORE int = 32
+	MOVE_SHIFT_FROM           int = 0
+	MOVE_SHIFT_TO             int = 8
+	MOVE_SHIFT_PIECE          int = 16
+	MOVE_SHIFT_MOVE_TYPE      int = 20
+	MOVE_SHIFT_PROMOTION_TYPE int = 28
+	//MOVE_SHIFT_MOVE_ORDERING_SCORE int = 32
 )
 
 // constants specifying masks for retrieving each move part
@@ -79,22 +70,26 @@ const (
 	MOVE_BIT_MASK_32_BITS Move = 0xffffffffffffffff >> (64 - 32)
 
 	// masks set at the specific bits where the move info is encoded
-	MOVE_MASK_FROM                = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_FROM)
-	MOVE_MASK_TO                  = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_TO)
-	MOVE_MASK_PIECE               = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PIECE)
-	MOVE_MASK_MOVE_TYPE           = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_MOVE_TYPE)
-	MOVE_MASK_PROMOTION_TYPE      = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PROMOTION_TYPE)
-	MOVE_MASK_MOVE_ORDERING_SCORE = fullMove & (MOVE_BIT_MASK_32_BITS << MOVE_SHIFT_MOVE_ORDERING_SCORE)
+	MOVE_MASK_FROM           = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_FROM)
+	MOVE_MASK_TO             = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_TO)
+	MOVE_MASK_PIECE          = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PIECE)
+	MOVE_MASK_MOVE_TYPE      = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_MOVE_TYPE)
+	MOVE_MASK_PROMOTION_TYPE = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PROMOTION_TYPE)
+	//MOVE_MASK_MOVE_ORDERING_SCORE = fullMove & (MOVE_BIT_MASK_32_BITS << MOVE_SHIFT_MOVE_ORDERING_SCORE)
 )
 
-func getEncodedMove(fromSq int, toSq int, piece int, moveType int, promotionType int, moveOrderScore int) Move {
+// get a single move encoded for all information except for the move ordering score
+func getEncodedMove(fromSq int, toSq int, piece int, moveType int, promotionType int) Move {
 	return Move(fromSq) | (Move(toSq) << MOVE_SHIFT_TO) | (Move(piece) << MOVE_SHIFT_PIECE) | (Move(moveType) << MOVE_SHIFT_MOVE_TYPE) |
-		(Move(promotionType) << MOVE_SHIFT_PROMOTION_TYPE) | (Move(moveOrderScore) << MOVE_SHIFT_MOVE_ORDERING_SCORE)
+		(Move(promotionType) << MOVE_SHIFT_PROMOTION_TYPE)
 }
 
 // --------------------------------------------------------------------------------------------------------------------
 // --------------------------------------------- Move Information Retrieval -------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
+/*
+Functions to extract information from already-encoded moves.
+*/
 
 func (move *Move) getFromSq() int {
 	return int((*move & MOVE_MASK_FROM) >> MOVE_SHIFT_FROM)
@@ -116,15 +111,15 @@ func (move *Move) getPromotionType() int {
 	return int((*move & MOVE_MASK_PROMOTION_TYPE) >> MOVE_SHIFT_PROMOTION_TYPE)
 }
 
-func (move *Move) getMoveOrderingScore() int {
-	return int((*move & MOVE_MASK_MOVE_ORDERING_SCORE) >> MOVE_SHIFT_MOVE_ORDERING_SCORE)
-}
+//func (move *Move) getMoveOrderingScore() int {
+//	return int((*move & MOVE_MASK_MOVE_ORDERING_SCORE) >> MOVE_SHIFT_MOVE_ORDERING_SCORE)
+//}
 
 // --------------------------------------------------------------------------------------------------------------------
 // ----------------------------------------------- Move Information Update --------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 
-// this assumes that the previous score was 0
-func (move *Move) setMoveOrderingScore(score int) {
-	*move |= (Move(score) << MOVE_SHIFT_MOVE_ORDERING_SCORE)
-}
+// encodes the move ordering score into the move (assumes those bits were not set previously)
+//func (move *Move) setMoveOrderingScore(score int) {
+//	*move |= (Move(score) << MOVE_SHIFT_MOVE_ORDERING_SCORE)
+//}

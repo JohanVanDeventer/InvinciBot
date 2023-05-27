@@ -211,8 +211,11 @@ func (pos *Position) printBoardToTerminal() {
 			avgTTStore := pos.logOther.allLogTypes[LOG_TT_STORE].getAverageNsPerCall()
 			avgIterDeepOrder := pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].getAverageNsPerCall()
 			avgStoreMoves := pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].getAverageNsPerCall()
+			avgCreateMoveSlice := pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].getAverageNsPerCall()
+			avgCopyIntoMoveSlice := pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].getAverageNsPerCall()
 
-			fmt.Printf("<<Average ns>> Order moves: %v. TT Probe: %v. TT Store: %v. IterDeep Ordering: %v. Store move: %v.\n", avgOrderMoves, avgTTGet, avgTTStore, avgIterDeepOrder, avgStoreMoves)
+			fmt.Printf("<<Average ns>> Order moves: %v. TT Probe: %v. TT Store: %v. IterDeep Ordering: %v. Store move: %v. Create move slice: %v. Copy into move slice: %v\n",
+				avgOrderMoves, avgTTGet, avgTTStore, avgIterDeepOrder, avgStoreMoves, avgCreateMoveSlice, avgCopyIntoMoveSlice)
 
 		case 1:
 			fmt.Printf("\n")

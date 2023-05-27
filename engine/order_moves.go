@@ -10,16 +10,9 @@ import (
 // --------------------------------------------------------------------------------------------------------------------
 /*
 
-Order moves by the expected most valuable to least valuable for earlier search cutoffs.
-Order moves by:
-- 1. Promotions (direct threat to increase side to move value by normally a queen).
-- 2. Most valuable attacker captures least valuable defender (for example pawn takes queen).
-- 3. Captures and en-passant before quiet moves (generally expect to need to search more deeply and therefore earlier).
-- 4. Castling (could get out of threats).
-
-Other quiet moves are therefore last.
-
-Ordering of moves returns a copy of the current available moves. It does not modify anything in the available moves array.
+We order moves to try and get earlier cutoffs during the search. Some of the ordering techniques applied are:
+1. Score captures of high value pieces with low value pieces higher (pawn x queen higher than queen x rook).
+2. Score promotions by the
 
 */
 
@@ -32,19 +25,17 @@ const (
 // --------------------------------------------------------------------------------------------------------------------
 
 // returns a slice of moves ordered from best to worst
-
 func (pos *Position) getOrderedMoves() []Move {
 
 	start_time := time.Now()
 
-	// if there are no moves, return an empty slice early
-	if pos.availableMovesCounter == 0 {
-		var blankMoves []Move
-		return blankMoves
-	}
-
 	// create a copy of the available moves
-	moves := pos.availableMoves[:pos.availableMovesCounter]
+	//moves := pos.availableMoves[:pos.availableMovesCounter]
+	moves := make([]Move, pos.availableMovesCounter)
+	copy(moves, pos.availableMoves[:pos.availableMovesCounter])
+
+	// create a score list
+	scores := make([]int, pos.availableMovesCounter)
 
 	// loop over moves to score them
 	for i, move := range moves {
@@ -95,16 +86,17 @@ func (pos *Position) getOrderedMoves() []Move {
 			moveOrderScore += (evalTableMaterial[SIDE_WHITE][enemyPiece]) - (evalTableMaterial[SIDE_WHITE][piece])
 		}
 
-		// finally set the updated move score if the scorew is not zero
-		if moveOrderScore != 0 {
-			moves[i].setMoveOrderingScore(moveOrderScore)
-		}
+		// finally set the updated move score if the score is not zero
+		//if moveOrderScore != 0 {
+		//	moves[i].setMoveOrderingScore(moveOrderScore)
+		//}
+		scores[i] = moveOrderScore
 	}
 
 	// now sort the moves
 	// define the custom comparator function
-	// sort the slice based on the score field using the comparator function
-	sort.Slice(moves, func(i, j int) bool { return moves[i].getMoveOrderingScore() > moves[j].getMoveOrderingScore() })
+	// sort the moves based on the scores using the comparator function
+	sort.Slice(moves, func(i, j int) bool { return scores[i] > scores[j] })
 
 	duration_time := time.Since(start_time).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_ORDER_MOVES].addTime(int(duration_time))
