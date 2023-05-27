@@ -57,6 +57,8 @@ func printBBReferenceArray() {
 // --------------------------------------------------------------------------------------------------------------------
 // functions to manipulate specific bitboard bits, or get information about them
 
+// --------------------------------------------------- Main Functions -------------------------------------------------
+
 func (bb *Bitboard) setBit(sq int) {
 	*bb |= bbReferenceArray[sq]
 }
@@ -73,24 +75,25 @@ func (bb Bitboard) countBits() int {
 	return bits.OnesCount64(uint64(bb))
 }
 
-// returns the sq index of the most significant bit
-// for example: 0000000000000000000000000000000000000000000000000000000000000001 is 63
-// will return 64 if all zeros
+// returns the sq index of the most significant / left-most bit (will return 64 if all bits are zeros)
 func (bb Bitboard) getMSBSq() int {
 	return bits.LeadingZeros64(uint64(bb))
 }
 
+// returns the sq index of the least significant / right-most bit (will return -1 if all bits are zeros)
 func (bb Bitboard) getLSBSq() int {
 	return 63 - bits.TrailingZeros64(uint64(bb))
 }
 
 // returns the sq index of the next bit, and clears that bit to zero
-// will return 64 if there are no more bits (i.e. 64 zeros)
+// will cause an error if there are no more bits to clear
 func (bb *Bitboard) popBitGetSq() int {
 	sq := bb.getMSBSq()
 	bb.clearBit(sq)
 	return sq
 }
+
+// ------------------------------------------------- Display Functions -----------------------------------------------
 
 func (bb Bitboard) printBitboardSingleLine() {
 	fmt.Printf("%064b\n", bb)

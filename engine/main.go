@@ -3,10 +3,10 @@ package main
 func main() {
 
 	// --- tests ---
-	initEngine()
+	//initEngine()
 	//playBestMoveGames(1000)
 	//printInitTestResults()
-	printPerftResults()
+	//printPerftResults()
 
 	// create a new position for the engine to start with
 	pos := Position{}

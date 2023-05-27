@@ -13,6 +13,7 @@ type LogSearch struct {
 	nodesAtDepth0     int // leaf nodes where quiescence search is started
 	nodesAtDepth1Min  int // quiescence-only nodes
 
+	nodesTTProbe int // number of times the TT was checked for a position
 	nodesTTHit   int // number of times a TT entry was used
 	nodesTTStore int // number of times a TT entry was stored
 
@@ -30,6 +31,7 @@ func (log *LogSearch) resetLog() {
 	log.nodesAtDepth0 = 0
 	log.nodesAtDepth1Min = 0
 
+	log.nodesTTProbe = 0
 	log.nodesTTHit = 0
 	log.nodesTTStore = 0
 

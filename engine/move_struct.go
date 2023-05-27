@@ -1,6 +1,7 @@
 package main
 
 /*
+Old move struct now removed:
 type Move struct {
 	fromSq         int // 0-63
 	toSq           int // 0-63

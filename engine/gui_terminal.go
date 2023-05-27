@@ -139,41 +139,65 @@ func (pos *Position) printBoardToTerminal() {
 		switch rowCounter {
 		case 7:
 			if pos.isWhiteTurn {
-				fmt.Printf("Turn: White. Game Status: %v.\n", gameStateToText[pos.gameState])
+				fmt.Printf("Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v.\n", gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
 			} else {
-				fmt.Printf("Turn: Black. Game Status: %v.\n", gameStateToText[pos.gameState])
+				fmt.Printf("Turn: Black. Game Status: %v. Current move: %v. 50-move counter: %v.\n", gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
 			}
 
 		case 6:
-			knps := math.Round((float64(pos.logSearch.getTotalNodes()) / (float64(pos.logSearch.timeMs) / 1000)) / 1000)
-			fmt.Printf("Search depth: %v. QS Depth: %v. Nodes: %v. Knps: %v.\n", pos.logSearch.depth, pos.logSearch.qsDepth, pos.logSearch.getTotalNodes(), knps)
+			totalEval := pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+			fmt.Printf("Evaluation: %v (material: %v, heatmaps: %v, other: %v).\n", totalEval, pos.evalMaterial, pos.evalHeatmaps, pos.evalOther)
 
 		case 5:
-			fmt.Printf("Nodes+1: %v. Nodes=0: %v. Nodes-1: %v. TT Uses: %v. TT Stores: %v. Ordered move nodes: %v. Unordered move nodes: %v.\n", pos.logSearch.nodesAtDepth1Plus,
-				pos.logSearch.nodesAtDepth0, pos.logSearch.nodesAtDepth1Min, pos.logSearch.nodesTTHit, pos.logSearch.nodesTTStore, pos.logSearch.moveOrderedNodes,
-				pos.logSearch.moveUnorderedNodes)
+			knps := math.Round((float64(pos.logSearch.getTotalNodes()) / (float64(pos.logSearch.timeMs) / 1000)) / 1000)
+			fmt.Printf("Search depth: %v. QS Depth: %v. Knps: %v.\n", pos.logSearch.depth, pos.logSearch.qsDepth, knps)
 
 		case 4:
-			fmt.Printf("Current move: %v. 50-move counter: %v.\n", pos.fullMoves, pos.halfMoves)
+
+			totalNodes := pos.logSearch.getTotalNodes()
+
+			nodesPlus1Percent := 0
+			if totalNodes > 0 {
+				nodesPlus1Percent = int((float64(pos.logSearch.nodesAtDepth1Plus) / float64(totalNodes)) * 100)
+			}
+
+			nodes0Percent := 0
+			if totalNodes > 0 {
+				nodes0Percent = int((float64(pos.logSearch.nodesAtDepth0) / float64(totalNodes)) * 100)
+			}
+
+			nodesMinus1Percent := 0
+			if totalNodes > 0 {
+				nodesMinus1Percent = int((float64(pos.logSearch.nodesAtDepth1Min) / float64(totalNodes)) * 100)
+			}
+
+			ttProbeRate := 0
+			if pos.logSearch.nodesTTProbe > 0 {
+				ttProbeRate = int((float64(pos.logSearch.nodesTTProbe) / float64(totalNodes)) * 100)
+			}
+
+			ttHitRate := 0
+			if pos.logSearch.nodesTTProbe > 0 {
+				ttHitRate = int((float64(pos.logSearch.nodesTTHit) / float64(pos.logSearch.nodesTTProbe)) * 100)
+			}
+
+			ttStoreRate := 0
+			if totalNodes > 0 {
+				ttStoreRate = int((float64(pos.logSearch.nodesTTStore) / float64(totalNodes)) * 100)
+			}
+
+			orderedNodesRate := 0
+			if totalNodes > 0 {
+				orderedNodesRate = int((float64(pos.logSearch.moveOrderedNodes) / float64(totalNodes)) * 100)
+			}
+
+			fmt.Printf("Total nodes: %v (+1: %v%%  0:%v%%  -1:%v%%). Probed TT at %v%% of nodes. Hit valid TT entry in %v%% of probed nodes. Stored %v%% of nodes in the TT. Ordered the moves of %v%% nodes.\n",
+				totalNodes, nodesPlus1Percent, nodes0Percent, nodesMinus1Percent,
+				ttProbeRate, ttHitRate, ttStoreRate, orderedNodesRate)
 
 		case 3:
-			fmt.Printf("Eval material: %v. Eval heatmaps: %v. Eval other: %v.\n", pos.evalMaterial, pos.evalHeatmaps, pos.evalOther)
-
-		case 2:
-
 			// get the average ns per call
-			avgMoveGen := 0
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_KING].getAverageNsPerCall()
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_QUEEN].getAverageNsPerCall()
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_ROOK].getAverageNsPerCall()
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_KNIGHT].getAverageNsPerCall()
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_BISHOP].getAverageNsPerCall()
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_PAWN].getAverageNsPerCall()
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_KING_ATTACKS].getAverageNsPerCall()
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_PINS].getAverageNsPerCall()
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_EN_PASSANT].getAverageNsPerCall()
-			avgMoveGen += pos.logOther.allLogTypes[LOG_MOVES_CASTLING].getAverageNsPerCall()
-
+			avgMoveGen := pos.logOther.allLogTypes[LOG_MOVE_GEN].getAverageNsPerCall()
 			avgMakeMove := pos.logOther.allLogTypes[LOG_MAKE_MOVE].getAverageNsPerCall()
 			avgUndoMove := pos.logOther.allLogTypes[LOG_UNDO_MOVE].getAverageNsPerCall()
 			avgEval := pos.logOther.allLogTypes[LOG_EVAL].getAverageNsPerCall()
@@ -181,14 +205,17 @@ func (pos *Position) printBoardToTerminal() {
 
 			fmt.Printf("<<Average ns>> Move Gen: %v. Make Move: %v. Undo Move: %v. Eval: %v. Game State: %v.\n", avgMoveGen, avgMakeMove, avgUndoMove, avgEval, avgGameState)
 
-		case 1:
+		case 2:
 			avgOrderMoves := pos.logOther.allLogTypes[LOG_ORDER_MOVES].getAverageNsPerCall()
-			avgTTGet := pos.logOther.allLogTypes[LOG_TT_GET].getAverageNsPerCall()
+			avgTTGet := pos.logOther.allLogTypes[LOG_TT_PROBE].getAverageNsPerCall()
 			avgTTStore := pos.logOther.allLogTypes[LOG_TT_STORE].getAverageNsPerCall()
 			avgIterDeepOrder := pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].getAverageNsPerCall()
 			avgStoreMoves := pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].getAverageNsPerCall()
 
-			fmt.Printf("<<Average ns>> Order moves: %v. TT Get: %v. TT Store: %v. IterDeep Ordering: %v. Store move: %v.\n", avgOrderMoves, avgTTGet, avgTTStore, avgIterDeepOrder, avgStoreMoves)
+			fmt.Printf("<<Average ns>> Order moves: %v. TT Probe: %v. TT Store: %v. IterDeep Ordering: %v. Store move: %v.\n", avgOrderMoves, avgTTGet, avgTTStore, avgIterDeepOrder, avgStoreMoves)
+
+		case 1:
+			fmt.Printf("\n")
 
 		case 0:
 			fmt.Printf("\n")

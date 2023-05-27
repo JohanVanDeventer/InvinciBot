@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 // debug function to test whether engine tables have initialized correctly
-// not used
+// not used in the final engine
 func printInitTestResults() {
 
 	fmt.Println(" ")

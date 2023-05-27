@@ -65,6 +65,8 @@ At the end, valid moves will be a combination of:
 
 func (pos *Position) generateLegalMoves() {
 
+	start_time := time.Now()
+
 	// ------------------------------------------------- Setup ---------------------------------------------
 	// reset the moves counter
 	pos.availableMovesCounter = 0
@@ -102,7 +104,7 @@ func (pos *Position) generateLegalMoves() {
 
 	// ------------------------------------------------- King Attacks ---------------------------------------------
 	// get attacks on the king
-	start_1 := time.Now()
+	//start_1 := time.Now()
 
 	piecesAttKingBB, piecesAndSqAttKingBB := getAttacksOnKing(
 		kingSq,
@@ -116,14 +118,14 @@ func (pos *Position) generateLegalMoves() {
 		pos.pieces[enSide][PIECE_PAWN],
 		pos.isWhiteTurn)
 
-	duration_1 := time.Since(start_1).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_KING_ATTACKS].addTime(int(duration_1))
+	//duration_1 := time.Since(start_1).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_KING_ATTACKS].addTime(int(duration_1))
 
 	// ------------------------------------------------- King Moves ---------------------------------------------
 	// get king pseudo-legal moves
 	// filter out attacked squares
 	// the rest are legal moves
-	start_2 := time.Now()
+	//start_2 := time.Now()
 	kingMovesPseudo := getKingMovesPseudo(kingSq)
 	kingMovesPseudo &= ^pos.piecesAll[frSide] // mask out moves to friendly pieces
 
@@ -167,12 +169,12 @@ func (pos *Position) generateLegalMoves() {
 			}
 		}
 	}
-	duration_2 := time.Since(start_2).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_KING].addTime(int(duration_2))
+	//duration_2 := time.Since(start_2).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_KING].addTime(int(duration_2))
 
 	// ------------------------------------------------- Pins ---------------------------------------------
 	// get pinned pieces bitboards
-	start_3 := time.Now()
+	//start_3 := time.Now()
 	pinsUD, pinsLR, pinsULtDR, pinsDLtUR := getPinnedPieces(
 		kingSq,
 		pos.piecesAll[SIDE_BOTH],
@@ -186,8 +188,8 @@ func (pos *Position) generateLegalMoves() {
 		pos.isWhiteTurn)
 	pinsCombined := pinsUD | pinsLR | pinsULtDR | pinsDLtUR
 
-	duration_3 := time.Since(start_3).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_PINS].addTime(int(duration_3))
+	//duration_3 := time.Since(start_3).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_PINS].addTime(int(duration_3))
 
 	// count the attacks on the king
 	kingChecks := piecesAttKingBB.countBits()
@@ -213,7 +215,7 @@ func (pos *Position) generateLegalMoves() {
 	// ------------------------------------------------- Queen Moves ---------------------------------------------
 	// now we are ready to generate the other piece moves
 	// queens
-	start_4 := time.Now()
+	//start_4 := time.Now()
 	for frQueens != 0 { // while there are pieces left
 		nextQueenOriginSq := frQueens.popBitGetSq() // get the square of the piece
 
@@ -265,12 +267,12 @@ func (pos *Position) generateLegalMoves() {
 			}
 		}
 	}
-	duration_4 := time.Since(start_4).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_QUEEN].addTime(int(duration_4))
+	//duration_4 := time.Since(start_4).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_QUEEN].addTime(int(duration_4))
 
 	// ------------------------------------------------- Rook Moves ---------------------------------------------
 	// rooks
-	start_5 := time.Now()
+	//start_5 := time.Now()
 	for frRooks != 0 { // while there are pieces left
 		nextRookOriginSq := frRooks.popBitGetSq() // get the square of the piece
 
@@ -322,12 +324,12 @@ func (pos *Position) generateLegalMoves() {
 			}
 		}
 	}
-	duration_5 := time.Since(start_5).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_ROOK].addTime(int(duration_5))
+	//duration_5 := time.Since(start_5).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_ROOK].addTime(int(duration_5))
 
 	// ------------------------------------------------- Bishop Moves ---------------------------------------------
 	// bishops
-	start_6 := time.Now()
+	//start_6 := time.Now()
 	for frBishops != 0 { // while there are pieces left
 		nextBishopOriginSq := frBishops.popBitGetSq() // get the square of the piece
 
@@ -379,12 +381,12 @@ func (pos *Position) generateLegalMoves() {
 			}
 		}
 	}
-	duration_6 := time.Since(start_6).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_BISHOP].addTime(int(duration_6))
+	//duration_6 := time.Since(start_6).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_BISHOP].addTime(int(duration_6))
 
 	// ------------------------------------------------- Knight Moves ---------------------------------------------
 	// knights
-	start_7 := time.Now()
+	//start_7 := time.Now()
 	for frKnights != 0 { // while there are pieces left
 		nextKnightOriginSq := frKnights.popBitGetSq() // get the square of the piece
 
@@ -435,12 +437,12 @@ func (pos *Position) generateLegalMoves() {
 			}
 		}
 	}
-	duration_7 := time.Since(start_7).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_KNIGHT].addTime(int(duration_7))
+	//duration_7 := time.Since(start_7).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_KNIGHT].addTime(int(duration_7))
 
 	// ------------------------------------------------- Pawn Moves ---------------------------------------------
 	// pawns
-	start_8 := time.Now()
+	//start_8 := time.Now()
 	for frPawns != 0 { // while there are pieces left
 
 		nextPawnOriginSq := frPawns.popBitGetSq() // get the square of the piece
@@ -602,13 +604,13 @@ func (pos *Position) generateLegalMoves() {
 			}
 		}
 	}
-	duration_8 := time.Since(start_8).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_PAWN].addTime(int(duration_8))
+	//duration_8 := time.Since(start_8).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_PAWN].addTime(int(duration_8))
 
 	// ------------------------------------------------- En-Passant Moves ---------------------------------------------
 	// captures en-passant (includes checking for en-passant pawn on pin bitmask)
 	// separate check based on the 2 pawn squares that can attack the en-passant target
-	start_9 := time.Now()
+	//start_9 := time.Now()
 
 	// special rule start >>>
 	// the king in check mask does not include pawns checking the king that can be captured en-passant
@@ -684,12 +686,12 @@ func (pos *Position) generateLegalMoves() {
 			}
 		}
 	}
-	duration_9 := time.Since(start_9).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_EN_PASSANT].addTime(int(duration_9))
+	//duration_9 := time.Since(start_9).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_EN_PASSANT].addTime(int(duration_9))
 
 	// ------------------------------------------------- Castling Moves ---------------------------------------------
 	// castling moves
-	start_10 := time.Now()
+	//start_10 := time.Now()
 	if generateCastlingMoves {
 		if pos.isWhiteTurn {
 			if pos.castlingRights[CASTLE_WHITE_KINGSIDE] { // if castling is available
@@ -865,8 +867,11 @@ func (pos *Position) generateLegalMoves() {
 			}
 		}
 	}
-	duration_10 := time.Since(start_10).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVES_CASTLING].addTime(int(duration_10))
+	//duration_10 := time.Since(start_10).Nanoseconds()
+	//pos.logOther.allLogTypes[LOG_MOVES_CASTLING].addTime(int(duration_10))
+
+	duration_time := time.Since(start_time).Nanoseconds()
+	pos.logOther.allLogTypes[LOG_MOVE_GEN].addTime(int(duration_time))
 }
 
 // --------------------------------------------------------------------------------------------------------------------

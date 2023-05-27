@@ -45,7 +45,7 @@ func (log *LoggedType) getAverageNsPerCall() int {
 
 const (
 
-	// move generation
+	// move generation - individual pieces
 	LOG_MOVES_KING   int = 0
 	LOG_MOVES_QUEEN  int = 1
 	LOG_MOVES_ROOK   int = 2
@@ -58,43 +58,47 @@ const (
 	LOG_MOVES_EN_PASSANT   int = 8
 	LOG_MOVES_CASTLING     int = 9
 
+	// move generation - storing individual moves
 	LOG_STORE_MOVE_TIME int = 10
 
+	// move generation - complete generation of all moves
+	LOG_MOVE_GEN int = 11
+
 	// make move
-	LOG_MAKE_MOVE int = 11
+	LOG_MAKE_MOVE int = 12
 
 	// undo move
-	LOG_UNDO_MOVE int = 12
+	LOG_UNDO_MOVE int = 13
 
 	// hashing
-	LOG_HASHING int = 13
+	LOG_HASHING int = 14
 
 	// evaluation
-	LOG_EVAL int = 14
+	LOG_EVAL int = 15
 
 	// game state
-	LOG_GAME_STATE int = 15
+	LOG_GAME_STATE int = 16
 
 	// order moves
-	LOG_ORDER_MOVES int = 16
+	LOG_ORDER_MOVES int = 17
 
 	// search logging
-	LOG_TT_GET   int = 17
-	LOG_TT_STORE int = 18
+	LOG_TT_PROBE int = 18
+	LOG_TT_STORE int = 19
 
-	LOG_ITER_DEEP_MOVE_FIRST int = 19
+	LOG_ITER_DEEP_MOVE_FIRST int = 20
 )
 
 // logging manager to manage all the LoggedType structs for a position
 type LogOther struct {
-	allLogTypes [20]LoggedType
+	allLogTypes [21]LoggedType
 }
 
 // get a new logging manager when a position is initialized
 func getLoggingManager() LogOther {
 	var newLoggingManager LogOther
 
-	// move generation
+	// move generation - individual pieces
 	newLoggingManager.allLogTypes[LOG_MOVES_KING] = LoggedType{"King Moves       ", 0, 0}
 	newLoggingManager.allLogTypes[LOG_MOVES_QUEEN] = LoggedType{"Queen Moves      ", 0, 0}
 	newLoggingManager.allLogTypes[LOG_MOVES_ROOK] = LoggedType{"Rook Moves       ", 0, 0}
@@ -107,7 +111,11 @@ func getLoggingManager() LogOther {
 	newLoggingManager.allLogTypes[LOG_MOVES_EN_PASSANT] = LoggedType{"En Passant       ", 0, 0}
 	newLoggingManager.allLogTypes[LOG_MOVES_CASTLING] = LoggedType{"Castling         ", 0, 0}
 
+	// move generation - storing individual moves
 	newLoggingManager.allLogTypes[LOG_STORE_MOVE_TIME] = LoggedType{"Store Move       ", 0, 0}
+
+	// move generation - complete generation of all moves
+	newLoggingManager.allLogTypes[LOG_MOVE_GEN] = LoggedType{"Move Gen         ", 0, 0}
 
 	// make move
 	newLoggingManager.allLogTypes[LOG_MAKE_MOVE] = LoggedType{"Make Move        ", 0, 0}
@@ -128,7 +136,7 @@ func getLoggingManager() LogOther {
 	newLoggingManager.allLogTypes[LOG_ORDER_MOVES] = LoggedType{"Order Moves      ", 0, 0}
 
 	// search logging
-	newLoggingManager.allLogTypes[LOG_TT_GET] = LoggedType{"Get TT Entry     ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_TT_PROBE] = LoggedType{"Probe TT Entry   ", 0, 0}
 	newLoggingManager.allLogTypes[LOG_TT_STORE] = LoggedType{"Store TT Entry   ", 0, 0}
 	newLoggingManager.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST] = LoggedType{"IterDeep Ordering", 0, 0}
 

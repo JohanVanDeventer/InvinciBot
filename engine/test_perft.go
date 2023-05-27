@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"strconv"
+	"time"
 )
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -113,15 +116,8 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 	// reset the node count
 	totalNodeCount := 0
 
-	// generate legal moves, eval etc.
+	// generate legal moves
 	pos.generateLegalMoves()
-	pos.getGameStateAndStore()
-	pos.evalPosAfter()
-
-	// test order moves
-	//orderedMoves := pos.getOrderedMoves()
-	//if len(orderedMoves) > 0 {
-	//}
 
 	// if there are legal moves, iterate over them
 	if pos.availableMovesCounter > 0 {
@@ -148,7 +144,7 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 func printPerftResults() {
 
 	fmt.Println(" ")
-	fmt.Println("------------------------ Perft Test Results --------------------------")
+	fmt.Println("------------------------------------ Perft Test Results ---------------------------------------")
 
 	for _, testPosition := range testPositions {
 
@@ -159,14 +155,29 @@ func printPerftResults() {
 		newPos.step1InitFen(testPosition.fen)
 		newPos.step2InitRest()
 
+		// start the time
+		start_time := time.Now()
+		totalNodes := 0
+
 		// test each depth and print the results
 		for depth, depthResults := range testPosition.depthResults {
 			resultNodes := newPos.runPerft(depth+1, depth+1) // run the perft
+			totalNodes += resultNodes
 			fmt.Printf("Depth: %v. Correct test nodes: %v. My nodes: %v.\n", depth+1, depthResults, resultNodes)
+			if depthResults != strconv.Itoa(resultNodes) {
+				fmt.Println("ERROR IN MOVE GENERATION!!!")
+			}
 		}
 
+		// record the time
+		duration_time_sec := time.Since(start_time).Seconds()
+		duration_time_ms := time.Since(start_time).Milliseconds()
+		knps := math.Round((float64(totalNodes) / (float64(duration_time_ms) / 1000)) / 1000)
+
 		// print the logging details
-		newPos.logOther.printLoggedDetails()
+		// newPos.logOther.printLoggedDetails()
+
+		fmt.Printf("Completed perft in %v seconds. Speed: %v knps.\n\n", duration_time_sec, knps)
 
 	}
 }

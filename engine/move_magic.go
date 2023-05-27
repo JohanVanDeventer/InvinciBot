@@ -55,6 +55,11 @@ To transform it into a key, we need to generate the following:
 
 The result is a key used for the table lookup.
 
+PART 4
+------
+Once we have all inputs to the key, we generate all possible permutations of blockers along with it's key.
+We store this in the final magic move lookup table.
+
 */
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -243,9 +248,9 @@ Generate the magic shifts.
 Note: the numbers below represent the maximum number of blockers from each square on the board.
 For example, a rook on d4 has 10 blockers (3 up, 2 down, 3 right, 2 left) excluding edge bits.
 For example, a rook on a1 has 12 blockers (6 up and 6 right).
-For example, a bishop on d4 has 9 blockers (2 UL, 3 DR, 2 DL, 2 UR).const
+For example, a bishop on d4 has 9 blockers (2 UL, 3 DR, 2 DL, 2 UR).
 
-This max amount of blockers represent the shift value.
+This max amount of blockers represents the shift value.
 
 This is also the reason for the 4096 and 512 in the tables above.
 It is the max amount of permutations of the blockers.

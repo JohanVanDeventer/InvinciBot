@@ -187,6 +187,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	if currentDepth > 0 {
 		start_time_tt_get := time.Now()
+		pos.logSearch.nodesTTProbe += 1
 
 		// we only check the TT for non-quiescence nodes
 		// because we only save non-quiescence nodes in the TT
@@ -221,7 +222,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 
 		duration_time_tt_get := time.Since(start_time_tt_get).Nanoseconds()
-		pos.logOther.allLogTypes[LOG_TT_GET].addTime(int(duration_time_tt_get))
+		pos.logOther.allLogTypes[LOG_TT_PROBE].addTime(int(duration_time_tt_get))
 	}
 
 	// -------------------------------------------------------- Game Over ------------------------------------------------------
