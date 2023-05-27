@@ -73,7 +73,7 @@ const (
 )
 
 var (
-	BLANK_MOVE Move = Move{-1, -1, -1, -1, -1, -1} // dummy move to catch errors
+	BLANK_MOVE Move = fullMove // dummy move to catch errors
 )
 
 // function to initiate a search on the current position and store the best move
@@ -344,7 +344,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// <<< QUIESCENCE SEARCH >>> Start
 		// at the depth of zero or lower, we only consider captures, en-passant and promotions, and skip other moves
 		if currentDepth <= 0 {
-			if (move.moveType != MOVE_TYPE_CAPTURE) && (move.moveType != MOVE_TYPE_EN_PASSANT) && (move.promotionType == PROMOTION_NONE) {
+			moveType := move.getMoveType()
+			promotionType := move.getPromotionType()
+			if (moveType != MOVE_TYPE_CAPTURE) && (moveType != MOVE_TYPE_EN_PASSANT) && (promotionType == PROMOTION_NONE) {
 				continue
 			}
 		}

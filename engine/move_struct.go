@@ -1,5 +1,6 @@
 package main
 
+/*
 type Move struct {
 	fromSq         int // 0-63
 	toSq           int // 0-63
@@ -8,6 +9,12 @@ type Move struct {
 	promotionType  int // none, queen, rook, knight, bishop
 	moveOrderScore int // for move ordering later
 }
+*/
+
+type Move uint64
+
+const fullMove Move = 0xffffffffffffffff
+const emptyMove Move = 0x0
 
 // --------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------- Constants -----------------------------------------------------
@@ -38,32 +45,85 @@ const (
 // -------------------------------------------------- Move Encoding ---------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 /*
-TODO:
 
-To try and reduce memory, we encode moves as a Bitboard (uint64).
+To try and reduce memory and copy overhead during search, we encode moves as a single uint64.
 
-We also don't add too much information, because not all move generation info is always used.
-For example at leaf nodes during the search, we only count the number of moves (and ignore whether it was a capture etc.)
-So we just set special flags for en-passant, castling and promotions.
+0000000000000000000000000000000000000000000000000000000000000000
+                                                    	|------| From Sq: 0
+												|------|         To Sq: 8
+											|--|                 Piece: 16
+										|--|                     Move Type: 20
+									|--|                         Promotion Type: 24
+								|--|                             Unused Bits: 28
+|------------------------------|                                 Move Ordering Score: 32
 
-Standard Info: 20 bits
-----------------------
-FromSq: needs 6 bits. 000000 (0-63).
-ToSq: needs 6 bits. 000000 (0-63).
-PieceType: needs 3 bits. 000 (0-5).
-FlagEnPassant: needs 1 bit (set when the move is an en-passant capture).
-FlagCastling: needs 1 bit (set when the move is a castling move).
-FlagPromotion: needs 3 bits. 000 (set as the promotion type when there is a promotion).
-
-We don't include quiet vs capture encoding (this is calculated as needed in make move and order moves).
-
-Move ordering score: 32 bits
-----------------------------
-We use the upper 32 bits to add the move ordering score information.
 */
 
-func getEncodedMove(fromSq uint8, toSq uint8, piece uint8, flagEnPassant uint8, flagCastling uint8, flagPromotion uint8) Bitboard {
-	var newMove uint64 = 0
+// constants specifying the location of encoding each move part
+const (
+	MOVE_SHIFT_FROM                int = 0
+	MOVE_SHIFT_TO                  int = 8
+	MOVE_SHIFT_PIECE               int = 16
+	MOVE_SHIFT_MOVE_TYPE           int = 20
+	MOVE_SHIFT_PROMOTION_TYPE      int = 28
+	MOVE_SHIFT_MOVE_ORDERING_SCORE int = 32
+)
 
-	return Bitboard(newMove)
+// constants specifying masks for retrieving each move part
+const (
+
+	// fixed-width masks
+	MOVE_BIT_MASK_4_BITS  Move = 0xffffffffffffffff >> (64 - 4)
+	MOVE_BIT_MASK_8_BITS  Move = 0xffffffffffffffff >> (64 - 8)
+	MOVE_BIT_MASK_32_BITS Move = 0xffffffffffffffff >> (64 - 32)
+
+	// masks set at the specific bits where the move info is encoded
+	MOVE_MASK_FROM                = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_FROM)
+	MOVE_MASK_TO                  = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_TO)
+	MOVE_MASK_PIECE               = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PIECE)
+	MOVE_MASK_MOVE_TYPE           = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_MOVE_TYPE)
+	MOVE_MASK_PROMOTION_TYPE      = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PROMOTION_TYPE)
+	MOVE_MASK_MOVE_ORDERING_SCORE = fullMove & (MOVE_BIT_MASK_32_BITS << MOVE_SHIFT_MOVE_ORDERING_SCORE)
+)
+
+func getEncodedMove(fromSq int, toSq int, piece int, moveType int, promotionType int, moveOrderScore int) Move {
+	return Move(fromSq) | (Move(toSq) << MOVE_SHIFT_TO) | (Move(piece) << MOVE_SHIFT_PIECE) | (Move(moveType) << MOVE_SHIFT_MOVE_TYPE) |
+		(Move(promotionType) << MOVE_SHIFT_PROMOTION_TYPE) | (Move(moveOrderScore) << MOVE_SHIFT_MOVE_ORDERING_SCORE)
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------- Move Information Retrieval -------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+
+func (move *Move) getFromSq() int {
+	return int((*move & MOVE_MASK_FROM) >> MOVE_SHIFT_FROM)
+}
+
+func (move *Move) getToSq() int {
+	return int((*move & MOVE_MASK_TO) >> MOVE_SHIFT_TO)
+}
+
+func (move *Move) getPiece() int {
+	return int((*move & MOVE_MASK_PIECE) >> MOVE_SHIFT_PIECE)
+}
+
+func (move *Move) getMoveType() int {
+	return int((*move & MOVE_MASK_MOVE_TYPE) >> MOVE_SHIFT_MOVE_TYPE)
+}
+
+func (move *Move) getPromotionType() int {
+	return int((*move & MOVE_MASK_PROMOTION_TYPE) >> MOVE_SHIFT_PROMOTION_TYPE)
+}
+
+func (move *Move) getMoveOrderingScore() int {
+	return int((*move & MOVE_MASK_MOVE_ORDERING_SCORE) >> MOVE_SHIFT_MOVE_ORDERING_SCORE)
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------- Move Information Update --------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+
+// this assumes that the previous score was 0
+func (move *Move) setMoveOrderingScore(score int) {
+	*move |= (Move(score) << MOVE_SHIFT_MOVE_ORDERING_SCORE)
 }

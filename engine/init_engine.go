@@ -15,6 +15,8 @@ func initEngine() {
 		// general
 		initBBReferenceArray()
 
+		// move structs
+
 		// move generation - normal
 		initMoveLookupTablePawns()
 		initMoveLookupTableKings()

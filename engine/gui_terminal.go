@@ -66,7 +66,8 @@ func (pos *Position) playInputMove(input string) bool {
 	var playedMove Move
 	foundMove := false
 	for _, move := range allMoves {
-		if move.fromSq == fromSq && move.toSq == toSq && move.promotionType == promoteType {
+		//if move.fromSq == fromSq && move.toSq == toSq && move.promotionType == promoteType {
+		if move.getFromSq() == fromSq && move.getToSq() == toSq && move.getPromotionType() == promoteType {
 			playedMove = move
 			foundMove = true
 		}

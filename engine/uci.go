@@ -667,7 +667,7 @@ func (pos *Position) makeUCIMove(input string) {
 	var playedMove Move
 	foundMove := false
 	for _, move := range allMoves {
-		if move.fromSq == fromSq && move.toSq == toSq && move.promotionType == promoteType {
+		if move.getFromSq() == fromSq && move.getToSq() == toSq && move.getPromotionType() == promoteType {
 			playedMove = move
 			foundMove = true
 		}
@@ -818,9 +818,9 @@ func (pos *Position) command_go(command string) string {
 
 	// we then return the best move from the search
 	bestMove := pos.bestMove
-	moveFromStr := getStringFromSq(bestMove.fromSq)
-	moveToStr := getStringFromSq(bestMove.toSq)
-	promoteStr := getPromotionStringFromType(bestMove.promotionType)
+	moveFromStr := getStringFromSq(bestMove.getFromSq())
+	moveToStr := getStringFromSq(bestMove.getToSq())
+	promoteStr := getPromotionStringFromType(bestMove.getPromotionType())
 
 	output := "bestmove " + moveFromStr + moveToStr + promoteStr
 	return output

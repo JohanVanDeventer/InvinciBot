@@ -47,50 +47,64 @@ func (pos *Position) getOrderedMoves() []Move {
 	moves := pos.availableMoves[:pos.availableMovesCounter]
 
 	// loop over moves to score them
-	for _, move := range moves {
+	for i, move := range moves {
+
+		// set the score of the move to zero
+		moveOrderScore := 0
+
+		// get the relevant move information
+		moveType := move.getMoveType()
+		promotionType := move.getPromotionType()
 
 		// add a bonus for captures, en-passant and promotions (non-quiet moves)
-		if move.moveType == MOVE_TYPE_CAPTURE || move.moveType == MOVE_TYPE_EN_PASSANT || move.promotionType != PROMOTION_NONE {
-			move.moveOrderScore += MOVE_ORD_NONQUIET_BONUS
+		if moveType == MOVE_TYPE_CAPTURE || moveType == MOVE_TYPE_EN_PASSANT || promotionType != PROMOTION_NONE {
+			moveOrderScore += MOVE_ORD_NONQUIET_BONUS
 		}
 
 		// if there is a promotion, add that promoted piece's value less the pawn value
 		// the score is done from the white side (positve score), because for move ordering this is the point
-		if move.promotionType != PROMOTION_NONE {
-			move.moveOrderScore += (evalTableMaterial[SIDE_WHITE][move.promotionType] - VALUE_PAWN)
+		if promotionType != PROMOTION_NONE {
+			moveOrderScore += (evalTableMaterial[SIDE_WHITE][promotionType] - VALUE_PAWN)
 		}
 
 		// MOVE_TYPE_EN_PASSANT: no bonus because pawn traded for pawn = 0 incremental value
 		// MOVE_TYPE_CAPTURE: evaluate below
-		if move.moveType == MOVE_TYPE_CAPTURE {
+		if moveType == MOVE_TYPE_CAPTURE {
 			var enemyPiece int = 6 // set to 6 to catch bugs
 			var enSide int = SIDE_WHITE
 			if pos.isWhiteTurn {
 				enSide = SIDE_BLACK
 			}
+			toSq := move.getToSq()
+			piece := move.getPiece()
 
-			if pos.pieces[enSide][PIECE_PAWN].isBitSet(move.toSq) {
+			if pos.pieces[enSide][PIECE_PAWN].isBitSet(toSq) {
 				enemyPiece = PIECE_PAWN
-			} else if pos.pieces[enSide][PIECE_KNIGHT].isBitSet(move.toSq) {
+			} else if pos.pieces[enSide][PIECE_KNIGHT].isBitSet(toSq) {
 				enemyPiece = PIECE_KNIGHT
-			} else if pos.pieces[enSide][PIECE_BISHOP].isBitSet(move.toSq) {
+			} else if pos.pieces[enSide][PIECE_BISHOP].isBitSet(toSq) {
 				enemyPiece = PIECE_BISHOP
-			} else if pos.pieces[enSide][PIECE_ROOK].isBitSet(move.toSq) {
+			} else if pos.pieces[enSide][PIECE_ROOK].isBitSet(toSq) {
 				enemyPiece = PIECE_ROOK
-			} else if pos.pieces[enSide][PIECE_QUEEN].isBitSet(move.toSq) {
+			} else if pos.pieces[enSide][PIECE_QUEEN].isBitSet(toSq) {
 				enemyPiece = PIECE_QUEEN
 			}
 
 			// add the difference between the captured and friendly piece
 			// therefore lower piece value captures higher piece value is evaluated first
-			move.moveOrderScore += (evalTableMaterial[SIDE_WHITE][enemyPiece]) - (evalTableMaterial[SIDE_WHITE][move.piece])
+			moveOrderScore += (evalTableMaterial[SIDE_WHITE][enemyPiece]) - (evalTableMaterial[SIDE_WHITE][piece])
+		}
+
+		// finally set the updated move score if the scorew is not zero
+		if moveOrderScore != 0 {
+			moves[i].setMoveOrderingScore(moveOrderScore)
 		}
 	}
 
 	// now sort the moves
 	// define the custom comparator function
 	// sort the slice based on the score field using the comparator function
-	sort.Slice(moves, func(i, j int) bool { return moves[i].moveOrderScore > moves[j].moveOrderScore })
+	sort.Slice(moves, func(i, j int) bool { return moves[i].getMoveOrderingScore() > moves[j].getMoveOrderingScore() })
 
 	duration_time := time.Since(start_time).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_ORDER_MOVES].addTime(int(duration_time))
