@@ -119,9 +119,9 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 	pos.evalPosAfter()
 
 	// test order moves
-	orderedMoves := pos.getOrderedMoves()
-	if len(orderedMoves) > 0 {
-	}
+	//orderedMoves := pos.getOrderedMoves()
+	//if len(orderedMoves) > 0 {
+	//}
 
 	// if there are legal moves, iterate over them
 	if pos.availableMovesCounter > 0 {

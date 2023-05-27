@@ -33,3 +33,34 @@ const (
 	CASTLE_BLACK_KINGSIDE  int = 2
 	CASTLE_BLACK_QUEENSIDE int = 3
 )
+
+// --------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------- Move Encoding ---------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+/*
+To try and reduce memory, we encode moves as a Bitboard (uint64).
+
+We also don't add too much information, because not all move generation info is always used.
+For example at leaf nodes during the search, we only count the number of moves (and ignore whether it was a capture etc.)
+So we just set special flags for en-passant, castling and promotions.
+
+Standard Info: 20 bits
+----------------------
+FromSq: needs 6 bits. 000000 (0-63).
+ToSq: needs 6 bits. 000000 (0-63).
+PieceType: needs 3 bits. 000 (0-5).
+FlagEnPassant: needs 1 bit (set when the move is an en-passant capture).
+FlagCastling: needs 1 bit (set when the move is a castling move).
+FlagPromotion: needs 3 bits. 000 (set as the promotion type when there is a promotion).
+
+We don't include quiet vs capture encoding (this is calculated as needed in make move and order moves).
+
+Move ordering score: 32 bits
+----------------------------
+We use the upper 32 bits to add the move ordering score information.
+*/
+
+func getEncodedMove(fromSq int, toSq int, piece int, flagEnPassant bool, flagCastling bool, flagPromotion bool) Bitboard {
+	var newBitboard Bitboard = emptyBB
+	return newBitboard
+}

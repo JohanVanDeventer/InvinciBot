@@ -221,14 +221,11 @@ func (pos *Position) generateLegalMoves() {
 		if pinsCombined != 0 {
 			if bbReferenceArray[nextQueenOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
 				nextQueenMoves &= movePinnedMasksTable[nextQueenOriginSq][PIN_UD]
-			}
-			if bbReferenceArray[nextQueenOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextQueenOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
 				nextQueenMoves &= movePinnedMasksTable[nextQueenOriginSq][PIN_LR]
-			}
-			if bbReferenceArray[nextQueenOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextQueenOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
 				nextQueenMoves &= movePinnedMasksTable[nextQueenOriginSq][PIN_ULtDR]
-			}
-			if bbReferenceArray[nextQueenOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextQueenOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
 				nextQueenMoves &= movePinnedMasksTable[nextQueenOriginSq][PIN_DLtUR]
 			}
 		}
@@ -273,14 +270,11 @@ func (pos *Position) generateLegalMoves() {
 		if pinsCombined != 0 {
 			if bbReferenceArray[nextRookOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
 				nextRookMoves &= movePinnedMasksTable[nextRookOriginSq][PIN_UD]
-			}
-			if bbReferenceArray[nextRookOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextRookOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
 				nextRookMoves &= movePinnedMasksTable[nextRookOriginSq][PIN_LR]
-			}
-			if bbReferenceArray[nextRookOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextRookOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
 				nextRookMoves &= movePinnedMasksTable[nextRookOriginSq][PIN_ULtDR]
-			}
-			if bbReferenceArray[nextRookOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextRookOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
 				nextRookMoves &= movePinnedMasksTable[nextRookOriginSq][PIN_DLtUR]
 			}
 		}
@@ -325,14 +319,11 @@ func (pos *Position) generateLegalMoves() {
 		if pinsCombined != 0 {
 			if bbReferenceArray[nextBishopOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
 				nextBishopMoves &= movePinnedMasksTable[nextBishopOriginSq][PIN_UD]
-			}
-			if bbReferenceArray[nextBishopOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextBishopOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
 				nextBishopMoves &= movePinnedMasksTable[nextBishopOriginSq][PIN_LR]
-			}
-			if bbReferenceArray[nextBishopOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextBishopOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
 				nextBishopMoves &= movePinnedMasksTable[nextBishopOriginSq][PIN_ULtDR]
-			}
-			if bbReferenceArray[nextBishopOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextBishopOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
 				nextBishopMoves &= movePinnedMasksTable[nextBishopOriginSq][PIN_DLtUR]
 			}
 		}
@@ -376,14 +367,11 @@ func (pos *Position) generateLegalMoves() {
 		if pinsCombined != 0 {
 			if bbReferenceArray[nextKnightOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
 				nextKnightMoves &= movePinnedMasksTable[nextKnightOriginSq][PIN_UD]
-			}
-			if bbReferenceArray[nextKnightOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextKnightOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
 				nextKnightMoves &= movePinnedMasksTable[nextKnightOriginSq][PIN_LR]
-			}
-			if bbReferenceArray[nextKnightOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextKnightOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
 				nextKnightMoves &= movePinnedMasksTable[nextKnightOriginSq][PIN_ULtDR]
-			}
-			if bbReferenceArray[nextKnightOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextKnightOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
 				nextKnightMoves &= movePinnedMasksTable[nextKnightOriginSq][PIN_DLtUR]
 			}
 		}
@@ -438,14 +426,11 @@ func (pos *Position) generateLegalMoves() {
 		if pinsCombined != 0 {
 			if bbReferenceArray[nextPawnOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
 				nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_UD]
-			}
-			if bbReferenceArray[nextPawnOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextPawnOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
 				nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_LR]
-			}
-			if bbReferenceArray[nextPawnOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextPawnOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
 				nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_ULtDR]
-			}
-			if bbReferenceArray[nextPawnOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextPawnOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
 				nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_DLtUR]
 			}
 		}
@@ -597,14 +582,11 @@ func (pos *Position) generateLegalMoves() {
 				// now need to check if the CAPTURING pawn is pinned (already checked for CAPTURED pawn pins above)
 				if bbReferenceArray[nextPawnOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
 					nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_UD]
-				}
-				if bbReferenceArray[nextPawnOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+				} else if bbReferenceArray[nextPawnOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
 					nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_LR]
-				}
-				if bbReferenceArray[nextPawnOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+				} else if bbReferenceArray[nextPawnOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
 					nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_ULtDR]
-				}
-				if bbReferenceArray[nextPawnOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+				} else if bbReferenceArray[nextPawnOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
 					nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_DLtUR]
 				}
 
@@ -835,7 +817,6 @@ func getRookMovesPseudo(sq int, blockers Bitboard) Bitboard {
 	blockers *= magicStructsRooks[sq].magic
 	blockers >>= (64 - magicStructsRooks[sq].shift)
 	return magicRookMovesTable[sq][blockers]
-
 }
 
 func getBishopMovesPseudo(sq int, blockers Bitboard) Bitboard {
