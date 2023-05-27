@@ -38,6 +38,8 @@ const (
 // -------------------------------------------------- Move Encoding ---------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 /*
+TODO:
+
 To try and reduce memory, we encode moves as a Bitboard (uint64).
 
 We also don't add too much information, because not all move generation info is always used.
@@ -60,7 +62,8 @@ Move ordering score: 32 bits
 We use the upper 32 bits to add the move ordering score information.
 */
 
-func getEncodedMove(fromSq int, toSq int, piece int, flagEnPassant bool, flagCastling bool, flagPromotion bool) Bitboard {
-	var newBitboard Bitboard = emptyBB
-	return newBitboard
+func getEncodedMove(fromSq uint8, toSq uint8, piece uint8, flagEnPassant uint8, flagCastling uint8, flagPromotion uint8) Bitboard {
+	var newMove uint64 = 0
+
+	return Bitboard(newMove)
 }

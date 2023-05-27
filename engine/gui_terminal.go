@@ -185,8 +185,9 @@ func (pos *Position) printBoardToTerminal() {
 			avgTTGet := pos.logOther.allLogTypes[LOG_TT_GET].getAverageNsPerCall()
 			avgTTStore := pos.logOther.allLogTypes[LOG_TT_STORE].getAverageNsPerCall()
 			avgIterDeepOrder := pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].getAverageNsPerCall()
+			avgStoreMoves := pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].getAverageNsPerCall()
 
-			fmt.Printf("<<Average ns>> Order moves: %v. TT Get: %v. TT Store: %v. IterDeep Ordering: %v.\n", avgOrderMoves, avgTTGet, avgTTStore, avgIterDeepOrder)
+			fmt.Printf("<<Average ns>> Order moves: %v. TT Get: %v. TT Store: %v. IterDeep Ordering: %v. Store move: %v.\n", avgOrderMoves, avgTTGet, avgTTStore, avgIterDeepOrder, avgStoreMoves)
 
 		case 0:
 			fmt.Printf("\n")

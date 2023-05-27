@@ -58,34 +58,36 @@ const (
 	LOG_MOVES_EN_PASSANT   int = 8
 	LOG_MOVES_CASTLING     int = 9
 
+	LOG_STORE_MOVE_TIME int = 10
+
 	// make move
-	LOG_MAKE_MOVE int = 10
+	LOG_MAKE_MOVE int = 11
 
 	// undo move
-	LOG_UNDO_MOVE int = 11
+	LOG_UNDO_MOVE int = 12
 
 	// hashing
-	LOG_HASHING int = 12
+	LOG_HASHING int = 13
 
 	// evaluation
-	LOG_EVAL int = 13
+	LOG_EVAL int = 14
 
 	// game state
-	LOG_GAME_STATE int = 14
+	LOG_GAME_STATE int = 15
 
 	// order moves
-	LOG_ORDER_MOVES int = 15
+	LOG_ORDER_MOVES int = 16
 
 	// search logging
-	LOG_TT_GET   int = 16
-	LOG_TT_STORE int = 17
+	LOG_TT_GET   int = 17
+	LOG_TT_STORE int = 18
 
-	LOG_ITER_DEEP_MOVE_FIRST int = 18
+	LOG_ITER_DEEP_MOVE_FIRST int = 19
 )
 
 // logging manager to manage all the LoggedType structs for a position
 type LogOther struct {
-	allLogTypes [19]LoggedType
+	allLogTypes [20]LoggedType
 }
 
 // get a new logging manager when a position is initialized
@@ -104,6 +106,8 @@ func getLoggingManager() LogOther {
 	newLoggingManager.allLogTypes[LOG_MOVES_PINS] = LoggedType{"Pins             ", 0, 0}
 	newLoggingManager.allLogTypes[LOG_MOVES_EN_PASSANT] = LoggedType{"En Passant       ", 0, 0}
 	newLoggingManager.allLogTypes[LOG_MOVES_CASTLING] = LoggedType{"Castling         ", 0, 0}
+
+	newLoggingManager.allLogTypes[LOG_STORE_MOVE_TIME] = LoggedType{"Store Move       ", 0, 0}
 
 	// make move
 	newLoggingManager.allLogTypes[LOG_MAKE_MOVE] = LoggedType{"Make Move        ", 0, 0}
