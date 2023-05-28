@@ -24,6 +24,8 @@ type LogSearch struct {
 
 	nodesGeneratedLegalMovesFull int // nodes where full legal moves were generated
 	nodesGeneratedLegalMovesPart int // nodes where legal moves were generated until at least one is found
+
+	checkExtensions int // nodes where the depth was extended due to a check
 }
 
 func (log *LogSearch) resetLog() {
@@ -45,6 +47,8 @@ func (log *LogSearch) resetLog() {
 
 	log.nodesGeneratedLegalMovesFull = 0
 	log.nodesGeneratedLegalMovesPart = 0
+
+	log.checkExtensions = 0
 }
 
 func (log *LogSearch) getTotalNodes() int {

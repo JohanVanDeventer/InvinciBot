@@ -34,6 +34,7 @@ var (
 func initQSDepthLimits() {
 	for depth := 0; depth <= MAX_DEPTH; depth++ {
 
+		// important for finding at least 1 best move that only depths > 2 have qs
 		if depth <= 2 {
 			qsDepthLimitTable[depth] = 0
 
@@ -226,18 +227,26 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	}
 
 	// -------------------------------------------------------- Game Over ------------------------------------------------------
-	// if there is not a TT hit, we need to start with work on the current node
-	// first, we generate all legal moves
-	// we can then determine if the game is over (no legal moves is checkmate or stalemate etc.)
 
-	if currentDepth <= qsDepth {
+	// _____________________________ Move Generation ______________________________
+	// if there is not a TT hit, we need to start with work on the current node
+	// first, we generate all legal moves, or at least one move when we are at a leaf node
+	// we can then determine if the game is over (no legal moves is checkmate or stalemate)
+	generatedPartialMoves := false // flag to catch partial move generation
+
+	if currentDepth <= qsDepth { // leaf nodes: partial move generation
 		pos.generateLegalMoves(true)
+		generatedPartialMoves = true
 		pos.logSearch.nodesGeneratedLegalMovesPart += 1
-	} else {
+
+	} else { // other nodes: full move generation
 		pos.generateLegalMoves(false)
 		pos.logSearch.nodesGeneratedLegalMovesFull += 1
 	}
 
+	// _____________________________ Game State ______________________________
+	// once we have generated at least some legal moves, we check whether the game is over
+	// if it is over, we return with the game over score
 	pos.getGameStateAndStore()
 	if pos.gameState != STATE_ONGOING {
 		switch pos.gameState {
@@ -258,6 +267,20 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 		case STATE_DRAW_STALEMATE, STATE_DRAW_3_FOLD_REPETITION, STATE_DRAW_50_MOVE_RULE:
 			return 0, false
+		}
+	}
+
+	// _____________________________ Check Extensions ______________________________
+	// if we are in check in the current node and the game is not over,
+	// we extend the search by 1 ply to better search the impact of the check
+	// we only do this during qsearch, where the position needs to be quiet before evaluating
+	// we also now need to fully generate legal moves if we only generated them partially before
+	inCheck := pos.kingChecks > 0
+	if inCheck && currentDepth < 0 { // in check and in a qs node
+		currentDepth += 1
+		pos.logSearch.checkExtensions += 1
+		if generatedPartialMoves {
+			pos.generateLegalMoves(false)
 		}
 	}
 

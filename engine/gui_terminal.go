@@ -168,10 +168,10 @@ func (pos *Position) printBoardToTerminal() {
 				nodesMinus1Percent = int((float64(pos.logSearch.nodesAtDepth1Min) / float64(totalNodes)) * 100)
 			}
 
-			fmt.Printf("Search depth: %v. QS Depth: %v. Knps: %v. Total nodes: %v (+1: %v%%  0:%v%%  -1:%v%%).\n",
+			fmt.Printf("Search depth: %v. QS Depth: %v. Knps: %v. Total nodes: %v (+1: %v%%  0:%v%%  -1:%v%%). Check extension nodes: %v.\n",
 				pos.logSearch.depth, pos.logSearch.qsDepth, knps,
 				totalNodes, nodesPlus1Percent, nodes0Percent, nodesMinus1Percent,
-			)
+				pos.logSearch.checkExtensions)
 
 		case 4:
 			totalNodes := pos.logSearch.getTotalNodes()
@@ -222,6 +222,9 @@ func (pos *Position) printBoardToTerminal() {
 				genFullLegalMovesRate, genPartLegalMovesRate, createMovesCopyRate, orderedNodesRate)
 
 		case 2:
+			fmt.Printf("\n")
+
+		case 1:
 			avgMoveGen := pos.logOther.allLogTypes[LOG_MOVE_GEN].getAverageNsPerCall()
 			avgMakeMove := pos.logOther.allLogTypes[LOG_MAKE_MOVE].getAverageNsPerCall()
 			avgUndoMove := pos.logOther.allLogTypes[LOG_UNDO_MOVE].getAverageNsPerCall()
@@ -232,7 +235,7 @@ func (pos *Position) printBoardToTerminal() {
 			fmt.Printf("<<Average ns>> Move Gen: %v. Make Move: %v. Undo Move: %v. Store move: %v. Eval: %v. Game State: %v.\n",
 				avgMoveGen, avgMakeMove, avgUndoMove, avgStoreMoves, avgEval, avgGameState)
 
-		case 1:
+		case 0:
 			avgOrderMovesNotAtRoot := pos.logOther.allLogTypes[LOG_ORDER_MOVES_NOT_AT_ROOT].getAverageNsPerCall()
 			avgTTGet := pos.logOther.allLogTypes[LOG_TT_PROBE].getAverageNsPerCall()
 			avgTTStore := pos.logOther.allLogTypes[LOG_TT_STORE].getAverageNsPerCall()
@@ -242,9 +245,6 @@ func (pos *Position) printBoardToTerminal() {
 
 			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Order moves: %v. Create move slice: %v. Copy into move slice: %v. IterDeep Ordering: %v.\n",
 				avgTTGet, avgTTStore, avgOrderMovesNotAtRoot, avgCreateMoveSlice, avgCopyIntoMoveSlice, avgIterDeepOrder)
-
-		case 0:
-			fmt.Printf("\n")
 		}
 	}
 	fmt.Println("======================")

@@ -193,7 +193,8 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	}
 
 	// if we are generating moves for leaf nodes, we stop after finding one valid move
-	// NOTE: this is the earlies we can check for this, because we need to store the number of king checks for the game state evaluation
+	// NOTE: this is the earliest we can check for this, because we need to store the number of king checks for the game state evaluation
+	// we also call this after king moves, because we assume most positions will have at least one king move
 	if atLeafCheckForOneMove {
 		if pos.availableMovesCounter > 0 {
 			return
@@ -256,13 +257,6 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	//duration_4 := time.Since(start_4).Nanoseconds()
 	//pos.logOther.allLogTypes[LOG_MOVES_QUEEN].addTime(int(duration_4))
 
-	// if we are generating moves for leaf nodes, we stop after finding one valid move
-	if atLeafCheckForOneMove {
-		if pos.availableMovesCounter > 0 {
-			return
-		}
-	}
-
 	// ------------------------------------------------- Rook Moves ---------------------------------------------
 	// rooks
 	//start_5 := time.Now()
@@ -307,13 +301,6 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	}
 	//duration_5 := time.Since(start_5).Nanoseconds()
 	//pos.logOther.allLogTypes[LOG_MOVES_ROOK].addTime(int(duration_5))
-
-	// if we are generating moves for leaf nodes, we stop after finding one valid move
-	if atLeafCheckForOneMove {
-		if pos.availableMovesCounter > 0 {
-			return
-		}
-	}
 
 	// ------------------------------------------------- Bishop Moves ---------------------------------------------
 	// bishops
@@ -360,13 +347,6 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	//duration_6 := time.Since(start_6).Nanoseconds()
 	//pos.logOther.allLogTypes[LOG_MOVES_BISHOP].addTime(int(duration_6))
 
-	// if we are generating moves for leaf nodes, we stop after finding one valid move
-	if atLeafCheckForOneMove {
-		if pos.availableMovesCounter > 0 {
-			return
-		}
-	}
-
 	// ------------------------------------------------- Knight Moves ---------------------------------------------
 	// knights
 	//start_7 := time.Now()
@@ -410,13 +390,6 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	}
 	//duration_7 := time.Since(start_7).Nanoseconds()
 	//pos.logOther.allLogTypes[LOG_MOVES_KNIGHT].addTime(int(duration_7))
-
-	// if we are generating moves for leaf nodes, we stop after finding one valid move
-	if atLeafCheckForOneMove {
-		if pos.availableMovesCounter > 0 {
-			return
-		}
-	}
 
 	// ------------------------------------------------- Pawn Moves ---------------------------------------------
 	// pawns
@@ -524,13 +497,6 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	}
 	//duration_8 := time.Since(start_8).Nanoseconds()
 	//pos.logOther.allLogTypes[LOG_MOVES_PAWN].addTime(int(duration_8))
-
-	// if we are generating moves for leaf nodes, we stop after finding one valid move
-	if atLeafCheckForOneMove {
-		if pos.availableMovesCounter > 0 {
-			return
-		}
-	}
 
 	// ------------------------------------------------- En-Passant Moves ---------------------------------------------
 	// captures en-passant (includes checking for en-passant pawn on pin bitmask)
