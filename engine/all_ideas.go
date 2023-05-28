@@ -5,15 +5,11 @@ package main
 Ideas to consider / implement
 =============================
 
---- Legal moves gen stop ---
-If at a leaf node and need to determine checkmate/stalemate, we just need to generate up to the first available move.
-Once we have ONE move, we know it's not checkmate or stalemate.
+--- Move in TT ---
+Also store best move if available in each TT entry.
 
 --- TT Buckets ---
 2 entries for each TT slot/index to improve hit rates.
-
---- Faster move gen ---
-Only calculate pinned pieces where sliders are in line with the enemy king.
 
 --- Branching factor ---
 Log the branching factor during search to roughly measure improvements.

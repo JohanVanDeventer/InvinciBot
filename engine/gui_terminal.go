@@ -233,7 +233,6 @@ func (pos *Position) printBoardToTerminal() {
 				avgMoveGen, avgMakeMove, avgUndoMove, avgStoreMoves, avgEval, avgGameState)
 
 		case 1:
-			avgOrderMovesAtRoot := pos.logOther.allLogTypes[LOG_ORDER_MOVES_AT_ROOT].getAverageNsPerCall()
 			avgOrderMovesNotAtRoot := pos.logOther.allLogTypes[LOG_ORDER_MOVES_NOT_AT_ROOT].getAverageNsPerCall()
 			avgTTGet := pos.logOther.allLogTypes[LOG_TT_PROBE].getAverageNsPerCall()
 			avgTTStore := pos.logOther.allLogTypes[LOG_TT_STORE].getAverageNsPerCall()
@@ -241,8 +240,8 @@ func (pos *Position) printBoardToTerminal() {
 			avgCreateMoveSlice := pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].getAverageNsPerCall()
 			avgCopyIntoMoveSlice := pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].getAverageNsPerCall()
 
-			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Order moves at root: %v. Order moves not at root: %v. Create move slice: %v. Copy into move slice: %v. IterDeep Ordering: %v.\n",
-				avgTTGet, avgTTStore, avgOrderMovesAtRoot, avgOrderMovesNotAtRoot, avgCreateMoveSlice, avgCopyIntoMoveSlice, avgIterDeepOrder)
+			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Order moves: %v. Create move slice: %v. Copy into move slice: %v. IterDeep Ordering: %v.\n",
+				avgTTGet, avgTTStore, avgOrderMovesNotAtRoot, avgCreateMoveSlice, avgCopyIntoMoveSlice, avgIterDeepOrder)
 
 		case 0:
 			fmt.Printf("\n")

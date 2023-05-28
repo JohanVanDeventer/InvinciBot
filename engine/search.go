@@ -288,12 +288,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].addTime(int(duration_time_create_move_slice))
 
 	// now copy the moves into the created slice
-	if currentDepth == initialDepth { // root nodes
-		copy(copyOfMoves, pos.getOrderedMovesAtRoot())
-		pos.logSearch.moveOrderedNodes += 1
-
-	} else if currentDepth >= (qsDepth + 1) { // nodes not at root but still have move ordering
-		copy(copyOfMoves, pos.getOrderedMovesNotAtRoot())
+	if currentDepth >= (qsDepth + 1) { // nodes with move ordering
+		copy(copyOfMoves, pos.getOrderedMoves())
 		pos.logSearch.moveOrderedNodes += 1
 
 	} else { // nodes without move ordering
