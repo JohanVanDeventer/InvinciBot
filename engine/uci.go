@@ -651,7 +651,7 @@ func (pos *Position) makeUCIMove(input string) {
 	}
 
 	// generate moves before a move can be processed
-	pos.generateLegalMoves()
+	pos.generateLegalMoves(false)
 
 	// if there are no available moves, return
 	if pos.availableMovesCounter <= 0 {

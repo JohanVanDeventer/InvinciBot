@@ -91,7 +91,7 @@ var unicodeChessIcons [2][6]string = [2][6]string{
 // prints the board to the terminal
 func (pos *Position) printBoardToTerminal() {
 
-	pos.generateLegalMoves()
+	pos.generateLegalMoves(false)
 	pos.getGameStateAndStore()
 	pos.evalPosAfter()
 
@@ -137,6 +137,7 @@ func (pos *Position) printBoardToTerminal() {
 		fmt.Printf("  | ")
 
 		switch rowCounter {
+
 		case 7:
 			if pos.isWhiteTurn {
 				fmt.Printf("Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v.\n", gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
@@ -150,10 +151,6 @@ func (pos *Position) printBoardToTerminal() {
 
 		case 5:
 			knps := math.Round((float64(pos.logSearch.getTotalNodes()) / (float64(pos.logSearch.timeMs) / 1000)) / 1000)
-			fmt.Printf("Search depth: %v. QS Depth: %v. Knps: %v.\n", pos.logSearch.depth, pos.logSearch.qsDepth, knps)
-
-		case 4:
-
 			totalNodes := pos.logSearch.getTotalNodes()
 
 			nodesPlus1Percent := 0
@@ -171,6 +168,14 @@ func (pos *Position) printBoardToTerminal() {
 				nodesMinus1Percent = int((float64(pos.logSearch.nodesAtDepth1Min) / float64(totalNodes)) * 100)
 			}
 
+			fmt.Printf("Search depth: %v. QS Depth: %v. Knps: %v. Total nodes: %v (+1: %v%%  0:%v%%  -1:%v%%).\n",
+				pos.logSearch.depth, pos.logSearch.qsDepth, knps,
+				totalNodes, nodesPlus1Percent, nodes0Percent, nodesMinus1Percent,
+			)
+
+		case 4:
+			totalNodes := pos.logSearch.getTotalNodes()
+
 			ttProbeRate := 0
 			if pos.logSearch.nodesTTProbe > 0 {
 				ttProbeRate = int((float64(pos.logSearch.nodesTTProbe) / float64(totalNodes)) * 100)
@@ -186,39 +191,58 @@ func (pos *Position) printBoardToTerminal() {
 				ttStoreRate = int((float64(pos.logSearch.nodesTTStore) / float64(totalNodes)) * 100)
 			}
 
+			fmt.Printf("Probed TT at %v%% of nodes. Hit valid TT entry in %v%% of probed nodes. Stored %v%% of nodes in the TT.\n",
+				ttProbeRate, ttHitRate, ttStoreRate)
+
+		case 3:
+			totalNodes := pos.logSearch.getTotalNodes()
+			nodesCreatedMovesCopy := pos.logSearch.moveOrderedNodes + pos.logSearch.moveUnorderedNodes
+
+			genFullLegalMovesRate := 0
+			if totalNodes > 0 {
+				genFullLegalMovesRate = int((float64(pos.logSearch.nodesGeneratedLegalMovesFull) / float64(totalNodes)) * 100)
+			}
+
+			genPartLegalMovesRate := 0
+			if totalNodes > 0 {
+				genPartLegalMovesRate = int((float64(pos.logSearch.nodesGeneratedLegalMovesPart) / float64(totalNodes)) * 100)
+			}
+
+			createMovesCopyRate := 0
+			if totalNodes > 0 {
+				createMovesCopyRate = int((float64(nodesCreatedMovesCopy) / float64(totalNodes)) * 100)
+			}
+
 			orderedNodesRate := 0
 			if totalNodes > 0 {
 				orderedNodesRate = int((float64(pos.logSearch.moveOrderedNodes) / float64(totalNodes)) * 100)
 			}
 
-			fmt.Printf("Total nodes: %v (+1: %v%%  0:%v%%  -1:%v%%). Probed TT at %v%% of nodes. Hit valid TT entry in %v%% of probed nodes. Stored %v%% of nodes in the TT. Ordered the moves of %v%% nodes.\n",
-				totalNodes, nodesPlus1Percent, nodes0Percent, nodesMinus1Percent,
-				ttProbeRate, ttHitRate, ttStoreRate, orderedNodesRate)
+			fmt.Printf("Fully generated moves at %v%% of nodes. Partly generated moves at %v%% of nodes. Created moves copies at %v%% of nodes. Ordered the moves of %v%% nodes.\n",
+				genFullLegalMovesRate, genPartLegalMovesRate, createMovesCopyRate, orderedNodesRate)
 
-		case 3:
-			// get the average ns per call
+		case 2:
 			avgMoveGen := pos.logOther.allLogTypes[LOG_MOVE_GEN].getAverageNsPerCall()
 			avgMakeMove := pos.logOther.allLogTypes[LOG_MAKE_MOVE].getAverageNsPerCall()
 			avgUndoMove := pos.logOther.allLogTypes[LOG_UNDO_MOVE].getAverageNsPerCall()
+			avgStoreMoves := pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].getAverageNsPerCall()
 			avgEval := pos.logOther.allLogTypes[LOG_EVAL].getAverageNsPerCall()
 			avgGameState := pos.logOther.allLogTypes[LOG_GAME_STATE].getAverageNsPerCall()
 
-			fmt.Printf("<<Average ns>> Move Gen: %v. Make Move: %v. Undo Move: %v. Eval: %v. Game State: %v.\n", avgMoveGen, avgMakeMove, avgUndoMove, avgEval, avgGameState)
+			fmt.Printf("<<Average ns>> Move Gen: %v. Make Move: %v. Undo Move: %v. Store move: %v. Eval: %v. Game State: %v.\n",
+				avgMoveGen, avgMakeMove, avgUndoMove, avgStoreMoves, avgEval, avgGameState)
 
-		case 2:
-			avgOrderMoves := pos.logOther.allLogTypes[LOG_ORDER_MOVES].getAverageNsPerCall()
+		case 1:
+			avgOrderMovesAtRoot := pos.logOther.allLogTypes[LOG_ORDER_MOVES_AT_ROOT].getAverageNsPerCall()
+			avgOrderMovesNotAtRoot := pos.logOther.allLogTypes[LOG_ORDER_MOVES_NOT_AT_ROOT].getAverageNsPerCall()
 			avgTTGet := pos.logOther.allLogTypes[LOG_TT_PROBE].getAverageNsPerCall()
 			avgTTStore := pos.logOther.allLogTypes[LOG_TT_STORE].getAverageNsPerCall()
 			avgIterDeepOrder := pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].getAverageNsPerCall()
-			avgStoreMoves := pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].getAverageNsPerCall()
 			avgCreateMoveSlice := pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].getAverageNsPerCall()
 			avgCopyIntoMoveSlice := pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].getAverageNsPerCall()
 
-			fmt.Printf("<<Average ns>> Order moves: %v. TT Probe: %v. TT Store: %v. IterDeep Ordering: %v. Store move: %v. Create move slice: %v. Copy into move slice: %v\n",
-				avgOrderMoves, avgTTGet, avgTTStore, avgIterDeepOrder, avgStoreMoves, avgCreateMoveSlice, avgCopyIntoMoveSlice)
-
-		case 1:
-			fmt.Printf("\n")
+			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Order moves at root: %v. Order moves not at root: %v. Create move slice: %v. Copy into move slice: %v. IterDeep Ordering: %v.\n",
+				avgTTGet, avgTTStore, avgOrderMovesAtRoot, avgOrderMovesNotAtRoot, avgCreateMoveSlice, avgCopyIntoMoveSlice, avgIterDeepOrder)
 
 		case 0:
 			fmt.Printf("\n")
@@ -300,7 +324,7 @@ func (pos *Position) startGameLoopTerminalGUI() {
 					fmt.Printf("Enter the move: ")
 					fmt.Scanln(&userInput)
 
-					pos.generateLegalMoves()
+					pos.generateLegalMoves(false)
 					success := pos.playInputMove(userInput)
 
 					if success {
@@ -321,7 +345,7 @@ func (pos *Position) startGameLoopTerminalGUI() {
 					fmt.Printf("Enter the move: ")
 					fmt.Scanln(&userInput)
 
-					pos.generateLegalMoves()
+					pos.generateLegalMoves(false)
 					success := pos.playInputMove(userInput)
 
 					if success {

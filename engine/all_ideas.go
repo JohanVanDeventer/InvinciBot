@@ -5,6 +5,10 @@ package main
 Ideas to consider / implement
 =============================
 
+--- Legal moves gen stop ---
+If at a leaf node and need to determine checkmate/stalemate, we just need to generate up to the first available move.
+Once we have ONE move, we know it's not checkmate or stalemate.
+
 --- TT Buckets ---
 2 entries for each TT slot/index to improve hit rates.
 

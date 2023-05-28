@@ -117,7 +117,7 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 	totalNodeCount := 0
 
 	// generate legal moves
-	pos.generateLegalMoves()
+	pos.generateLegalMoves(false)
 
 	// if there are legal moves, iterate over them
 	if pos.availableMovesCounter > 0 {

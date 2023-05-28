@@ -229,9 +229,16 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// if there is not a TT hit, we need to start with work on the current node
 	// first, we generate all legal moves
 	// we can then determine if the game is over (no legal moves is checkmate or stalemate etc.)
-	pos.generateLegalMoves()
-	pos.getGameStateAndStore()
 
+	if currentDepth <= qsDepth {
+		pos.generateLegalMoves(true)
+		pos.logSearch.nodesGeneratedLegalMovesPart += 1
+	} else {
+		pos.generateLegalMoves(false)
+		pos.logSearch.nodesGeneratedLegalMovesFull += 1
+	}
+
+	pos.getGameStateAndStore()
 	if pos.gameState != STATE_ONGOING {
 		switch pos.gameState {
 
@@ -281,11 +288,15 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].addTime(int(duration_time_create_move_slice))
 
 	// now copy the moves into the created slice
-	if currentDepth >= (qsDepth + 1) { // we do order moves
-		copy(copyOfMoves, pos.getOrderedMoves())
+	if currentDepth == initialDepth { // order moves at root
+		copy(copyOfMoves, pos.getOrderedMovesAtRoot())
 		pos.logSearch.moveOrderedNodes += 1
 
-	} else { // we don't order moves
+	} else if currentDepth >= (qsDepth + 1) { // order moves at other nodes
+		copy(copyOfMoves, pos.getOrderedMovesNotAtRoot())
+		pos.logSearch.moveOrderedNodes += 1
+
+	} else { // don't order moves
 		start_time_copy_into_move_slice := time.Now()
 
 		originalMoves := pos.availableMoves[:pos.availableMovesCounter]
