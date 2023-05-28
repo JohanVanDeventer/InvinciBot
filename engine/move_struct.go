@@ -47,17 +47,19 @@ To try and reduce memory and copy overhead during search and move ordering, we e
 											|--|                 Piece: 16
 										|--|                     Move Type: 20
 									|--|                         Promotion Type: 24
-|----------------------------------|                             Unused Bits: 28+
+								|--|							 Unused Bits: 28
+|------------------------------|                                 Move Ordering Score: 32
 
 */
 
 // constants specifying the location of encoding each move part
 const (
-	MOVE_SHIFT_FROM           int = 0
-	MOVE_SHIFT_TO             int = 8
-	MOVE_SHIFT_PIECE          int = 16
-	MOVE_SHIFT_MOVE_TYPE      int = 20
-	MOVE_SHIFT_PROMOTION_TYPE int = 28
+	MOVE_SHIFT_FROM                int = 0
+	MOVE_SHIFT_TO                  int = 8
+	MOVE_SHIFT_PIECE               int = 16
+	MOVE_SHIFT_MOVE_TYPE           int = 20
+	MOVE_SHIFT_PROMOTION_TYPE      int = 24
+	MOVE_SHIFT_MOVE_ORDERING_SCORE int = 32
 )
 
 // constants specifying masks for retrieving each move part
@@ -69,11 +71,12 @@ const (
 	MOVE_BIT_MASK_32_BITS Move = 0xffffffffffffffff >> (64 - 32)
 
 	// masks set at the specific bits where the move info is encoded
-	MOVE_MASK_FROM           = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_FROM)
-	MOVE_MASK_TO             = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_TO)
-	MOVE_MASK_PIECE          = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PIECE)
-	MOVE_MASK_MOVE_TYPE      = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_MOVE_TYPE)
-	MOVE_MASK_PROMOTION_TYPE = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PROMOTION_TYPE)
+	MOVE_MASK_FROM                = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_FROM)
+	MOVE_MASK_TO                  = fullMove & (MOVE_BIT_MASK_8_BITS << MOVE_SHIFT_TO)
+	MOVE_MASK_PIECE               = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PIECE)
+	MOVE_MASK_MOVE_TYPE           = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_MOVE_TYPE)
+	MOVE_MASK_PROMOTION_TYPE      = fullMove & (MOVE_BIT_MASK_4_BITS << MOVE_SHIFT_PROMOTION_TYPE)
+	MOVE_MASK_MOVE_ORDERING_SCORE = fullMove & (MOVE_BIT_MASK_32_BITS << MOVE_SHIFT_MOVE_ORDERING_SCORE)
 )
 
 // get a single move encoded for all information except for the move ordering score
@@ -107,4 +110,20 @@ func (move *Move) getMoveType() int {
 
 func (move *Move) getPromotionType() int {
 	return int((*move & MOVE_MASK_PROMOTION_TYPE) >> MOVE_SHIFT_PROMOTION_TYPE)
+}
+
+func (move *Move) getMoveOrderingScore() int {
+	return int((*move & MOVE_MASK_MOVE_ORDERING_SCORE) >> MOVE_SHIFT_MOVE_ORDERING_SCORE)
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------- Move Ordering Score ---------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+/*
+Functions to store a move-ordering score into each move.
+*/
+
+// this function assumes that the move ordering score has not yet been set
+func (move *Move) setMoveOrderingScore(score int) {
+	*move |= (Move(score) << MOVE_SHIFT_MOVE_ORDERING_SCORE)
 }

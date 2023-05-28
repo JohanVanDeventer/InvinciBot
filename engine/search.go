@@ -73,7 +73,7 @@ const (
 )
 
 var (
-	BLANK_MOVE Move = fullMove // dummy move to catch errors
+	BLANK_MOVE Move = getEncodedMove(99, 99, 99, 99, 99) // dummy move to catch errors
 )
 
 // function to initiate a search on the current position and store the best move
@@ -288,15 +288,15 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].addTime(int(duration_time_create_move_slice))
 
 	// now copy the moves into the created slice
-	if currentDepth == initialDepth { // order moves at root
+	if currentDepth == initialDepth { // root nodes
 		copy(copyOfMoves, pos.getOrderedMovesAtRoot())
 		pos.logSearch.moveOrderedNodes += 1
 
-	} else if currentDepth >= (qsDepth + 1) { // order moves at other nodes
+	} else if currentDepth >= (qsDepth + 1) { // nodes not at root but still have move ordering
 		copy(copyOfMoves, pos.getOrderedMovesNotAtRoot())
 		pos.logSearch.moveOrderedNodes += 1
 
-	} else { // don't order moves
+	} else { // nodes without move ordering
 		start_time_copy_into_move_slice := time.Now()
 
 		originalMoves := pos.availableMoves[:pos.availableMovesCounter]
@@ -319,7 +319,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			// find the index of the best move
 			bestIndex := -1
 			for index, move := range copyOfMoves {
-				if move == pos.bestMove {
+				//if move == pos.bestMove {
+				if move.getFromSq() == pos.bestMove.getFromSq() && move.getToSq() == pos.bestMove.getToSq() && move.getPromotionType() == pos.bestMove.getPromotionType() {
 					bestIndex = index
 				}
 			}

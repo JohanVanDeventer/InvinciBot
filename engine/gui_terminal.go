@@ -218,7 +218,7 @@ func (pos *Position) printBoardToTerminal() {
 				orderedNodesRate = int((float64(pos.logSearch.moveOrderedNodes) / float64(totalNodes)) * 100)
 			}
 
-			fmt.Printf("Fully generated moves at %v%% of nodes. Partly generated moves at %v%% of nodes. Created moves copies at %v%% of nodes. Ordered the moves of %v%% nodes.\n",
+			fmt.Printf("Fully generated moves at %v%% of nodes. Partially generated moves at %v%% of nodes. Created moves copies at %v%% of nodes. Ordered the moves of %v%% of nodes.\n",
 				genFullLegalMovesRate, genPartLegalMovesRate, createMovesCopyRate, orderedNodesRate)
 
 		case 2:
