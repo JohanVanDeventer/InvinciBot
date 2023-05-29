@@ -247,8 +247,8 @@ func (pos *Position) printBoardToTerminal() {
 			avgCreateMoveSlice := pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].getAverageNsPerCall()
 			avgCopyIntoMoveSlice := pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].getAverageNsPerCall()
 
-			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Order moves: %v. Create move slice: %v. Copy into move slice: %v. IterDeep Ordering: %v.\n",
-				avgTTGet, avgTTStore, avgOrderMovesNotAtRoot, avgCreateMoveSlice, avgCopyIntoMoveSlice, avgIterDeepOrder)
+			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Create both move slices: %v. Order threat moves: %v. Copy quiet moves: %v. IterDeep Ordering: %v.\n",
+				avgTTGet, avgTTStore, avgCreateMoveSlice, avgOrderMovesNotAtRoot, avgCopyIntoMoveSlice, avgIterDeepOrder)
 		}
 	}
 	fmt.Println("======================")

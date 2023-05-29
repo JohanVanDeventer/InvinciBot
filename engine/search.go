@@ -315,20 +315,26 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	if currentDepth >= (qsDepth + 1) { // nodes with move ordering
 		copy(copyOfThreatMoves, pos.getScoredAndOrderedThreatMoves())
 		if currentDepth > 0 {
+			start_time_copy_into_move_slice := time.Now()
+
 			copy(copyOfQuietMoves, pos.quietMoves[:pos.quietMovesCounter])
+
+			duration_time_copy_into_move_slice := time.Since(start_time_copy_into_move_slice).Nanoseconds()
+			pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].addTime(int(duration_time_copy_into_move_slice))
 		}
 		pos.logSearch.moveOrderedNodes += 1
 
 	} else { // nodes without move ordering
-		start_time_copy_into_move_slice := time.Now()
 		copy(copyOfThreatMoves, pos.threatMoves[:pos.threatMovesCounter])
 		if currentDepth > 0 {
+			start_time_copy_into_move_slice := time.Now()
+
 			copy(copyOfQuietMoves, pos.quietMoves[:pos.quietMovesCounter])
+
+			duration_time_copy_into_move_slice := time.Since(start_time_copy_into_move_slice).Nanoseconds()
+			pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].addTime(int(duration_time_copy_into_move_slice))
 		}
 		pos.logSearch.moveUnorderedNodes += 1
-
-		duration_time_copy_into_move_slice := time.Since(start_time_copy_into_move_slice).Nanoseconds()
-		pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].addTime(int(duration_time_copy_into_move_slice))
 
 	}
 
