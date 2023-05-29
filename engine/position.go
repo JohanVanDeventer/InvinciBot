@@ -68,8 +68,13 @@ type Position struct {
 	ply int // increases by 1 each time white or black moves
 
 	// available moves in the current position
-	availableMoves        [256]Move // available moves in the current positiion (max theoretically is 218)
-	availableMovesCounter int       // counter points to the number of moves added
+	//availableMoves        [256]Move // available moves in the current positiion (max theoretically is 218)
+	//availableMovesCounter int       // counter points to the number of moves added
+	totalMovesCounter  int       // counter for the total threat and quiet moves
+	threatMoves        [256]Move // captures, en-passant and promotion moves
+	threatMovesCounter int       // counter points to the number of moves added
+	quietMoves         [256]Move // quiet moves and castling moves
+	quietMovesCounter  int       // counter points to the number of moves added
 
 	// previous game states
 	previousGameStates        [768]PreviousState
@@ -167,7 +172,11 @@ func (pos *Position) reset() {
 	// reset the other position variables
 	pos.ply = 0
 
-	pos.availableMovesCounter = 0
+	//pos.availableMovesCounter = 0
+	pos.totalMovesCounter = 0
+	pos.threatMovesCounter = 0
+	pos.quietMovesCounter = 0
+
 	pos.previousGameStatesCounter = 0
 	pos.previousHashesCounter = 0
 

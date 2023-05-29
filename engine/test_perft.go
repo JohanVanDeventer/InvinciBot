@@ -120,9 +120,13 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 	pos.generateLegalMoves(false)
 
 	// if there are legal moves, iterate over them
-	if pos.availableMovesCounter > 0 {
-		legalMoves := make([]Move, pos.availableMovesCounter)
-		copy(legalMoves, pos.availableMoves[:pos.availableMovesCounter])
+	//if pos.availableMovesCounter > 0 {
+	if pos.totalMovesCounter > 0 {
+		//legalMoves := make([]Move, pos.availableMovesCounter)
+		//copy(legalMoves, pos.availableMoves[:pos.availableMovesCounter])
+		legalMoves := make([]Move, pos.totalMovesCounter)
+		copy(legalMoves, pos.threatMoves[:pos.threatMovesCounter])
+		copy(legalMoves[pos.threatMovesCounter:], pos.quietMoves[:pos.quietMovesCounter])
 
 		for _, move := range legalMoves {
 			pos.makeMove(move)

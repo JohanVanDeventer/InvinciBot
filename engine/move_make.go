@@ -503,7 +503,10 @@ func (pos *Position) makeMove(move Move) {
 	pos.hashOfPos ^= hashTableSideToMove[0]
 
 	// also, reset the move counter because no moves have been generated for the new position yet
-	pos.availableMovesCounter = 0
+	//pos.availableMovesCounter = 0
+	pos.totalMovesCounter = 0
+	pos.threatMovesCounter = 0
+	pos.quietMovesCounter = 0
 
 	duration_time := time.Since(start_time).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_MAKE_MOVE].addTime(int(duration_time))

@@ -53,13 +53,17 @@ func (pos *Position) playInputMove(input string) bool {
 	}
 
 	// get the available moves
-	if pos.availableMovesCounter <= 0 {
+	//if pos.availableMovesCounter <= 0 {
+	if pos.totalMovesCounter <= 0 {
 		fmt.Println("Error: No available moves.")
 		return false
 	}
 
-	allMoves := make([]Move, pos.availableMovesCounter)
-	copy(allMoves, pos.availableMoves[:pos.availableMovesCounter])
+	//allMoves := make([]Move, pos.availableMovesCounter)
+	//copy(allMoves, pos.availableMoves[:pos.availableMovesCounter])
+	allMoves := make([]Move, pos.totalMovesCounter)
+	copy(allMoves, pos.threatMoves[:pos.threatMovesCounter])
+	copy(allMoves[pos.threatMovesCounter:], pos.quietMoves[:pos.quietMovesCounter])
 
 	// loop over moves
 	// and where the input matches the move, play that move

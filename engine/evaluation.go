@@ -528,7 +528,8 @@ func (pos *Position) getGameStateAndStore() {
 	defer pos.logOther.allLogTypes[LOG_GAME_STATE].addTime(int(time.Since(start_time).Nanoseconds()))
 
 	// if there are no moves remaining, the king is either in checkmate, or it's stalemate
-	if pos.availableMovesCounter == 0 {
+	//if pos.availableMovesCounter == 0 {
+	if pos.totalMovesCounter == 0 {
 		if pos.kingChecks > 0 {
 			if !pos.isWhiteTurn {
 				pos.gameState = STATE_WIN_WHITE

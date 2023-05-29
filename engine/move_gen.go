@@ -71,7 +71,10 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 
 	// ------------------------------------------------- Setup ---------------------------------------------
 	// reset the moves counter
-	pos.availableMovesCounter = 0
+	//pos.availableMovesCounter = 0
+	pos.totalMovesCounter = 0
+	pos.threatMovesCounter = 0
+	pos.quietMovesCounter = 0
 
 	// assign the friendly and enemy pieces and sides
 	var frKing Bitboard
@@ -146,14 +149,26 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 			pos.isWhiteTurn) {
 			if pos.piecesAll[enSide]&bbReferenceArray[nextMoveSq] != 0 { // capture
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.threatMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.quietMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
@@ -196,7 +211,8 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	// NOTE: this is the earliest we can check for this, because we need to store the number of king checks for the game state evaluation
 	// we also call this after king moves, because we assume most positions will have at least one king move
 	if atLeafCheckForOneMove {
-		if pos.availableMovesCounter > 0 {
+		//if pos.availableMovesCounter > 0 {
+		if pos.totalMovesCounter > 0 {
 			return
 		}
 	}
@@ -241,14 +257,26 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 			nextQueenTargetSq := nextQueenMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextQueenTargetSq] != 0 { // capture
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.threatMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.quietMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
@@ -286,14 +314,26 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 			nextRookTargetSq := nextRookMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextRookTargetSq] != 0 { // capture
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.threatMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.quietMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
@@ -331,14 +371,26 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 			nextBishopTargetSq := nextBishopMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextBishopTargetSq] != 0 { // capture
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.threatMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.quietMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
@@ -375,14 +427,26 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 			nextKnightTargetSq := nextKnightMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextKnightTargetSq] != 0 { // capture
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.threatMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
 				//start_time_store_move := time.Now()
-				pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				pos.availableMovesCounter += 1
+
+				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				//pos.availableMovesCounter += 1
+
+				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_QUIET, PROMOTION_NONE)
+				pos.totalMovesCounter += 1
+				pos.quietMovesCounter += 1
+
 				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
@@ -431,64 +495,121 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 			if pos.piecesAll[enSide]&bbReferenceArray[nextPawnTargetSq] != 0 { // capture
 				if nextPawnTargetSq >= 56 || nextPawnTargetSq <= 7 { // if there is a promotion
 					//start_time_store_move1 := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_QUEEN)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_QUEEN)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_QUEEN)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move1 := time.Since(start_time_store_move1).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move1))
 
 					//start_time_store_move2 := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_ROOK)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_ROOK)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_ROOK)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move2 := time.Since(start_time_store_move2).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move2))
 
 					//start_time_store_move3 := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_KNIGHT)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_KNIGHT)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_KNIGHT)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move3 := time.Since(start_time_store_move3).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move3))
 
 					//start_time_store_move4 := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_BISHOP)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_BISHOP)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_BISHOP)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move4 := time.Since(start_time_store_move4).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move4))
 				} else { // if there is not a promotion
 					//start_time_store_move := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 				}
 			} else { // quiet move
 				if nextPawnTargetSq >= 56 || nextPawnTargetSq <= 7 { // if there is a promotion
 					//start_time_store_move1 := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_QUEEN)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_QUEEN)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_QUEEN)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move1 := time.Since(start_time_store_move1).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move1))
 
 					//start_time_store_move2 := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_ROOK)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_ROOK)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_ROOK)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move2 := time.Since(start_time_store_move2).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move2))
 
 					//start_time_store_move3 := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_KNIGHT)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_KNIGHT)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_KNIGHT)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move3 := time.Since(start_time_store_move3).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move3))
 
 					//start_time_store_move4 := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_BISHOP)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_BISHOP)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_BISHOP)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move4 := time.Since(start_time_store_move4).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move4))
 				} else { // if there is not a promotion
 					//start_time_store_move := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_NONE)
-					pos.availableMovesCounter += 1
+
+					pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_NONE)
+					pos.totalMovesCounter += 1
+					pos.quietMovesCounter += 1
+
 					//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 				}
@@ -563,8 +684,14 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 
 				if nextPawnMoves != 0 { // if there are still moves remaining
 					//start_time_store_move := time.Now()
-					pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnMoves.popBitGetSq(), PIECE_PAWN, MOVE_TYPE_EN_PASSANT, PROMOTION_NONE)
-					pos.availableMovesCounter += 1
+
+					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnMoves.popBitGetSq(), PIECE_PAWN, MOVE_TYPE_EN_PASSANT, PROMOTION_NONE)
+					//pos.availableMovesCounter += 1
+
+					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnMoves.popBitGetSq(), PIECE_PAWN, MOVE_TYPE_EN_PASSANT, PROMOTION_NONE)
+					pos.totalMovesCounter += 1
+					pos.threatMovesCounter += 1
+
 					//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 				}
@@ -608,8 +735,14 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 						pos.isWhiteTurn) {
 
 						//start_time_store_move := time.Now()
-						pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(4, 6, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
-						pos.availableMovesCounter += 1
+
+						//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(4, 6, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
+						//pos.availableMovesCounter += 1
+
+						pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(4, 6, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
+						pos.totalMovesCounter += 1
+						pos.quietMovesCounter += 1
+
 						//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 						//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 					}
@@ -645,8 +778,14 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 						pos.isWhiteTurn) {
 
 						//start_time_store_move := time.Now()
-						pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(4, 2, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
-						pos.availableMovesCounter += 1
+
+						//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(4, 2, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
+						//pos.availableMovesCounter += 1
+
+						pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(4, 2, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
+						pos.totalMovesCounter += 1
+						pos.quietMovesCounter += 1
+
 						//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 						//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 					}
@@ -682,8 +821,14 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 						pos.isWhiteTurn) {
 
 						//start_time_store_move := time.Now()
-						pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(60, 62, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
-						pos.availableMovesCounter += 1
+
+						//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(60, 62, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
+						//pos.availableMovesCounter += 1
+
+						pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(60, 62, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
+						pos.totalMovesCounter += 1
+						pos.quietMovesCounter += 1
+
 						//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 						//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 					}
@@ -719,8 +864,14 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 						pos.isWhiteTurn) {
 
 						//start_time_store_move := time.Now()
-						pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(60, 58, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
-						pos.availableMovesCounter += 1
+
+						//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(60, 58, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
+						//pos.availableMovesCounter += 1
+
+						pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(60, 58, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
+						pos.totalMovesCounter += 1
+						pos.quietMovesCounter += 1
+
 						//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
 						//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 					}
