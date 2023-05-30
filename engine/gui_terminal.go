@@ -144,9 +144,11 @@ func (pos *Position) printBoardToTerminal() {
 
 		case 7:
 			if pos.isWhiteTurn {
-				fmt.Printf("Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v.\n", gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
+				fmt.Printf("Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v.\n",
+					gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
 			} else {
-				fmt.Printf("Turn: Black. Game Status: %v. Current move: %v. 50-move counter: %v.\n", gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
+				fmt.Printf("Turn: Black. Game Status: %v. Current move: %v. 50-move counter: %v.\n",
+					gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
 			}
 
 		case 6:
@@ -172,10 +174,15 @@ func (pos *Position) printBoardToTerminal() {
 				nodesMinus1Percent = int((float64(pos.logSearch.nodesAtDepth1Min) / float64(totalNodes)) * 100)
 			}
 
-			fmt.Printf("Search depth: %v. QS Depth: %v. Knps: %v. Total nodes: %v (+1: %v%%  0:%v%%  -1:%v%%). Check extension nodes: %v.\n",
+			checkExtensionPercent := 0
+			if totalNodes > 0 {
+				checkExtensionPercent = int((float64(pos.logSearch.checkExtensions) / float64(totalNodes)) * 100)
+			}
+
+			fmt.Printf("Search depth: %v. QS Depth: %v. Knps: %v. Total nodes: %v (+1: %v%%  0:%v%%  -1:%v%%). Check extensions at %v%% of nodes.\n",
 				pos.logSearch.depth, pos.logSearch.qsDepth, knps,
 				totalNodes, nodesPlus1Percent, nodes0Percent, nodesMinus1Percent,
-				pos.logSearch.checkExtensions)
+				checkExtensionPercent)
 
 		case 4:
 			totalNodes := pos.logSearch.getTotalNodes()
@@ -226,7 +233,35 @@ func (pos *Position) printBoardToTerminal() {
 				genFullLegalMovesRate, genPartLegalMovesRate, createMovesCopyRate, orderedNodesRate)
 
 		case 2:
-			fmt.Printf("\n")
+			totalNodes := pos.logSearch.getTotalNodes()
+
+			threatMovesSearchRate := 0
+			if totalNodes > 0 {
+				threatMovesSearchRate = int((float64(pos.logSearch.nodesSearchedThreatMoves) / float64(totalNodes)) * 100)
+			}
+
+			threatMovesCutoffRate := 0
+			if pos.logSearch.nodesSearchedThreatMoves > 0 {
+				threatMovesCutoffRate = int((float64(pos.logSearch.nodesThreatCutoffs) / float64(pos.logSearch.nodesSearchedThreatMoves)) * 100)
+			}
+
+			quietMovesSearchRate := 0
+			if totalNodes > 0 {
+				quietMovesSearchRate = int((float64(pos.logSearch.nodesSearchedQuietMoves) / float64(totalNodes)) * 100)
+			}
+
+			quietMovesCutoffRate := 0
+			if pos.logSearch.nodesSearchedQuietMoves > 0 {
+				quietMovesCutoffRate = int((float64(pos.logSearch.nodesQuietCutoffs) / float64(pos.logSearch.nodesSearchedQuietMoves)) * 100)
+			}
+
+			standPatCutoffRate := 0
+			if totalNodes > 0 {
+				standPatCutoffRate = int((float64(pos.logSearch.nodesQSEvalStandPatBetaCuts) / float64(totalNodes)) * 100)
+			}
+
+			fmt.Printf("Stand-Pat Beta cutoffs at %v%% of nodes. Searched threat moves at %v%% of nodes, and got a cutoff %v%% of the time. Searched quiet moves at %v%% of nodes, and got a cutoff %v%% of the time.\n",
+				standPatCutoffRate, threatMovesSearchRate, threatMovesCutoffRate, quietMovesSearchRate, quietMovesCutoffRate)
 
 		case 1:
 			avgMoveGen := pos.logOther.allLogTypes[LOG_MOVE_GEN].getAverageNsPerCall()

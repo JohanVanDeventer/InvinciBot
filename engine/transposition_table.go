@@ -28,7 +28,7 @@ Each node contains:
 - Value: 1 x int = 1 x 8 = 8 bytes.
 Therefore each node is about 18 bytes.
 
-The TT index also needs to be stored:
+The TT index key also needs to be stored:
 - 1 x uint32 (max value of 4bil) = 1 x 4 = 4 bytes
 
 So the total per TT entry is 22 bytes.

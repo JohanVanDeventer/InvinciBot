@@ -29,7 +29,7 @@ func initTestPositions() {
 	testPos1.depthResults = append(testPos1.depthResults, "8902")
 	testPos1.depthResults = append(testPos1.depthResults, "197281")
 	testPos1.depthResults = append(testPos1.depthResults, "4865609")
-	//testPos1.depthResults = append(testPos1.depthResults, "119060324")
+	testPos1.depthResults = append(testPos1.depthResults, "119060324")
 	//testPos1.depthResults = append(testPos1.depthResults, "3195901860")
 	testPositions = append(testPositions, testPos1)
 
@@ -40,7 +40,7 @@ func initTestPositions() {
 	testPos2.depthResults = append(testPos2.depthResults, "2039")
 	testPos2.depthResults = append(testPos2.depthResults, "97862")
 	testPos2.depthResults = append(testPos2.depthResults, "4085603")
-	//testPos2.depthResults = append(testPos2.depthResults, "193690690")
+	testPos2.depthResults = append(testPos2.depthResults, "193690690")
 	//testPos2.depthResults = append(testPos2.depthResults, "8031647685")
 	testPositions = append(testPositions, testPos2)
 
@@ -53,7 +53,7 @@ func initTestPositions() {
 	testPos3.depthResults = append(testPos3.depthResults, "43238")
 	testPos3.depthResults = append(testPos3.depthResults, "674624")
 	testPos3.depthResults = append(testPos3.depthResults, "11030083")
-	//testPos3.depthResults = append(testPos3.depthResults, "178633661")
+	testPos3.depthResults = append(testPos3.depthResults, "178633661")
 	//testPos3.depthResults = append(testPos3.depthResults, "3009794393")
 	testPositions = append(testPositions, testPos3)
 
@@ -75,7 +75,7 @@ func initTestPositions() {
 	testPos5.depthResults = append(testPos5.depthResults, "1486")
 	testPos5.depthResults = append(testPos5.depthResults, "62379")
 	testPos5.depthResults = append(testPos5.depthResults, "2103487")
-	//testPos5.depthResults = append(testPos5.depthResults, "89941194")
+	testPos5.depthResults = append(testPos5.depthResults, "89941194")
 	testPositions = append(testPositions, testPos5)
 
 	// test position 6: symmetrical italian game
@@ -85,7 +85,7 @@ func initTestPositions() {
 	testPos6.depthResults = append(testPos6.depthResults, "2079")
 	testPos6.depthResults = append(testPos6.depthResults, "89890")
 	testPos6.depthResults = append(testPos6.depthResults, "3894594")
-	//testPos6.depthResults = append(testPos6.depthResults, "164075551")
+	testPos6.depthResults = append(testPos6.depthResults, "164075551")
 	//testPos6.depthResults = append(testPos6.depthResults, "6923051137")
 	testPositions = append(testPositions, testPos6)
 
@@ -96,7 +96,7 @@ func initTestPositions() {
 	testPos7.depthResults = append(testPos7.depthResults, "1375")
 	testPos7.depthResults = append(testPos7.depthResults, "43366")
 	testPos7.depthResults = append(testPos7.depthResults, "1469509")
-	//testPos7.depthResults = append(testPos7.depthResults, "46721049")
+	testPos7.depthResults = append(testPos7.depthResults, "46721049")
 	testPositions = append(testPositions, testPos7)
 
 }
@@ -106,7 +106,7 @@ func initTestPositions() {
 // --------------------------------------------------------------------------------------------------------------------
 
 // count nodes visited
-func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
+func (pos *Position) runPerft(initialDepth int, currentDepth int, bulkCounting bool) int {
 
 	// check for depth limit
 	if currentDepth == 0 {
@@ -119,6 +119,11 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 	// generate legal moves
 	pos.generateLegalMoves(false)
 
+	// check for bulk-counting enhacements
+	if bulkCounting && currentDepth == 1 {
+		return pos.totalMovesCounter
+	}
+
 	// if there are legal moves, iterate over them
 	//if pos.availableMovesCounter > 0 {
 	if pos.totalMovesCounter > 0 {
@@ -130,7 +135,7 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 
 		for _, move := range legalMoves {
 			pos.makeMove(move)
-			currentNodeCount := pos.runPerft(initialDepth, currentDepth-1)
+			currentNodeCount := pos.runPerft(initialDepth, currentDepth-1, bulkCounting)
 			totalNodeCount += currentNodeCount
 			pos.undoMove()
 
@@ -147,8 +152,15 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int) int {
 // loop over each perft position and print the results to the terminal
 func printPerftResults() {
 
+	bulkCounting := true
+
 	fmt.Println(" ")
-	fmt.Println("------------------------------------ Perft Test Results ---------------------------------------")
+
+	if bulkCounting {
+		fmt.Println("------------------------------------ Perft Test Results (Bulk Counting Enabled) ---------------------------------------")
+	} else {
+		fmt.Println("------------------------------------ Perft Test Results (Bulk Counting Disabled) ---------------------------------------")
+	}
 
 	for _, testPosition := range testPositions {
 
@@ -165,7 +177,7 @@ func printPerftResults() {
 
 		// test each depth and print the results
 		for depth, depthResults := range testPosition.depthResults {
-			resultNodes := newPos.runPerft(depth+1, depth+1) // run the perft
+			resultNodes := newPos.runPerft(depth+1, depth+1, bulkCounting) // run the perft
 			totalNodes += resultNodes
 			fmt.Printf("Depth: %v. Correct test nodes: %v. My nodes: %v.\n", depth+1, depthResults, resultNodes)
 			if depthResults != strconv.Itoa(resultNodes) {
@@ -176,12 +188,12 @@ func printPerftResults() {
 		// record the time
 		duration_time_sec := time.Since(start_time).Seconds()
 		duration_time_ms := time.Since(start_time).Milliseconds()
-		knps := math.Round((float64(totalNodes) / (float64(duration_time_ms) / 1000)) / 1000)
+		mnps := math.Round((float64(totalNodes) / (float64(duration_time_ms) / 1000)) / 1000000)
 
 		// print the logging details
 		// newPos.logOther.printLoggedDetails()
 
-		fmt.Printf("Completed perft in %v seconds. Speed: %v knps.\n\n", duration_time_sec, knps)
+		fmt.Printf("Completed perft in %v seconds. Speed: %v mnps.\n\n", duration_time_sec, mnps)
 
 	}
 }

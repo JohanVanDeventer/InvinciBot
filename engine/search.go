@@ -103,14 +103,16 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 	// do an iterative deepening search
 	for depth <= MAX_DEPTH {
 
-		// increase the depth and search
+		// increase the depth
 		depth += 1
 
+		// get the qs depth for this depth
 		qsDepth := 0
 		if depth < 99 {
 			qsDepth = qsDepthLimitTable[depth]
 		}
 
+		// do the search
 		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, &tt, qsDepth)
 
 		// store the best move from the search only after each iteration, and continue with the next iteration
@@ -267,12 +269,12 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// _____________________________ Check Extensions ______________________________
 	// if we are in check in the current node and the game is not over,
 	// we extend the search by 1 ply to better search the impact of the check
-	// we only do this during qsearch, where the position needs to be quiet before evaluating
+	// we only do this at nodes at least 2 below the initial depth,
+	// because increasing at 1 below would put us back at the root and mess up the root-specific code
 	// we also now need to fully generate legal moves if we only generated them partially before
 	inCheck := pos.kingChecks > 0
 
-	//if inCheck && currentDepth < 0 { // in check and in a qs node
-	if inCheck && currentDepth <= (initialDepth-2) { // in check and not at the root (or below the root where increasing would put back at the root)
+	if inCheck && currentDepth <= (initialDepth-2) { // in check, and increasing would not put us back at the root)
 		currentDepth += 1
 		pos.logSearch.checkExtensions += 1
 		if generatedPartialMoves {
@@ -280,8 +282,11 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 	}
 
-	// ---------------------------------------------------- Normal Evaluation -----------------------------------------------
-	// if the game is not over, and we are at the leaf nodes, we return the search score
+	// ------------------------------------------------------------- Evaluation --------------------------------------------------------
+	// if we are at a leaf or quiescence node, we now evaluate the position
+
+	// ________________________________ LEAF NODE EVALUATION _______________________________
+	// if the game is not over, and we are at the leaf nodes, we return the eval score
 	// we return the eval relative to the side to move (not an absolute eval)
 	if currentDepth <= qsDepth {
 		pos.evalPosAfter()
@@ -289,6 +294,32 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			return pos.evalMaterial + pos.evalHeatmaps + pos.evalOther, false
 		} else {
 			return 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther), false
+		}
+
+		// _____________________________ QUIESCENCE NODE EVALUATION _____________________________
+		// if we are at a quiescence node but not a leaf node, we use a standPat score as a floor on the evaluation for alpha
+		// this is done for the case that there is no threat/capture moves, so we at least return the evaluation
+		// this also allows standPat beta cutoffs before we loop over all the moves
+	} else if currentDepth <= 0 {
+		pos.evalPosAfter()
+
+		var standPat int
+		if pos.isWhiteTurn {
+			standPat = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+		} else {
+			standPat = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
+		}
+
+		// beta (UPPERBOUND) is not changed in this node, so if it is already above that, return beta
+		if standPat >= beta {
+			pos.logSearch.nodesQSEvalStandPatBetaCuts += 1
+			return beta, false
+		}
+
+		// else, set alpha (LOWERBOUND) to be at least the evaluation score
+		// because we assume captures can either improve the position, otherwise we won't make the capture
+		if alpha < standPat {
+			alpha = standPat
 		}
 	}
 
@@ -298,76 +329,55 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// move ordering is expensive, so we only sort moves certain number of plies away from the leaf nodes
 	// note: if we order at qsDepth + 1 then we will never hit unordered nodes (because at leaf nodes we just evaluate)
 
+	// ____________________________ THREAT MOVES ____________________________
+	// we always create threat moves
+
 	// create a slice with the length of the available moves
-	start_time_create_move_slice := time.Now()
+	start_time_create_move_slice_threat := time.Now()
 
 	copyOfThreatMoves := make([]Move, pos.threatMovesCounter)
 
-	var copyOfQuietMoves []Move
-	if currentDepth > 0 {
-		copyOfQuietMoves = make([]Move, pos.quietMovesCounter)
-	}
+	duration_time_create_move_slice_threat := time.Since(start_time_create_move_slice_threat).Nanoseconds()
+	pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].addTime(int(duration_time_create_move_slice_threat))
 
-	duration_time_create_move_slice := time.Since(start_time_create_move_slice).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].addTime(int(duration_time_create_move_slice))
-
-	// now copy the moves into the created slice
+	// now copy the ordered or unordered moves into the created slice
 	if currentDepth >= (qsDepth + 1) { // nodes with move ordering
 		copy(copyOfThreatMoves, pos.getScoredAndOrderedThreatMoves())
-		if currentDepth > 0 {
-			start_time_copy_into_move_slice := time.Now()
-
-			copy(copyOfQuietMoves, pos.quietMoves[:pos.quietMovesCounter])
-
-			duration_time_copy_into_move_slice := time.Since(start_time_copy_into_move_slice).Nanoseconds()
-			pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].addTime(int(duration_time_copy_into_move_slice))
-		}
 		pos.logSearch.moveOrderedNodes += 1
-
 	} else { // nodes without move ordering
 		copy(copyOfThreatMoves, pos.threatMoves[:pos.threatMovesCounter])
-		if currentDepth > 0 {
-			start_time_copy_into_move_slice := time.Now()
-
-			copy(copyOfQuietMoves, pos.quietMoves[:pos.quietMovesCounter])
-
-			duration_time_copy_into_move_slice := time.Since(start_time_copy_into_move_slice).Nanoseconds()
-			pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].addTime(int(duration_time_copy_into_move_slice))
-		}
 		pos.logSearch.moveUnorderedNodes += 1
-
 	}
 
-	/*
+	// ____________________________ QUIET MOVES ____________________________
+	// we only create quiet moves at non-quiescence nodes
+
+	var copyOfQuietMoves []Move
+	if currentDepth > 0 { // non-quiescence nodes
+
 		// create a slice with the length of the available moves
-		start_time_create_move_slice := time.Now()
+		start_time_create_move_slice_quiet := time.Now()
 
-		copyOfMoves := make([]Move, pos.availableMovesCounter)
+		copyOfQuietMoves = make([]Move, pos.quietMovesCounter)
 
-		duration_time_create_move_slice := time.Since(start_time_create_move_slice).Nanoseconds()
-		pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].addTime(int(duration_time_create_move_slice))
+		duration_time_create_move_slice_quiet := time.Since(start_time_create_move_slice_quiet).Nanoseconds()
+		pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].addTime(int(duration_time_create_move_slice_quiet))
 
-		// now copy the moves into the created slice
-		if currentDepth >= (qsDepth + 1) { // nodes with move ordering
-			copy(copyOfMoves, pos.getOrderedMoves())
-			pos.logSearch.moveOrderedNodes += 1
+		// now copy the unordered moves into the created slice
+		start_time_copy_into_move_slice := time.Now()
 
-		} else { // nodes without move ordering
-			start_time_copy_into_move_slice := time.Now()
+		copy(copyOfQuietMoves, pos.quietMoves[:pos.quietMovesCounter])
 
-			originalMoves := pos.availableMoves[:pos.availableMovesCounter]
-			copy(copyOfMoves, originalMoves)
-			pos.logSearch.moveUnorderedNodes += 1
+		duration_time_copy_into_move_slice := time.Since(start_time_copy_into_move_slice).Nanoseconds()
+		pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].addTime(int(duration_time_copy_into_move_slice))
 
-			duration_time_copy_into_move_slice := time.Since(start_time_copy_into_move_slice).Nanoseconds()
-			pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].addTime(int(duration_time_copy_into_move_slice))
-
-		}
-	*/
+	}
 
 	// ------------------------------------------------------- Order Moves: Iterative Deepening --------------------------------------------------
 	// we also use the previous iterative deepening search's best move first, if we are at the root
 	// this code will therefore only run once each time the depth is increased (acceptable because the code takes long)
+	// we call this after normal move ordering, because we put the best move first regardless of normal move ordering
+	// we also always put it in the threat moves, because they are searched first
 
 	if currentDepth == initialDepth { // if we are at the root depth
 		if pos.bestMove != BLANK_MOVE { // we need to first get a best move from iterative deepening before we can put it at the front
@@ -381,13 +391,12 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			// find the index of the best move
 			bestIndexThreatMoves := -1
 			for index, move := range copyOfThreatMoves {
-				//if move == pos.bestMove {
 				if move.getFromSq() == bestMoveFromSq && move.getToSq() == bestMoveToSq && move.getPromotionType() == bestMovePromotionType {
 					bestIndexThreatMoves = index
 				}
 			}
 
-			if bestIndexThreatMoves != -1 {
+			if bestIndexThreatMoves != -1 { // best move is a threat move
 
 				// remove the best move from the original position (FROM THREAT MOVES)
 				copyOfThreatMoves = append(copyOfThreatMoves[:bestIndexThreatMoves], copyOfThreatMoves[bestIndexThreatMoves+1:]...)
@@ -395,12 +404,12 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// append the best move at the start of the list of moves after ordering (TO THREAT MOVES)
 				copyOfThreatMoves = append([]Move{pos.bestMove}, copyOfThreatMoves...)
 
-			} else {
 				// ________________________ QUIET MOVES ________________________
+			} else { // best move is a quiet move
+
 				// find the index of the best move
 				bestIndexQuietMoves := -1
 				for index, move := range copyOfQuietMoves {
-					//if move == pos.bestMove {
 					if move.getFromSq() == bestMoveFromSq && move.getToSq() == bestMoveToSq && move.getPromotionType() == bestMovePromotionType {
 						bestIndexQuietMoves = index
 					}
@@ -418,61 +427,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 	}
 
-	/*
-		if currentDepth == initialDepth { // if we are at the root depth
-			if pos.bestMove != BLANK_MOVE { // we need to first get a best move from iterative deepening before we can put it at the front
-
-				start_time_iter_deep_ordering := time.Now()
-
-				// find the index of the best move
-				bestIndex := -1
-				for index, move := range copyOfMoves {
-					//if move == pos.bestMove {
-					if move.getFromSq() == pos.bestMove.getFromSq() && move.getToSq() == pos.bestMove.getToSq() && move.getPromotionType() == pos.bestMove.getPromotionType() {
-						bestIndex = index
-					}
-				}
-
-				// remove the best move from the original position
-				copyOfMoves = append(copyOfMoves[:bestIndex], copyOfMoves[bestIndex+1:]...)
-
-				// append the best move at the start of the list of moves after ordering
-				copyOfMoves = append([]Move{pos.bestMove}, copyOfMoves...)
-
-				duration_time_iter_deep_ordering := time.Since(start_time_iter_deep_ordering).Nanoseconds()
-				pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].addTime(int(duration_time_iter_deep_ordering))
-			}
-		}
-	*/
-
-	// ---------------------------------------------------------- Quiescence Eval --------------------------------------------------
-	// if we are at a quiescence search node
-	// we use a standPat score as a floor on the evaluation for alpha
-	// this is done for the case that there is no capture moves, so we at least return the evaluation
-	if currentDepth <= 0 {
-		pos.evalPosAfter()
-
-		var standPat int
-		if pos.isWhiteTurn {
-			standPat = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
-		} else {
-			standPat = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
-		}
-
-		// beta (UPPERBOUND) is not changed in the search, so if it is already above that, return beta
-		if standPat >= beta {
-			return beta, false
-		}
-
-		// else, set alpha (LOWERBOUND) to be at least the evaluation score
-		// because we assume captures can either improve the position, otherwise we won't make the capture
-		if alpha < standPat {
-			alpha = standPat
-		}
-	}
-
 	// ------------------------------------------------------- Main Search: Threat Moves --------------------------------------------------
 	// start the search and iterate over each move
+	pos.logSearch.nodesSearchedThreatMoves += 1
 	for _, move := range copyOfThreatMoves {
 
 		// ___________________________________________ Make and Undo Move ___________________________________
@@ -500,6 +457,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// beta cutoff
 		if moveValue >= beta {
 
+			pos.logSearch.nodesThreatCutoffs += 1
 			if currentDepth > 0 {
 				// store TT entries for non-quiescence nodes
 				// if we have a beta cut, this node failed high
@@ -529,6 +487,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// at the depth of zero or lower, we only consider threat moves (captures, en-passant and promotions)
 	// we therefore only iterate over quiet moves at depths > 0 (non-quiescence nodes)
 	if currentDepth > 0 {
+		pos.logSearch.nodesSearchedQuietMoves += 1
 		for _, move := range copyOfQuietMoves {
 
 			// ___________________________________________ Make and Undo Move ___________________________________
@@ -556,6 +515,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			// beta cutoff
 			if moveValue >= beta {
 
+				pos.logSearch.nodesQuietCutoffs += 1
 				if currentDepth > 0 {
 					// store TT entries for non-quiescence nodes
 					// if we have a beta cut, this node failed high
