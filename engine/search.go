@@ -115,8 +115,11 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 			qsDepth = qsDepthLimitTable[depth]
 		}
 
+		// set the starting ply
+		ply := 0
+
 		// do the search
-		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, &tt, qsDepth)
+		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, &tt, qsDepth, ply)
 
 		// store the best move from the search only after each iteration, and continue with the next iteration
 		// in case of terminated searches in the middle of a search, we can't use that move, and exit immediately
@@ -152,7 +155,12 @@ const (
 )
 
 // return the score, along with a flag for whether the search was aborted
-func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta int, tt *TranspositionTable, qsDepth int) (int, bool) {
+func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta int, tt *TranspositionTable, qsDepth int, ply int) (int, bool) {
+
+	// -------------------------------------------------------- Ply -----------------------------------------------------
+	// ply is the depth since the root, independent of any changes to currentDepth (such as check extensions)
+	// ply is used to make sure the side to move and actual depth from the root stays correct, for example for killer moves
+	ply += 1
 
 	// -------------------------------------------------- Time Management -----------------------------------------------
 	// count the nodes searched for time management checks
@@ -383,11 +391,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 		start_time_killers := time.Now()
 
-		// set the starting variables
-		killerDepth := initialDepth - currentDepth
-
 		// _____ Killer 1 _____
-		killer1Move := pos.killerMoves[killerDepth][0]
+		killer1Move := pos.killerMoves[ply][0]
 
 		// we only loop if we previously stored a killer move
 		if killer1Move != BLANK_MOVE {
@@ -409,10 +414,10 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 
 		// _____ Killer 2 _____
-		killer2Move := pos.killerMoves[killerDepth][1]
+		killer2Move := pos.killerMoves[ply][1]
 
-		// we only loop if we previously stored a killer move, and it's not the same as the first killer move
-		if killer1Move != BLANK_MOVE && killer1Move != killer2Move {
+		// we only loop if we previously stored a killer move
+		if killer1Move != BLANK_MOVE {
 			killer2Index := -1
 
 			for index, move := range copyOfQuietMoves {
@@ -496,7 +501,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// ___________________________________________ Make and Undo Move ___________________________________
 		// play the move, get the score of the node, and undo the move again
 		pos.makeMove(move)
-		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth)
+		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply)
 		moveValue := 0 - score
 		pos.undoMove()
 
@@ -554,7 +559,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			// ___________________________________________ Make and Undo Move ___________________________________
 			// play the move, get the score of the node, and undo the move again
 			pos.makeMove(move)
-			score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth)
+			score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply)
 			moveValue := 0 - score
 			pos.undoMove()
 
@@ -580,17 +585,16 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// killer moves try to improve the move ordering of quiet moves
 				// killer moves are therefore only quiet moves (threat moves already have separate move ordering)
 				// we store the move that caused a beta-cutoff as a killer move to be tried in sibling nodes
-				// we identify sibling nodes using the killerMoves[depth][entry] table
+				// we identify sibling nodes using the killerMoves[ply][entry] table
 				// depth is simply the depth gained since the search started (initial depth - current depth)
 				// we ignore check extensions for now to keep the code simple
 				// we have a certain number of moves to store in the table, as candidate killer moves
 				// we replace the old move, and keep the new move for each depth
 				// note: we only replace the old move if we found a new killer move
-				killerDepth := initialDepth - currentDepth
 
-				if move != pos.killerMoves[killerDepth][0] { // if we have a unique new killer move
-					pos.killerMoves[killerDepth][1] = pos.killerMoves[killerDepth][0] // move the previous new move to the old move slot
-					pos.killerMoves[killerDepth][0] = move                            // save the current killer move in the new move slot
+				if move != pos.killerMoves[ply][0] { // if we have a unique new killer move
+					pos.killerMoves[ply][1] = pos.killerMoves[ply][0] // move the previous new move to the old move slot
+					pos.killerMoves[ply][0] = move                    // save the current killer move in the new move slot
 				}
 
 				// ___________ NORMAL CODE ___________

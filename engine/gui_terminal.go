@@ -281,9 +281,10 @@ func (pos *Position) printBoardToTerminal() {
 			avgIterDeepOrder := pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].getAverageNsPerCall()
 			avgCreateMoveSlice := pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].getAverageNsPerCall()
 			avgCopyIntoMoveSlice := pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].getAverageNsPerCall()
+			avgOrderKillers := pos.logOther.allLogTypes[LOG_KILLER_MOVE_ORDERING].getAverageNsPerCall()
 
-			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Create both move slices: %v. Order threat moves: %v. Copy quiet moves: %v. IterDeep Ordering: %v.\n",
-				avgTTGet, avgTTStore, avgCreateMoveSlice, avgOrderMovesNotAtRoot, avgCopyIntoMoveSlice, avgIterDeepOrder)
+			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Create both move slices: %v. Order threat moves: %v. Copy quiet moves: %v. IterDeep Ordering: %v. Order killers: %v.\n",
+				avgTTGet, avgTTStore, avgCreateMoveSlice, avgOrderMovesNotAtRoot, avgCopyIntoMoveSlice, avgIterDeepOrder, avgOrderKillers)
 		}
 	}
 	fmt.Println("======================")
