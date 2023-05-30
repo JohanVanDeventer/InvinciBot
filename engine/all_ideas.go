@@ -5,6 +5,11 @@ package main
 Ideas to consider / implement
 =============================
 
+--- Quiet moves ---
+Move the quiet move ordering (killers etc.) only after threat moves have been looped over?
+Can't do because we need quiet moves to sort the best move from the previous iteration.
+Unless we later put the root node call in a separate function.
+
 --- Move in TT ---
 Also store best move if available in each TT entry.
 

@@ -68,8 +68,6 @@ type Position struct {
 	ply int // increases by 1 each time white or black moves
 
 	// available moves in the current position
-	//availableMoves        [256]Move // available moves in the current positiion (max theoretically is 218)
-	//availableMovesCounter int       // counter points to the number of moves added
 	totalMovesCounter  int       // counter for the total threat and quiet moves
 	threatMoves        [256]Move // captures, en-passant and promotion moves
 	threatMovesCounter int       // counter points to the number of moves added
@@ -103,6 +101,9 @@ type Position struct {
 	timeNodesCount       int       // increases by 1 at each node, to check time at a certain amount of nodes
 	timeStartingTime     time.Time // starts when a search is initiated
 	timeTotalAllowedTime int       // in milliseconds, what is the total allowed time for the search
+
+	// killer heuristic variables
+	killerMoves [MAX_DEPTH][2]Move // table to save killer moves
 
 	// log details about time taken, counts etc.
 	logSearch LogSearch
@@ -142,7 +143,6 @@ func (pos *Position) step2InitRest() {
 // ---------------------------------------------------- Reset Position ------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 // sets the position values to the default to allow a new position to be loaded after a previous position was already loaded
-// only some variables need to be reset (for example eval, game state etc are set in other functions already)
 func (pos *Position) reset() {
 
 	// reset pieces
@@ -172,15 +172,48 @@ func (pos *Position) reset() {
 	// reset the other position variables
 	pos.ply = 0
 
-	//pos.availableMovesCounter = 0
+	// reset the move list counters
 	pos.totalMovesCounter = 0
 	pos.threatMovesCounter = 0
 	pos.quietMovesCounter = 0
 
+	// reset the other counters
 	pos.previousGameStatesCounter = 0
 	pos.previousHashesCounter = 0
 
+	// reset the game state variables
+	pos.gameState = STATE_ONGOING
+	pos.kingChecks = 0
+
+	// reset the evaluation
+	pos.evalMaterial = 0
+	pos.evalHeatmaps = 0
+	pos.evalOther = 0
+	pos.evalMidVsEndStage = 0
+
+	// reset the best moves
+	pos.bestMoveSoFar = BLANK_MOVE
+	pos.bestMove = BLANK_MOVE
+
+	// reset the time management variables
+	// pos.timeStartingTime: will reset once a search is started
+	pos.timeNodesCount = 0
+	pos.timeTotalAllowedTime = 0
+
+	// reset the killer move table
+	// not done here, done before every search
+
+	// get clean loggers
 	pos.logSearch = LogSearch{}
 	pos.logOther = LogOther{}
 
+}
+
+// function to reset the killer moves table in the position
+func (pos *Position) resetKillerMoveTable() {
+	for depth := 0; depth < MAX_DEPTH; depth++ {
+		for entry := 0; entry < 2; entry++ {
+			pos.killerMoves[depth][entry] = BLANK_MOVE
+		}
+	}
 }

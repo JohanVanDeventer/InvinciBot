@@ -91,11 +91,13 @@ const (
 
 	LOG_CREATE_MOVE_SLICE    int = 22
 	LOG_COPY_INTO_MOVE_SLICE int = 23
+
+	LOG_KILLER_MOVE_ORDERING int = 24
 )
 
 // logging manager to manage all the LoggedType structs for a position
 type LogOther struct {
-	allLogTypes [24]LoggedType
+	allLogTypes [25]LoggedType
 }
 
 // get a new logging manager when a position is initialized
@@ -147,6 +149,8 @@ func getLoggingManager() LogOther {
 
 	newLoggingManager.allLogTypes[LOG_CREATE_MOVE_SLICE] = LoggedType{"Create Move Slice       ", 0, 0}
 	newLoggingManager.allLogTypes[LOG_COPY_INTO_MOVE_SLICE] = LoggedType{"Copy Into Move Slice    ", 0, 0}
+
+	newLoggingManager.allLogTypes[LOG_COPY_INTO_MOVE_SLICE] = LoggedType{"Killer Move Ordering    ", 0, 0}
 
 	return newLoggingManager
 }
