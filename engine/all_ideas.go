@@ -5,6 +5,10 @@ package main
 Ideas to consider / implement
 =============================
 
+-- Hash Move ---
+Store best moves in the TT.
+Apply internal iterative deepening if no hash move is available.
+
 --- Quiet moves ---
 Move the quiet move ordering (killers etc.) only after threat moves have been looped over?
 Can't do because we need quiet moves to sort the best move from the previous iteration.
