@@ -120,10 +120,19 @@ func (move *Move) getMoveOrderingScore() int {
 // -------------------------------------------------- Move Ordering Score ---------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 /*
-Functions to store a move-ordering score into each move.
+Functions to manipulate the move-ordering score of each move.
 */
 
-// this function assumes that the move ordering score has not yet been set
+const (
+	EMPTY_MOVE_ORDERING_MASK Move = (MOVE_BIT_MASK_32_BITS) | (^(MOVE_BIT_MASK_32_BITS << Move(MOVE_SHIFT_MOVE_ORDERING_SCORE)))
+)
+
+// this function assumes that the move ordering score is cleared
 func (move *Move) setMoveOrderingScore(score int) {
 	*move |= (Move(score) << MOVE_SHIFT_MOVE_ORDERING_SCORE)
+}
+
+// function to clear the move ordering score
+func (move *Move) clearMoveOrderingScore() {
+	*move &= EMPTY_MOVE_ORDERING_MASK
 }

@@ -194,6 +194,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// also, store alpha before the search. if alpha is not increased (no better move found), then we know this is an upper bound
 	alphaOriginal := alpha
 
+	// set a variable to catch the TT move if present
+	hashMove := BLANK_MOVE
+
 	// we only check the TT for non-quiescence nodes
 	// because we only save non-quiescence nodes in the TT
 	// this can be changed later if needed
@@ -227,6 +230,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					}
 				}
 			}
+
+			// set the hash move if we found a TT Entry but did not get an early cutoff
+			hashMove = ttEntry.move
 		}
 
 		duration_time_tt_get := time.Since(start_time_tt_get).Nanoseconds()
@@ -335,13 +341,11 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 	}
 
-	// ------------------------------------------------------- Order Moves: Normal --------------------------------------------------
+	// ----------------------------------------------------------- Order Moves --------------------------------------------------------
 	// if we are not at a leaf node, we start ordering moves for the search to try optimise cutoffs
 	// we assume there are moves, because if there were no moves, we already would have returned checkmate or stalemate before
-	// move ordering is expensive, so we only sort moves certain number of plies away from the leaf nodes
-	// note: if we order at qsDepth + 1 then we will never hit unordered nodes (because at leaf nodes we just evaluate)
 
-	// ____________________________ THREAT MOVES ____________________________
+	// ___________________________________ THREAT MOVES ___________________________________
 	// we always create threat moves
 
 	// create a slice with the length of the available moves
@@ -354,14 +358,14 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	// now copy the ordered or unordered moves into the created slice
 	if currentDepth >= (qsDepth + 1) { // nodes with move ordering
-		copy(copyOfThreatMoves, pos.getScoredAndOrderedThreatMoves())
+		copy(copyOfThreatMoves, pos.getOrderedThreatMoves())
 		pos.logSearch.moveOrderedNodes += 1
 	} else { // nodes without move ordering
 		copy(copyOfThreatMoves, pos.threatMoves[:pos.threatMovesCounter])
 		pos.logSearch.moveUnorderedNodes += 1
 	}
 
-	// ____________________________ QUIET MOVES ____________________________
+	// ___________________________________ QUIET MOVES ___________________________________
 	// we only create quiet moves at non-quiescence nodes
 
 	var copyOfQuietMoves []Move
@@ -383,11 +387,16 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		duration_time_copy_into_move_slice := time.Since(start_time_copy_into_move_slice).Nanoseconds()
 		pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].addTime(int(duration_time_copy_into_move_slice))
 
-		// _________________ Killer Moves ________________
-		// killer moves: we check whether there are killer moves that can help the move ordering of quiet moves
+		// _____________ Killer Moves ____________
+		// killer moves try to improve the move ordering of quiet moves
+		// we store the move that caused a beta-cutoff as a killer move to be tried in sibling nodes
+		// we identify sibling nodes using the killerMoves[ply][entry] table
+		// we store 2 killer moves in the table for each ply (new and old killer move)
+		// we replace the old move, and keep the new move for each depth as we find killer moves
+		// after having previously stored killer moves,
+		// we now check whether there are killer moves that can help the move ordering of quiet moves in other sibling nodes
 		// we get the killer moves, and then loop over them to check whether we have current moves that are the same
-		// we can use the whole move, because we don't store a move ordering score in quiet moves
-		// we move killer moves to the front of the move list
+		// if found, we then move killer moves to the front of the quiet move list
 
 		start_time_killers := time.Now()
 
@@ -439,25 +448,69 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		pos.logOther.allLogTypes[LOG_KILLER_MOVE_ORDERING].addTime(int(duration_time_killers))
 	}
 
-	// ------------------------------------------------------- Order Moves: Iterative Deepening --------------------------------------------------
+	// ___________________________________ BEST MOVES: HASH ___________________________________
+	// we have certain guesses for the best move, regardless of the threat vs quiet move split
+	// we test these best moves before threat and quiet moves
+	// one of these is the hash move from the transposition table
+
+	var copyOfBestMoves []Move
+	if hashMove != BLANK_MOVE { // if we found a valid candidate hash move from the transposition table
+		start_time_hash_move_ordering := time.Now()
+
+		// _____ Threat Moves _____
+		hashIndexThreatMoves := -1
+		for index, move := range copyOfThreatMoves {
+			if move == hashMove {
+				hashIndexThreatMoves = index
+			}
+		}
+
+		if hashIndexThreatMoves != -1 {
+			// remove the hash move from the original position from threat moves
+			copyOfThreatMoves = append(copyOfThreatMoves[:hashIndexThreatMoves], copyOfThreatMoves[hashIndexThreatMoves+1:]...)
+
+			// append the hash move at the start of the list of best moves
+			copyOfBestMoves = []Move{hashMove}
+
+			// _____ Quiet Moves _____
+		} else if currentDepth > 0 {
+
+			hashIndexQuietMoves := -1
+			for index, move := range copyOfQuietMoves {
+				if move == hashMove {
+					hashIndexQuietMoves = index
+				}
+			}
+
+			if hashIndexQuietMoves != -1 {
+				// remove the hash move from the original position from quiet moves
+				copyOfQuietMoves = append(copyOfQuietMoves[:hashIndexQuietMoves], copyOfQuietMoves[hashIndexQuietMoves+1:]...)
+
+				// append the hash move at the start of the list of best moves
+				copyOfBestMoves = []Move{hashMove}
+			}
+		}
+
+		duration_time_hash_move_ordering := time.Since(start_time_hash_move_ordering).Nanoseconds()
+		pos.logOther.allLogTypes[LOG_HASH_MOVE_ORDERING].addTime(int(duration_time_hash_move_ordering))
+	}
+
+	// ___________________________________ BEST MOVES: ITERATIVE DEEPENING  ___________________________________
 	// we also use the previous iterative deepening search's best move first, if we are at the root
 	// this code will therefore only run once each time the depth is increased (acceptable because the code takes long)
-	// we call this after normal move ordering, because we put the best move first regardless of normal move ordering
-	// we also always put it in the threat moves, because they are searched first
+	// we call this last after other move ordering, because we put the previous iteration's best move first regardless of other move ordering
 
 	if currentDepth == initialDepth { // if we are at the root depth
-		if pos.bestMove != BLANK_MOVE { // we need to first get a best move from iterative deepening before we can put it at the front
-			start_time_iter_deep_ordering := time.Now()
+		bestMovePreviousIteration := pos.bestMove
 
-			bestMoveFromSq := pos.bestMove.getFromSq()
-			bestMoveToSq := pos.bestMove.getToSq()
-			bestMovePromotionType := pos.bestMove.getPromotionType()
+		if bestMovePreviousIteration != BLANK_MOVE { // we need to first get a best move from iterative deepening before we can put it at the front
+			start_time_iter_deep_ordering := time.Now()
 
 			// ________________________ THREAT MOVES ________________________
 			// find the index of the best move
 			bestIndexThreatMoves := -1
 			for index, move := range copyOfThreatMoves {
-				if move.getFromSq() == bestMoveFromSq && move.getToSq() == bestMoveToSq && move.getPromotionType() == bestMovePromotionType {
+				if move == bestMovePreviousIteration {
 					bestIndexThreatMoves = index
 				}
 			}
@@ -467,8 +520,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// remove the best move from the original position (FROM THREAT MOVES)
 				copyOfThreatMoves = append(copyOfThreatMoves[:bestIndexThreatMoves], copyOfThreatMoves[bestIndexThreatMoves+1:]...)
 
-				// append the best move at the start of the list of moves after ordering (TO THREAT MOVES)
-				copyOfThreatMoves = append([]Move{pos.bestMove}, copyOfThreatMoves...)
+				// append the best move at the start of the list of moves after ordering (TO BEST MOVES)
+				copyOfBestMoves = append([]Move{bestMovePreviousIteration}, copyOfBestMoves...)
 
 				// ________________________ QUIET MOVES ________________________
 			} else { // best move is a quiet move
@@ -476,21 +529,104 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// find the index of the best move
 				bestIndexQuietMoves := -1
 				for index, move := range copyOfQuietMoves {
-					if move.getFromSq() == bestMoveFromSq && move.getToSq() == bestMoveToSq && move.getPromotionType() == bestMovePromotionType {
+					if move == bestMovePreviousIteration {
 						bestIndexQuietMoves = index
 					}
 				}
 
-				// remove the best move from the original position (FROM QUIET MOVES)
-				copyOfQuietMoves = append(copyOfQuietMoves[:bestIndexQuietMoves], copyOfQuietMoves[bestIndexQuietMoves+1:]...)
+				if bestIndexQuietMoves != -1 {
+					// remove the best move from the original position (FROM QUIET MOVES)
+					copyOfQuietMoves = append(copyOfQuietMoves[:bestIndexQuietMoves], copyOfQuietMoves[bestIndexQuietMoves+1:]...)
 
-				// append the best move at the start of the list of moves after ordering (TO THREAT MOVES)
-				copyOfThreatMoves = append([]Move{pos.bestMove}, copyOfThreatMoves...)
+					// append the best move at the start of the list of moves after ordering (TO BEST MOVES)
+					copyOfBestMoves = append([]Move{bestMovePreviousIteration}, copyOfBestMoves...)
+				}
 			}
+
+			// ________________________ HASH MOVES ________________________
+			// if the best move is not in threat or quiet moves, we assume it is already in best moves as the hash move
 
 			duration_time_iter_deep_ordering := time.Since(start_time_iter_deep_ordering).Nanoseconds()
 			pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].addTime(int(duration_time_iter_deep_ordering))
 		}
+	}
+
+	// ------------------------------------------------------- Main Search: Setup -------------------------------------------------------
+	// we create a bestMove variable to catch the best move to store in the TT
+	bestMove := BLANK_MOVE
+
+	// ------------------------------------------------------- Main Search: Best Moves --------------------------------------------------
+	// start the search and iterate over each move
+	searchedBestMoves := false
+	for _, move := range copyOfBestMoves {
+		searchedBestMoves = true
+
+		// ___________________________________________ Make and Undo Move ___________________________________
+		// play the move, get the score of the node, and undo the move again
+		pos.makeMove(move)
+		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply)
+		moveValue := 0 - score
+		pos.undoMove()
+
+		// if the search was terminated, return with a zero value
+		if terminated {
+			return 0, true
+		}
+
+		// ___________________________________________ Store Best Move at Root ___________________________________
+		// if we are at the root and the move is the best move so far, we store the move as the best so far
+		if currentDepth == initialDepth {
+			if moveValue > alpha {
+				pos.bestMoveSoFar = move
+			}
+		}
+
+		// ___________________________________________ Alpha-Beta Cutoffs ___________________________________
+
+		// beta cutoff
+		if moveValue >= beta {
+
+			// ___________ KILLER MOVES ___________
+			// for best moves, we don't know if the move was a quiet move or a threat move (we only store quiet killers)
+			// so first test for that before storing it
+			moveType := move.getMoveType()
+			promotionType := move.getPromotionType()
+			if (moveType == MOVE_TYPE_QUIET || moveType == MOVE_TYPE_CASTLE) && (promotionType == PROMOTION_NONE) {
+				if move != pos.killerMoves[ply][0] { // if we have a unique new killer move
+					pos.killerMoves[ply][1] = pos.killerMoves[ply][0] // move the previous new move to the old move slot
+					pos.killerMoves[ply][0] = move                    // save the current killer move in the new move slot
+				}
+			}
+
+			// ___________ NORMAL CODE ___________
+			pos.logSearch.nodesBestCutoffs += 1
+			pos.logSearch.nodesSearchedBestMoves += 1
+
+			if currentDepth > 0 {
+				// store TT entries for non-quiescence nodes
+				// if we have a beta cut, this node failed high
+				// so beta is the lowest bound for next searches
+				start_time_tt_store := time.Now()
+
+				tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta), move)
+				pos.logSearch.nodesTTStore += 1
+
+				duration_time_tt_store := time.Since(start_time_tt_store).Nanoseconds()
+				pos.logOther.allLogTypes[LOG_TT_STORE].addTime(int(duration_time_tt_store))
+			}
+
+			return beta, false
+		}
+
+		// improvement of alpha
+		if moveValue > alpha {
+			alpha = moveValue
+			bestMove = move
+		}
+	}
+
+	if searchedBestMoves {
+		pos.logSearch.nodesSearchedBestMoves += 1
 	}
 
 	// ------------------------------------------------------- Main Search: Threat Moves --------------------------------------------------
@@ -530,7 +666,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// so beta is the lowest bound for next searches
 				start_time_tt_store := time.Now()
 
-				tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta))
+				tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta), move)
 				pos.logSearch.nodesTTStore += 1
 
 				duration_time_tt_store := time.Since(start_time_tt_store).Nanoseconds()
@@ -543,6 +679,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// improvement of alpha
 		if moveValue > alpha {
 			alpha = moveValue
+			bestMove = move
 		}
 	}
 
@@ -582,16 +719,6 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			if moveValue >= beta {
 
 				// ___________ KILLER MOVES ___________
-				// killer moves try to improve the move ordering of quiet moves
-				// killer moves are therefore only quiet moves (threat moves already have separate move ordering)
-				// we store the move that caused a beta-cutoff as a killer move to be tried in sibling nodes
-				// we identify sibling nodes using the killerMoves[ply][entry] table
-				// depth is simply the depth gained since the search started (initial depth - current depth)
-				// we ignore check extensions for now to keep the code simple
-				// we have a certain number of moves to store in the table, as candidate killer moves
-				// we replace the old move, and keep the new move for each depth
-				// note: we only replace the old move if we found a new killer move
-
 				if move != pos.killerMoves[ply][0] { // if we have a unique new killer move
 					pos.killerMoves[ply][1] = pos.killerMoves[ply][0] // move the previous new move to the old move slot
 					pos.killerMoves[ply][0] = move                    // save the current killer move in the new move slot
@@ -605,7 +732,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					// so beta is the lowest bound for next searches
 					start_time_tt_store := time.Now()
 
-					tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta))
+					tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta), move)
 					pos.logSearch.nodesTTStore += 1
 
 					duration_time_tt_store := time.Since(start_time_tt_store).Nanoseconds()
@@ -618,6 +745,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			// improvement of alpha
 			if moveValue > alpha {
 				alpha = moveValue
+				bestMove = move
 			}
 		}
 	}
@@ -633,14 +761,14 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		if alpha > alphaOriginal {
 			// if alpha increased in the search, we know the exact value of the node, because:
 			// we did not fail high, because we already would have had a beta cut before this code
-			tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_EXACT, int32(alpha))
+			tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_EXACT, int32(alpha), bestMove)
 			pos.logSearch.nodesTTStore += 1
 
 		} else {
 			// if alpha did not increase in the search, this node failed low
 			// it did not fail high, because no beta cut was found
 			// this node value is therefore the upper bound for next searches
-			tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_UPPERBOUND, int32(alpha))
+			tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_UPPERBOUND, int32(alpha), BLANK_MOVE)
 			pos.logSearch.nodesTTStore += 1
 		}
 

@@ -50,7 +50,17 @@ type TTEntry struct {
 	depth       uint8
 	flag        uint8
 	value       int32
+	move        Move
 }
+
+/*
+type TTEntry struct {
+	zobristHash Bitboard
+	depth       uint8
+	flag        uint8
+	value       int32
+}
+*/
 
 // --------------------------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------- TT -----------------------------------------------------
@@ -81,9 +91,9 @@ func getTTKeyFromPosHash(posHash Bitboard) TTKey {
 }
 
 // this will store a new TT entry with the provided values (overwrite the old value if present)
-func (tt *TranspositionTable) storeNewTTEntry(zobristHash Bitboard, depth uint8, flag uint8, value int32) {
+func (tt *TranspositionTable) storeNewTTEntry(zobristHash Bitboard, depth uint8, flag uint8, value int32, move Move) {
 	ttKey := getTTKeyFromPosHash(zobristHash)
-	newTTEntry := TTEntry{zobristHash, depth, flag, value}
+	newTTEntry := TTEntry{zobristHash, depth, flag, value, move}
 	tt.entries[ttKey] = newTTEntry
 }
 

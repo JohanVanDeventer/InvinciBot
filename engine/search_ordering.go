@@ -17,7 +17,7 @@ const (
 )
 
 // returns a slice of moves ordered from best to worst
-func (pos *Position) getScoredAndOrderedThreatMoves() []Move {
+func (pos *Position) getOrderedThreatMoves() []Move {
 
 	start_time := time.Now()
 
@@ -80,6 +80,11 @@ func (pos *Position) getScoredAndOrderedThreatMoves() []Move {
 	// define the custom comparator function
 	// sort the moves based on the scores using the comparator function
 	sort.Slice(moves, func(i, j int) bool { return moves[i].getMoveOrderingScore() > moves[j].getMoveOrderingScore() })
+
+	// finally clear the move ordering scores (to make comparison easier later to other moves)
+	for _, move := range moves {
+		move.clearMoveOrderingScore()
+	}
 
 	duration_time := time.Since(start_time).Nanoseconds()
 	pos.logOther.allLogTypes[LOG_ORDER_MOVES_NOT_AT_ROOT].addTime(int(duration_time))

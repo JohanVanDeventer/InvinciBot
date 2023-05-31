@@ -260,8 +260,18 @@ func (pos *Position) printBoardToTerminal() {
 				standPatCutoffRate = int((float64(pos.logSearch.nodesQSEvalStandPatBetaCuts) / float64(totalNodes)) * 100)
 			}
 
-			fmt.Printf("Stand-Pat Beta cutoffs at %v%% of nodes. Searched threat moves at %v%% of nodes, and got a cutoff %v%% of the time. Searched quiet moves at %v%% of nodes, and got a cutoff %v%% of the time.\n",
-				standPatCutoffRate, threatMovesSearchRate, threatMovesCutoffRate, quietMovesSearchRate, quietMovesCutoffRate)
+			bestMovesSearchRate := 0
+			if totalNodes > 0 {
+				bestMovesSearchRate = int((float64(pos.logSearch.nodesSearchedBestMoves) / float64(totalNodes)) * 100)
+			}
+
+			bestMovesCutoffRate := 0
+			if pos.logSearch.nodesSearchedBestMoves > 0 {
+				bestMovesCutoffRate = int((float64(pos.logSearch.nodesBestCutoffs) / float64(pos.logSearch.nodesSearchedBestMoves)) * 100)
+			}
+
+			fmt.Printf("Stand-Pat cutoff at %v%% of nodes. Searched best moves at %v%% of nodes, cutoff %v%% of the time. Searched threat moves at %v%% of nodes, cutoff %v%% of the time. Searched quiet moves at %v%% of nodes, cutoff %v%% of the time.\n",
+				standPatCutoffRate, bestMovesSearchRate, bestMovesCutoffRate, threatMovesSearchRate, threatMovesCutoffRate, quietMovesSearchRate, quietMovesCutoffRate)
 
 		case 1:
 			avgMoveGen := pos.logOther.allLogTypes[LOG_MOVE_GEN].getAverageNsPerCall()
@@ -282,9 +292,10 @@ func (pos *Position) printBoardToTerminal() {
 			avgCreateMoveSlice := pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].getAverageNsPerCall()
 			avgCopyIntoMoveSlice := pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].getAverageNsPerCall()
 			avgOrderKillers := pos.logOther.allLogTypes[LOG_KILLER_MOVE_ORDERING].getAverageNsPerCall()
+			avgOrderHashMove := pos.logOther.allLogTypes[LOG_HASH_MOVE_ORDERING].getAverageNsPerCall()
 
-			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Create both move slices: %v. Order threat moves: %v. Copy quiet moves: %v. IterDeep Ordering: %v. Order killers: %v.\n",
-				avgTTGet, avgTTStore, avgCreateMoveSlice, avgOrderMovesNotAtRoot, avgCopyIntoMoveSlice, avgIterDeepOrder, avgOrderKillers)
+			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Create both move slices: %v. Order threat moves: %v. Copy quiet moves: %v. IterDeep Ordering: %v. Order killers: %v. Order hash moves: %v.\n",
+				avgTTGet, avgTTStore, avgCreateMoveSlice, avgOrderMovesNotAtRoot, avgCopyIntoMoveSlice, avgIterDeepOrder, avgOrderKillers, avgOrderHashMove)
 		}
 	}
 	fmt.Println("======================")

@@ -29,9 +29,11 @@ type LogSearch struct {
 
 	nodesSearchedThreatMoves int // nodes where all threat moves were looped over
 	nodesSearchedQuietMoves  int // nodes where all quiet moves were looped over
+	nodesSearchedBestMoves   int // nodes where we have best moves that were looped over
 
 	nodesThreatCutoffs int // beta cuts when looping over threat nodes
 	nodesQuietCutoffs  int // beta cuts when looping over quiet nodes
+	nodesBestCutoffs   int // beta cuts when looping over best nodes
 
 	nodesQSEvalStandPatBetaCuts int // number of beta cuts in quiescence using stand pat
 }
@@ -60,9 +62,11 @@ func (log *LogSearch) resetLog() {
 
 	log.nodesSearchedThreatMoves = 0
 	log.nodesSearchedQuietMoves = 0
+	log.nodesSearchedBestMoves = 0
 
 	log.nodesThreatCutoffs = 0
 	log.nodesQuietCutoffs = 0
+	log.nodesBestCutoffs = 0
 
 	log.nodesQSEvalStandPatBetaCuts = 0
 }
