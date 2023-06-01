@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /*
@@ -159,26 +161,11 @@ stop
 // starts the input loop listening to commands from the GUI
 func (pos *Position) startUCIInputLoop() {
 
-	/*
-		// set up to add logs
-		// Open the file in append mode. If the file doesn't exist, it will be created.
-		file, err := os.OpenFile("logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
-
-		// <<< LOGGING >>> Write a new game to the file along with the time of the new game
-		logStartTime := time.Now()
-		datedStartString := logStartTime.String() + ". Starting New UCI Loop -------------------------------------------------------------"
-		_, err = fmt.Fprintln(file, datedStartString)
-		if err != nil {
-			log.Fatal(err)
-		}
-	*/
-
 	// set up the input reader
 	inputReader := bufio.NewReader(os.Stdin)
+
+	// set up the error log buffer
+	errorLogPositionBuffer := ""
 
 	// start the command loop
 	runCommandLoop := true
@@ -218,27 +205,34 @@ func (pos *Position) startUCIInputLoop() {
 			pos.command_uciNewGame()
 
 		} else if strings.HasPrefix(command, "position") {
+			errorLogPositionBuffer = command
 			pos.command_position(command)
 
 		} else if strings.HasPrefix(command, "go") {
 			response := pos.command_go(command)
 
-			/*
-				// <<< LOGGING >>> Log the best move along with the time of the response sent by the engine
-				logResponseTime := time.Now()
-				datedResponse := logResponseTime.String() + ". Sent response: " + response
-				_, err = fmt.Fprintln(file, datedResponse)
-				if err != nil {
-					log.Fatal(err)
-				}
+			if len(response) < len("bestmove e2e4") || len(response) > len("bestmove e7e8q") { // print error logs if the response is invalid
 
-				// <<< LOGGING >>> Log details about the search, such as depth, nodes etc.
-				searchDetails := "<<< Search Info >>> Depth: " + strconv.Itoa(pos.logSearch.depth) + ". Nodes: " + strconv.Itoa(pos.logSearch.getTotalNodes()) + ". Time ms: " + strconv.Itoa(pos.logSearch.timeMs) + ". Game stage value: " + strconv.Itoa(pos.evalMidVsEndStage) + "."
-				_, err = fmt.Fprintln(file, searchDetails)
+				// open the file in append mode; if the file doesn't exist, it will be created
+				file, err := os.OpenFile("error_logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 				if err != nil {
 					log.Fatal(err)
 				}
-			*/
+				defer file.Close()
+
+				// create the error log string to be added
+				errorLogStartTimeBuffer := time.Now().String()
+				errorLogGoBuffer := command
+				errorLogResponseBuffer := response
+
+				errorString := errorLogStartTimeBuffer + ": ERROR IN UCI OUTPUT! PREVIOUS COMMANDS RECEIVED:\n" + errorLogPositionBuffer + "\n" + errorLogGoBuffer + "\n" + errorLogResponseBuffer + "\n"
+
+				// now add the log strings to the error log file
+				_, err = fmt.Fprintln(file, errorString)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
 
 			// send the best move response
 			fmt.Printf("%v\n", response)

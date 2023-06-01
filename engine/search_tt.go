@@ -22,16 +22,17 @@ We want to keep the TT size manageable to try and fit inside the L3 cache at lea
 So we calculate a max size for the TT based on the size of each node stored.
 
 Each node contains:
-- Zobrist hash: 1 x 64bit uint = 1 x 8 = 8 bytes.
+- Zobrist hash: 1 x uint64 = 1 x 8 = 8 bytes.
 - Depth: 1 x uint8 = 1 x 1 = 1 byte.
 - Flag: 1 x uint8 = 1 x 1 = 1 byte.
-- Value: 1 x int = 1 x 8 = 8 bytes.
-Therefore each node is about 18 bytes.
+- Value: 1 x int32 = 1 x 4 = 4 bytes.
+- Move: 1 x uint64 = 1 x 8 = 8 bytes.
+Therefore each node is about 22 bytes.
 
 The TT index key also needs to be stored:
 - 1 x uint32 (max value of 4bil) = 1 x 4 = 4 bytes
 
-So the total per TT entry is 22 bytes.
+So the total per TT entry is 26 bytes.
 
 */
 
@@ -52,15 +53,6 @@ type TTEntry struct {
 	value       int32
 	move        Move
 }
-
-/*
-type TTEntry struct {
-	zobristHash Bitboard
-	depth       uint8
-	flag        uint8
-	value       int32
-}
-*/
 
 // --------------------------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------- TT -----------------------------------------------------
