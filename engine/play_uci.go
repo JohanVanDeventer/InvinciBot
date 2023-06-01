@@ -799,7 +799,7 @@ func (pos *Position) command_go(command string) (string, bool) {
 			timeFactor = 8
 		}
 	} else { // if there is no increment, we just set a constant factor
-		timeFactor = 24
+		timeFactor = 48
 	}
 
 	// calculate the time we have for the search
