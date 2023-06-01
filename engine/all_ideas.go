@@ -5,6 +5,10 @@ package main
 Ideas to consider / implement
 =============================
 
+--- 3 fold repetition detection ---
+After a pawn move or a capture, we can never again have a 3 fold repetition with positions before that.
+Therefore we don't need to iterate over all previous zobrist hashes, only those since that half move counter was reset.
+
 -- Hash Move ---
 Store best moves in the TT.
 Apply internal iterative deepening if no hash move is available.

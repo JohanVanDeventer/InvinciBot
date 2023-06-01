@@ -278,7 +278,10 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				return 0 - (BLACK_WIN_VALUE + (pos.ply * PLY_PENALTY)), false
 			}
 
-		case STATE_DRAW_STALEMATE, STATE_DRAW_3_FOLD_REPETITION, STATE_DRAW_50_MOVE_RULE:
+		case STATE_DRAW_STALEMATE, STATE_DRAW_50_MOVE_RULE:
+			return 0, false
+
+		case STATE_DRAW_3_FOLD_REPETITION:
 			return 0, false
 		}
 	}

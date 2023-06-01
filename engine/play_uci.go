@@ -175,16 +175,6 @@ func (pos *Position) startUCIInputLoop() {
 		command, _ := inputReader.ReadString('\n')
 		command = strings.TrimSpace(command)
 
-		/*
-			// <<< LOGGING >>> Write the command to the file along with the time of the command
-			logCommandTime := time.Now()
-			datedCommand := logCommandTime.String() + ". Received command: " + command
-			_, err = fmt.Fprintln(file, datedCommand)
-			if err != nil {
-				log.Fatal(err)
-			}
-		*/
-
 		// respond to the command
 		if command == "uci" { // remember this vs ucinewgame both have "uci" prefix
 			pos.command_uci()
@@ -209,9 +199,10 @@ func (pos *Position) startUCIInputLoop() {
 			pos.command_position(command)
 
 		} else if strings.HasPrefix(command, "go") {
-			response := pos.command_go(command)
+			response, success := pos.command_go(command)
 
-			if len(response) < len("bestmove e2e4") || len(response) > len("bestmove e7e8q") { // print error logs if the response is invalid
+			// print error logs if the response is invalid
+			if !success {
 
 				// open the file in append mode; if the file doesn't exist, it will be created
 				file, err := os.OpenFile("error_logs.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
@@ -225,7 +216,7 @@ func (pos *Position) startUCIInputLoop() {
 				errorLogGoBuffer := command
 				errorLogResponseBuffer := response
 
-				errorString := errorLogStartTimeBuffer + ": ERROR IN UCI OUTPUT! PREVIOUS COMMANDS RECEIVED:\n" + errorLogPositionBuffer + "\n" + errorLogGoBuffer + "\n" + errorLogResponseBuffer + "\n"
+				errorString := errorLogStartTimeBuffer + ": ERROR IN SEARCH. SELECTED A RANDOM MOVE. PREVIOUS COMMANDS RECEIVED:\n" + errorLogPositionBuffer + "\n" + errorLogGoBuffer + "\n" + errorLogResponseBuffer + "\n"
 
 				// now add the log strings to the error log file
 				_, err = fmt.Fprintln(file, errorString)
@@ -731,7 +722,7 @@ Engine to GUI:
 	Directly before that the engine should send a final "info" command with the final search information,
 	the the GUI has the complete statistics about the last search.
 */
-func (pos *Position) command_go(command string) string {
+func (pos *Position) command_go(command string) (string, bool) {
 
 	// split the command into a slice of strings
 	parts := strings.Split(command, " ")
@@ -822,14 +813,33 @@ func (pos *Position) command_go(command string) string {
 	// we then do the search with the calculated time
 	pos.searchForBestMove(timeForSearch)
 
-	// we then return the best move from the search
-	bestMove := pos.bestMove
+	// we then get the best move from the search
+	success := false
+	var bestMove Move
+	if pos.bestMove == BLANK_MOVE { // if no move was found, use a random move
+		// the issue is that a 3-fold repetition might not be automatically claimed by an opponent in the gui (we assume we will always claim it),
+		// and we then need to play on until it is claimed,
+		// however, in those cases we never even get to iterate over moves, because we return a search score of 0 early at the root for 3-fold repetitions
+		// therefore, in the rare case where 3-fold repetition is not claimed, we still need to add code to manage that
+		// for now, we just take the 1st legal move as the best move (we assume it will be rare)
+		pos.generateLegalMoves(false)
+		if pos.quietMovesCounter > 0 {
+			bestMove = pos.quietMoves[0]
+		} else {
+			bestMove = pos.threatMoves[0]
+		}
+	} else { // else use the best move found in the search
+		bestMove = pos.bestMove
+		success = true
+	}
+
+	// convert the best move to a format in uci and return it, and the success flag
 	moveFromStr := getStringFromSq(bestMove.getFromSq())
 	moveToStr := getStringFromSq(bestMove.getToSq())
 	promoteStr := getPromotionStringFromType(bestMove.getPromotionType())
 
 	output := "bestmove " + moveFromStr + moveToStr + promoteStr
-	return output
+	return output, success
 }
 
 // --------------------------------------------------------- Stop -----------------------------------------------
