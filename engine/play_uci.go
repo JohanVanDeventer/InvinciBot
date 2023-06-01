@@ -739,6 +739,7 @@ func (pos *Position) command_go(command string) string {
 	// reset the time management variables
 	allowedTimeMs := 0
 	hasIncrement := false
+	allocateTime := true
 
 	// loop over the command parts
 	for i, part := range parts {
@@ -777,12 +778,14 @@ func (pos *Position) command_go(command string) string {
 		if part == "movetime" {
 			specificTime, _ := strconv.Atoi(parts[i+1])
 			allowedTimeMs = specificTime
+			allocateTime = false
 		}
 
 		// search infinitely
 		// note: the engine still needs to properly implement stop, so this command will likely give errors for now
 		if part == "infinite" {
 			allowedTimeMs = 1000000 // 1000 sec
+			allocateTime = false
 		}
 	}
 
@@ -809,7 +812,12 @@ func (pos *Position) command_go(command string) string {
 	}
 
 	// calculate the time we have for the search
-	timeForSearch := allowedTimeMs / timeFactor
+	var timeForSearch int
+	if allocateTime {
+		timeForSearch = allowedTimeMs / timeFactor
+	} else {
+		timeForSearch = allowedTimeMs
+	}
 
 	// we then do the search with the calculated time
 	pos.searchForBestMove(timeForSearch)
