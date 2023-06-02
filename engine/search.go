@@ -151,7 +151,7 @@ const (
 
 	PLY_PENALTY int = 5000 // ply penalty is to get the shortest checkmate path: queen is 900 value so 5k is enough
 
-	NODES_BEFORE_CHECK_INTERRUPT = 5000 // after this many nodes, we check whether we need to stop the search
+	NODES_BEFORE_CHECK_INTERRUPT int = 5000 // after this many nodes, we check whether we need to stop the search
 )
 
 // return the score, along with a flag for whether the search was aborted
@@ -344,6 +344,70 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 	}
 
+	// ----------------------------------------------------------- Null Moves ---------------------------------------------------------
+
+	// ___ Idea ___
+	// a null move is a move where we do nothing and just pass the turn to the opponent
+	// we do a search on a tree with reduced depth after the null move
+	// we also search using a zero width window (because it gives enough information about the null move: we only want to see if there is a beta cut or not)
+	// if the score of the search is still high enough after this (score >= beta), we can prune the whole branch
+
+	// ___ Null Move Code  ___
+	// we implemented special code that allows making a null move
+	// the undo move code will still work with null moves, no need for a special undo null move function
+
+	// ___ Restrictions: General ___
+	// we cannot try a null move when we are in check (because then the position would be illegal after the null move)
+	// a null move will also not work in zugzwang positions (because there a null move is actually better than all other moves)
+	// zugzwang positions are most common in endgames, so we only try a null move when we are not in the endgame as determined by the game stage
+	// we also don't do null moves while in QS
+	// we also don't try null moves at the root
+	// we also don't try null moves if the depth reduction would put us at a remaining depth below 0 (where we start QS)
+
+	// ___ Restrictions: Eval ___
+	// we also only try null moves if the simple eval (material + heatmaps) >= (beta - margin):
+	// because we then say in this case our eval is good enough that we can give our opponent a free move
+	// this will also prevent beta mate scores from influencing the result, because beta is much smaller than the mate score
+	// also, we use material + heatmaps because those are updated incrementally and therefore cheap and already available
+
+	// ___ Null Move Pruning ___
+	// we test for null moves at these nodes
+	if currentDepth >= 3 && currentDepth != initialDepth {
+
+		// get the simple eval
+		var simpleEval int
+		if pos.isWhiteTurn {
+			simpleEval = pos.evalMaterial + pos.evalHeatmaps
+		} else {
+			simpleEval = 0 - (pos.evalMaterial + pos.evalHeatmaps)
+		}
+
+		// check whether we can do a null move
+		if !inCheck && pos.evalMidVsEndStage >= 6 && simpleEval >= (beta-30) {
+
+			// make the null move, get the search score, and undo the null move
+			pos.makeNullMove()
+			nullMoveScore, terminated := pos.negamax(initialDepth, currentDepth-2-1, 0-beta, 0-beta+1, tt, qsDepth, ply)
+			nullMoveValue := 0 - nullMoveScore
+			pos.undoMove()
+
+			// if the search was terminated, return with a zero value
+			if terminated {
+				return 0, true
+			}
+
+			// if we fail-high on the null move, we can prune this whole branch before starting with the normal move ordering and search
+			if nullMoveValue >= beta {
+				pos.logSearch.nullMoveSuccesses += 1
+				return beta, false
+			}
+			pos.logSearch.nullMoveFailures += 1
+
+			// if we don't return early, we need to again generate all legal moves in the position (making and undoing moves reset the legal moves)
+			pos.generateLegalMoves(false)
+		}
+	}
+
 	// ----------------------------------------------------------- Order Moves --------------------------------------------------------
 	// if we are not at a leaf node, we start ordering moves for the search to try optimise cutoffs
 	// we assume there are moves, because if there were no moves, we already would have returned checkmate or stalemate before
@@ -506,7 +570,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	if currentDepth == initialDepth { // if we are at the root depth
 		bestMovePreviousIteration := pos.bestMove
 
-		if bestMovePreviousIteration != BLANK_MOVE { // we need to first get a best move from iterative deepening before we can put it at the front
+		// we need to first get a best move from iterative deepening before we can put it at the front (assuming we don't have a hash move already as that move)
+		if bestMovePreviousIteration != BLANK_MOVE && bestMovePreviousIteration != hashMove {
 			start_time_iter_deep_ordering := time.Now()
 
 			// ________________________ THREAT MOVES ________________________
@@ -537,13 +602,11 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					}
 				}
 
-				if bestIndexQuietMoves != -1 {
-					// remove the best move from the original position (FROM QUIET MOVES)
-					copyOfQuietMoves = append(copyOfQuietMoves[:bestIndexQuietMoves], copyOfQuietMoves[bestIndexQuietMoves+1:]...)
+				// remove the best move from the original position (FROM QUIET MOVES)
+				copyOfQuietMoves = append(copyOfQuietMoves[:bestIndexQuietMoves], copyOfQuietMoves[bestIndexQuietMoves+1:]...)
 
-					// append the best move at the start of the list of moves after ordering (TO BEST MOVES)
-					copyOfBestMoves = append([]Move{bestMovePreviousIteration}, copyOfBestMoves...)
-				}
+				// append the best move at the start of the list of moves after ordering (TO BEST MOVES)
+				copyOfBestMoves = append([]Move{bestMovePreviousIteration}, copyOfBestMoves...)
 			}
 
 			// ________________________ HASH MOVES ________________________

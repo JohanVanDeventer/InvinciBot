@@ -36,6 +36,9 @@ type LogSearch struct {
 	nodesBestCutoffs   int // beta cuts when looping over best nodes
 
 	nodesQSEvalStandPatBetaCuts int // number of beta cuts in quiescence using stand pat
+
+	nullMoveSuccesses int // tried a null move and got a cutoff
+	nullMoveFailures  int // tried a null move and did not get a cutoff
 }
 
 func (log *LogSearch) resetLog() {
@@ -69,6 +72,9 @@ func (log *LogSearch) resetLog() {
 	log.nodesBestCutoffs = 0
 
 	log.nodesQSEvalStandPatBetaCuts = 0
+
+	log.nullMoveSuccesses = 0
+	log.nullMoveFailures = 0
 }
 
 func (log *LogSearch) getTotalNodes() int {

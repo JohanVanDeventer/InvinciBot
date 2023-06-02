@@ -5,8 +5,14 @@ package main
 Ideas to consider / implement
 =============================
 
+--- QS depth ---
+Increase / decrease qs depth to see effect (is qs too deep?)
+
+--- Eval hash table ---
+If the evaluation takes long, store the eval results in a table instead like the TT.
+
 --- 3 fold repetition detection ---
-After a pawn move or a capture, we can never again have a 3 fold repetition with positions before that.
+After a pawn move or a capture or a change in castling rights, we can never again have a 3 fold repetition with positions before that.
 Therefore we don't need to iterate over all previous zobrist hashes, only those since that half move counter was reset.
 
 -- Hash Move ---

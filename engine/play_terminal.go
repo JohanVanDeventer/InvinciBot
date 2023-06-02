@@ -202,8 +202,19 @@ func (pos *Position) printBoardToTerminal() {
 				ttStoreRate = int((float64(pos.logSearch.nodesTTStore) / float64(totalNodes)) * 100)
 			}
 
-			fmt.Printf("Probed TT at %v%% of nodes. Hit valid TT entry in %v%% of probed nodes. Stored %v%% of nodes in the TT.\n",
-				ttProbeRate, ttHitRate, ttStoreRate)
+			totalNullMoveTries := pos.logSearch.nullMoveSuccesses + pos.logSearch.nullMoveFailures
+			nullMoveTryRate := 0
+			if totalNodes > 0 {
+				nullMoveTryRate = int((float64(totalNullMoveTries) / float64(totalNodes)) * 100)
+			}
+
+			nullMoveSuccessRate := 0
+			if totalNullMoveTries > 0 {
+				nullMoveSuccessRate = int((float64(pos.logSearch.nullMoveSuccesses) / float64(totalNullMoveTries)) * 100)
+			}
+
+			fmt.Printf("Probed TT at %v%% of nodes. Hit valid TT entry in %v%% of probed nodes. Stored %v%% of nodes in the TT. Tried null move in %v%% of nodes, cutoff %v%% of the time.\n",
+				ttProbeRate, ttHitRate, ttStoreRate, nullMoveTryRate, nullMoveSuccessRate)
 
 		case 3:
 			totalNodes := pos.logSearch.getTotalNodes()
