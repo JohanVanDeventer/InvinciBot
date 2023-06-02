@@ -5,6 +5,20 @@ package main
 Ideas to consider / implement
 =============================
 
+--- TT ---
+Remove mod operator, replace with something faster.
+
+--- Asserts ---
+Add various asserts in the program as tests.
+Check that the incremental heatmap eval is the same for the same position but different paths.
+
+--- Endgame tests ---
+Add various endgame test positions to the GUI match, to determine that a change does not influence the endgames badly.
+
+--- Null move ---
+Try limiting further null moves if we are in a tree below a null move.
+Might be an improvement or not.
+
 --- QS depth ---
 Increase / decrease qs depth to see effect (is qs too deep?)
 

@@ -119,7 +119,7 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 		ply := 0
 
 		// do the search
-		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, &tt, qsDepth, ply)
+		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, &tt, qsDepth, ply, false)
 
 		// store the best move from the search only after each iteration, and continue with the next iteration
 		// in case of terminated searches in the middle of a search, we can't use that move, and exit immediately
@@ -155,7 +155,7 @@ const (
 )
 
 // return the score, along with a flag for whether the search was aborted
-func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta int, tt *TranspositionTable, qsDepth int, ply int) (int, bool) {
+func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta int, tt *TranspositionTable, qsDepth int, ply int, parentWasNull bool) (int, bool) {
 
 	// -------------------------------------------------------- Ply -----------------------------------------------------
 	// ply is the depth since the root, independent of any changes to currentDepth (such as check extensions)
@@ -362,7 +362,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// zugzwang positions are most common in endgames, so we only try a null move when we are not in the endgame as determined by the game stage
 	// we also don't do null moves while in QS
 	// we also don't try null moves at the root
-	// we also don't try null moves if the depth reduction would put us at a remaining depth below 0 (where we start QS)
+	// we also don't try null moves if the depth reduction would put us at a remaining depth below 1
+	// we also don't allow CONSECUTIVE null moves (two null moves after each other)
 
 	// ___ Restrictions: Eval ___
 	// we also only try null moves if the simple eval (material + heatmaps) >= (beta - margin):
@@ -372,7 +373,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	// ___ Null Move Pruning ___
 	// we test for null moves at these nodes
-	if currentDepth >= 3 && currentDepth != initialDepth {
+	// we set the limit so null move pruning has at least 1 full depth remaining until qsearch
+	// that way we still allow all replies by the opponent and not only captures
+	if currentDepth >= 4 && currentDepth != initialDepth {
 
 		// get the simple eval
 		var simpleEval int
@@ -383,11 +386,16 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 
 		// check whether we can do a null move
-		if !inCheck && pos.evalMidVsEndStage >= 6 && simpleEval >= (beta-30) {
+		if !inCheck && pos.evalMidVsEndStage >= 6 && simpleEval >= (beta-30) && !parentWasNull {
+
+			nullMoveReduction := 2
+			if currentDepth >= 5 {
+				nullMoveReduction = 2 + (currentDepth / 4)
+			}
 
 			// make the null move, get the search score, and undo the null move
 			pos.makeNullMove()
-			nullMoveScore, terminated := pos.negamax(initialDepth, currentDepth-2-1, 0-beta, 0-beta+1, tt, qsDepth, ply)
+			nullMoveScore, terminated := pos.negamax(initialDepth, currentDepth-nullMoveReduction-1, 0-beta, 0-beta+1, tt, qsDepth, ply, true)
 			nullMoveValue := 0 - nullMoveScore
 			pos.undoMove()
 
@@ -630,7 +638,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// ___________________________________________ Make and Undo Move ___________________________________
 		// play the move, get the score of the node, and undo the move again
 		pos.makeMove(move)
-		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply)
+		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
 		moveValue := 0 - score
 		pos.undoMove()
 
@@ -703,7 +711,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// ___________________________________________ Make and Undo Move ___________________________________
 		// play the move, get the score of the node, and undo the move again
 		pos.makeMove(move)
-		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply)
+		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
 		moveValue := 0 - score
 		pos.undoMove()
 
@@ -762,7 +770,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			// ___________________________________________ Make and Undo Move ___________________________________
 			// play the move, get the score of the node, and undo the move again
 			pos.makeMove(move)
-			score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply)
+			score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
 			moveValue := 0 - score
 			pos.undoMove()
 

@@ -151,8 +151,8 @@ func getLoggingManager() LogOther {
 	newLoggingManager.allLogTypes[LOG_CREATE_MOVE_SLICE] = LoggedType{"Create Move Slice       ", 0, 0}
 	newLoggingManager.allLogTypes[LOG_COPY_INTO_MOVE_SLICE] = LoggedType{"Copy Into Move Slice    ", 0, 0}
 
-	newLoggingManager.allLogTypes[LOG_COPY_INTO_MOVE_SLICE] = LoggedType{"Killer Move Ordering    ", 0, 0}
-	newLoggingManager.allLogTypes[LOG_COPY_INTO_MOVE_SLICE] = LoggedType{"Hash Move Ordering      ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_KILLER_MOVE_ORDERING] = LoggedType{"Killer Move Ordering    ", 0, 0}
+	newLoggingManager.allLogTypes[LOG_HASH_MOVE_ORDERING] = LoggedType{"Hash Move Ordering      ", 0, 0}
 
 	return newLoggingManager
 }
