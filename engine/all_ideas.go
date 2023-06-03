@@ -5,6 +5,15 @@ package main
 Ideas to consider / implement
 =============================
 
+--- Incremental eval ---
+Rather save a heatmap "previous" score in a table for each square.
+Substract that value when moving to the square, and add the new value added to heatmap eval to that square.
+
+--- Auto tune ---
+Add a separate "blank" heatmap for all other heatmaps, and combine them at the start of each program with a function call.
+This can then take input from the Python GUI, so the testing can still be done in Python.
+The Python values are passed to the engine before other tables are initiated, so the combined value will be what the engine is playing with.
+
 --- TT ---
 Remove mod operator, replace with something faster.
 

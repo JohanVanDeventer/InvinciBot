@@ -117,15 +117,10 @@ type Position struct {
 
 // -------------------------------------------------- Step 1: Load the Fen String -----------------------------------------------
 // load only the fen string into the position
-func (pos *Position) step1InitFen(fen string) {
+func (pos *Position) initPositionFromFen(fen string) {
 
 	// load the fen string into the position
 	pos.loadFenIntoPosition(fen)
-}
-
-// ---------------------------------------- Step 2: Initialize the rest of the position -----------------------------------------
-// init the rest of the position variables
-func (pos *Position) step2InitRest() {
 
 	// add the initialized logging manager
 	pos.logOther = getLoggingManager()
@@ -136,7 +131,6 @@ func (pos *Position) step2InitRest() {
 	// store the position starting eval
 	pos.evalPosAtStart()
 	pos.evalPosAfter()
-
 }
 
 // --------------------------------------------------------------------------------------------------------------------

@@ -19,8 +19,7 @@ func initBestMovePositions() {
 func playBestMoveGames(timeLimitMs int) {
 	for _, fen := range bestMovePositions {
 		newPos := Position{}
-		newPos.step1InitFen(fen)
-		newPos.step2InitRest()
+		newPos.initPositionFromFen(fen)
 		newPos.startGameLoopTerminalGUI()
 	}
 }

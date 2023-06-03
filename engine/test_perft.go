@@ -168,8 +168,7 @@ func printPerftResults() {
 
 		// create a new position from the test fen string
 		newPos := Position{}
-		newPos.step1InitFen(testPosition.fen)
-		newPos.step2InitRest()
+		newPos.initPositionFromFen(testPosition.fen)
 
 		// start the time
 		start_time := time.Now()

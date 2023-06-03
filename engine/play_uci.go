@@ -581,14 +581,12 @@ func (pos *Position) command_position(command string) {
 		// this can either be an actual string or the term "startpos"
 		if part == "fen" {
 			fen = strings.Join(parts[i+1:i+7], " ")
-			pos.step1InitFen(fen)
-			pos.step2InitRest()
+			pos.initPositionFromFen(fen)
 		}
 
 		if part == "startpos" {
 			fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-			pos.step1InitFen(fen)
-			pos.step2InitRest()
+			pos.initPositionFromFen(fen)
 		}
 
 		// parse the remaining moves (illegal moves and text will just be ignored)

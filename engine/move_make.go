@@ -355,8 +355,8 @@ func (pos *Position) makeMove(move Move) {
 
 			// ^^^^^^^^^ EVAL: HEATMAPS ^^^^^^^^^ add the value of the moved rook (using value before, no captures were made)
 			// also add the king value on the "to" square (not done yet)
-			midValueFriendlyToAdd := evalTableCombinedMid[frSide][PIECE_ROOK][56]
-			endValueFriendlyToAdd := evalTableCombinedEnd[frSide][PIECE_ROOK][56]
+			midValueFriendlyToAdd := evalTableCombinedMid[frSide][PIECE_ROOK][59]
+			endValueFriendlyToAdd := evalTableCombinedEnd[frSide][PIECE_ROOK][59]
 			weightedValueFriendlyToAdd := ((midValueFriendlyToAdd * evalMidVsEndStageBefore) + (endValueFriendlyToAdd * (STAGE_VAL_STARTING - evalMidVsEndStageBefore))) / STAGE_VAL_STARTING
 			pos.evalHeatmaps += weightedValueFriendlyToAdd
 			midValueFriendlyKing := evalTableCombinedMid[frSide][PIECE_KING][toSq]
