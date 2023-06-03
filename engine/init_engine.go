@@ -35,7 +35,7 @@ func initEngine() {
 		// perft and tests
 		initTestPositions()
 		initBestMovePositions()
-		initEvalTestSequences()
+		initIncrementalTestSequences()
 
 		// hashing
 		initHashTables()

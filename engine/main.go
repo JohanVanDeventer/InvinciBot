@@ -3,11 +3,11 @@ package main
 func main() {
 
 	// tests
-	//initEngine()
+	initEngine()
 	//playBestMoveGames(1000)
 	//printInitTestResults()
 	//printPerftResults()
-	//printEvalTestResults() TODO: small eval bug: possibly related to rounding black scores vs white scores, but no big impact for now
+	printIncrementalTestResults() // TODO: small eval bug: possibly related to rounding black scores vs white scores, but no big impact for now
 
 	// create a new position for the engine to start with
 	pos := Position{}
