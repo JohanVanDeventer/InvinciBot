@@ -30,7 +30,6 @@ func initTestPositions() {
 	testPos1.depthResults = append(testPos1.depthResults, "197281")
 	testPos1.depthResults = append(testPos1.depthResults, "4865609")
 	testPos1.depthResults = append(testPos1.depthResults, "119060324")
-	//testPos1.depthResults = append(testPos1.depthResults, "3195901860")
 	testPositions = append(testPositions, testPos1)
 
 	// test position 2: Kiwipete (complex middlegame)
@@ -41,7 +40,6 @@ func initTestPositions() {
 	testPos2.depthResults = append(testPos2.depthResults, "97862")
 	testPos2.depthResults = append(testPos2.depthResults, "4085603")
 	testPos2.depthResults = append(testPos2.depthResults, "193690690")
-	//testPos2.depthResults = append(testPos2.depthResults, "8031647685")
 	testPositions = append(testPositions, testPos2)
 
 	// test position 3: en-passant discovered check
@@ -54,7 +52,6 @@ func initTestPositions() {
 	testPos3.depthResults = append(testPos3.depthResults, "674624")
 	testPos3.depthResults = append(testPos3.depthResults, "11030083")
 	testPos3.depthResults = append(testPos3.depthResults, "178633661")
-	//testPos3.depthResults = append(testPos3.depthResults, "3009794393")
 	testPositions = append(testPositions, testPos3)
 
 	// test position 4: another complex middlegame, starting with check
@@ -65,7 +62,6 @@ func initTestPositions() {
 	testPos4.depthResults = append(testPos4.depthResults, "9467")
 	testPos4.depthResults = append(testPos4.depthResults, "422333")
 	testPos4.depthResults = append(testPos4.depthResults, "15833292")
-	//testPos4.depthResults = append(testPos4.depthResults, "706045033")
 	testPositions = append(testPositions, testPos4)
 
 	// test position 5: promotions and castling
@@ -86,7 +82,6 @@ func initTestPositions() {
 	testPos6.depthResults = append(testPos6.depthResults, "89890")
 	testPos6.depthResults = append(testPos6.depthResults, "3894594")
 	testPos6.depthResults = append(testPos6.depthResults, "164075551")
-	//testPos6.depthResults = append(testPos6.depthResults, "6923051137")
 	testPositions = append(testPositions, testPos6)
 
 	// test position 7 (custom): custom game with lots of pins, checks, en-passants, start with black, and each piece type is still on the board
@@ -107,6 +102,7 @@ func initTestPositions() {
 	testPos8.depthResults = append(testPos8.depthResults, "22805")
 	testPos8.depthResults = append(testPos8.depthResults, "594588")
 	testPos8.depthResults = append(testPos8.depthResults, "14762722")
+	testPos8.depthResults = append(testPos8.depthResults, "359874054")
 	testPositions = append(testPositions, testPos8)
 
 	// test position 9 (custom): each: king, queen, rook and 3 pawns
@@ -117,6 +113,7 @@ func initTestPositions() {
 	testPos9.depthResults = append(testPos9.depthResults, "14167")
 	testPos9.depthResults = append(testPos9.depthResults, "343514")
 	testPos9.depthResults = append(testPos9.depthResults, "8426450")
+	testPos9.depthResults = append(testPos9.depthResults, "213938858")
 	testPositions = append(testPositions, testPos9)
 
 	// test position 10 (custom): each: king in front of pawns 2 columns of doubled pawns and one rook
@@ -128,9 +125,10 @@ func initTestPositions() {
 	testPos10.depthResults = append(testPos10.depthResults, "30869")
 	testPos10.depthResults = append(testPos10.depthResults, "448878")
 	testPos10.depthResults = append(testPos10.depthResults, "7248110")
+	testPos10.depthResults = append(testPos10.depthResults, "107129005")
 	testPositions = append(testPositions, testPos10)
 
-	// test position 10 (custom): each: king in front of pawns 2 columns of doubled pawns and back rank of bishops
+	// test position 11 (custom): each: king in front of pawns 2 columns of doubled pawns and back rank of bishops
 	testPos11 := TestPosition{}
 	testPos11.fen = "bbbbbbbb/3pp3/2kpp3/8/8/3PPK2/3PP3/BBBBBBBB w - - 0 1"
 	testPos11.depthResults = append(testPos11.depthResults, "30")
@@ -138,7 +136,18 @@ func initTestPositions() {
 	testPos11.depthResults = append(testPos11.depthResults, "18464")
 	testPos11.depthResults = append(testPos11.depthResults, "457276")
 	testPos11.depthResults = append(testPos11.depthResults, "11778803")
+	testPos11.depthResults = append(testPos11.depthResults, "301306691")
 	testPositions = append(testPositions, testPos11)
+
+	// test position 12 (custom): each: discovered double checks, revealed checks
+	testPos12 := TestPosition{}
+	testPos12.fen = "8/4q3/4r3/2bbkp2/3n1N2/2BBKP2/4Q3/4R3 w - - 0 1"
+	testPos12.depthResults = append(testPos12.depthResults, "37")
+	testPos12.depthResults = append(testPos12.depthResults, "1209")
+	testPos12.depthResults = append(testPos12.depthResults, "44574")
+	testPos12.depthResults = append(testPos12.depthResults, "1544090")
+	testPos12.depthResults = append(testPos12.depthResults, "58148575")
+	testPositions = append(testPositions, testPos12)
 
 }
 

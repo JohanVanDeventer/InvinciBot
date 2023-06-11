@@ -16,9 +16,9 @@ func main() {
 		initEngine()
 		durationTime := time.Since(startTime).Milliseconds()
 
-		fmt.Printf("------------------------------------------------------------------------------------------\n")
+		fmt.Printf("-----------------------------------------\n")
 		fmt.Printf("Engine Initialization Time: %v ms.\n", durationTime)
-		fmt.Printf("------------------------------------------------------------------------------------------\n")
+		fmt.Printf("-----------------------------------------\n")
 
 		// main tests
 		printPerftTestResults()
