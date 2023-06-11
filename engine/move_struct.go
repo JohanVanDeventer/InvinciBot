@@ -7,7 +7,6 @@ We encode a move in a single uint64.
 type Move uint64
 
 const fullMove Move = 0xffffffffffffffff
-const emptyMove Move = 0x0
 
 // --------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------- Constants -----------------------------------------------------
@@ -112,10 +111,6 @@ func (move *Move) getPromotionType() int {
 	return int((*move & MOVE_MASK_PROMOTION_TYPE) >> MOVE_SHIFT_PROMOTION_TYPE)
 }
 
-func (move *Move) getMoveOrderingScore() int {
-	return int((*move & MOVE_MASK_MOVE_ORDERING_SCORE) >> MOVE_SHIFT_MOVE_ORDERING_SCORE)
-}
-
 // --------------------------------------------------------------------------------------------------------------------
 // -------------------------------------------------- Move Ordering Score ---------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
@@ -127,7 +122,12 @@ const (
 	EMPTY_MOVE_ORDERING_MASK Move = (MOVE_BIT_MASK_32_BITS) | (^(MOVE_BIT_MASK_32_BITS << Move(MOVE_SHIFT_MOVE_ORDERING_SCORE)))
 )
 
-// this function assumes that the move ordering score is cleared
+// gets the move ordering score from a move
+func (move *Move) getMoveOrderingScore() int {
+	return int((*move & MOVE_MASK_MOVE_ORDERING_SCORE) >> MOVE_SHIFT_MOVE_ORDERING_SCORE)
+}
+
+// sets the move ordering score for a move (this function assumes that the move ordering score is already cleared)
 func (move *Move) setMoveOrderingScore(score int) {
 	*move |= (Move(score) << MOVE_SHIFT_MOVE_ORDERING_SCORE)
 }

@@ -1,9 +1,5 @@
 package main
 
-import (
-	"time"
-)
-
 // --------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------- Make Move -----------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
@@ -12,7 +8,7 @@ import (
 
 func (pos *Position) makeMove(move Move) {
 
-	start_time := time.Now()
+	pos.logTime.allLogTypes[LOG_MAKE_MOVE].start()
 
 	// first store the game state for undo later
 	pos.previousGameStates[pos.previousGameStatesCounter].pieces = pos.pieces
@@ -508,6 +504,6 @@ func (pos *Position) makeMove(move Move) {
 	pos.threatMovesCounter = 0
 	pos.quietMovesCounter = 0
 
-	duration_time := time.Since(start_time).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MAKE_MOVE].addTime(int(duration_time))
+	pos.logTime.allLogTypes[LOG_MAKE_MOVE].stop()
+
 }

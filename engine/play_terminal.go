@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 )
 
 // --------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------- Terminal GUI -----------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
-// simple homemade gui code for playing the game in the console
+// simple code for playing the game in the terminal
 
 // translate the user move input to a move recognized by the engine
 // example: c3d5 looks for a move from sq 18 to sq 35
@@ -53,14 +52,11 @@ func (pos *Position) playInputMove(input string) bool {
 	}
 
 	// get the available moves
-	//if pos.availableMovesCounter <= 0 {
 	if pos.totalMovesCounter <= 0 {
 		fmt.Println("Error: No available moves.")
 		return false
 	}
 
-	//allMoves := make([]Move, pos.availableMovesCounter)
-	//copy(allMoves, pos.availableMoves[:pos.availableMovesCounter])
 	allMoves := make([]Move, pos.totalMovesCounter)
 	copy(allMoves, pos.threatMoves[:pos.threatMovesCounter])
 	copy(allMoves[pos.threatMovesCounter:], pos.quietMoves[:pos.quietMovesCounter])
@@ -70,7 +66,6 @@ func (pos *Position) playInputMove(input string) bool {
 	var playedMove Move
 	foundMove := false
 	for _, move := range allMoves {
-		//if move.fromSq == fromSq && move.toSq == toSq && move.promotionType == promoteType {
 		if move.getFromSq() == fromSq && move.getToSq() == toSq && move.getPromotionType() == promoteType {
 			playedMove = move
 			foundMove = true
@@ -144,172 +139,69 @@ func (pos *Position) printBoardToTerminal() {
 
 		case 7:
 			if pos.isWhiteTurn {
-				fmt.Printf("Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v.\n",
+				fmt.Printf("<<< GAME INFO >>>      Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v. ",
 					gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
 			} else {
-				fmt.Printf("Turn: Black. Game Status: %v. Current move: %v. 50-move counter: %v.\n",
+				fmt.Printf("<<< GAME INFO >>>      Turn: Black. Game Status: %v. Current move: %v. 50-move counter: %v. ",
 					gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
 			}
 
-		case 6:
 			totalEval := pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
 			fmt.Printf("Evaluation: %v (material: %v, heatmaps: %v, other: %v).\n", totalEval, pos.evalMaterial, pos.evalHeatmaps, pos.evalOther)
 
+		case 6:
+			avgMoveGen := pos.logTime.allLogTypes[LOG_MOVE_GEN_TOTAL].getAverageNsPerCall()
+			avgMakeMove := pos.logTime.allLogTypes[LOG_MAKE_MOVE].getAverageNsPerCall()
+			avgUndoMove := pos.logTime.allLogTypes[LOG_UNDO_MOVE].getAverageNsPerCall()
+			avgMakeNullMove := pos.logTime.allLogTypes[LOG_MAKE_NULLMOVE].getAverageNsPerCall()
+			avgEval := pos.logTime.allLogTypes[LOG_EVAL].getAverageNsPerCall()
+			avgGameState := pos.logTime.allLogTypes[LOG_GAME_STATE].getAverageNsPerCall()
+			avgTTProbe := pos.logTime.allLogTypes[LOG_SEARCH_TT_PROBE].getAverageNsPerCall()
+			avgTTStore := pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].getAverageNsPerCall()
+
+			fmt.Printf("<<< AVG TIME TAKEN >>> Move Gen: %v. Make Move: %v. Undo Move: %v. Make Null Move: %v. Eval: %v. Game State: %v. TT Probe: %v. TT Store: %v.\n",
+				avgMoveGen, avgMakeMove, avgUndoMove, avgMakeNullMove, avgEval, avgGameState, avgTTProbe, avgTTStore)
+
 		case 5:
-			knps := math.Round((float64(pos.logSearch.getTotalNodes()) / (float64(pos.logSearch.timeMs) / 1000)) / 1000)
-			totalNodes := pos.logSearch.getTotalNodes()
+			avgOrderThreat := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_THREAT_MOVES].getAverageNsPerCall()
+			avgCopyQuiet := pos.logTime.allLogTypes[LOG_SEARCH_COPY_QUIET_MOVES].getAverageNsPerCall()
+			avgOrderKiller1 := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].getAverageNsPerCall()
+			avgOrderKiller2 := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_2].getAverageNsPerCall()
+			avgOrderHash := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_HASH_MOVES].getAverageNsPerCall()
+			avgOrderPrevIter := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_PREVIOUS_ITERATION_MOVES].getAverageNsPerCall()
+			avgOrderTotal := avgOrderThreat + avgCopyQuiet + avgOrderKiller1 + avgOrderKiller2 + avgOrderHash + avgOrderPrevIter
 
-			nodesPlus1Percent := 0
-			if totalNodes > 0 {
-				nodesPlus1Percent = int((float64(pos.logSearch.nodesAtDepth1Plus) / float64(totalNodes)) * 100)
-			}
+			fmt.Printf("<<< AVG TIME TAKEN >>> Order Moves: %v (threat: %v, quiet: %v, killer1: %v, killer2: %v, hash: %v, prev iter: %v). ",
+				avgOrderTotal, avgOrderThreat, avgCopyQuiet, avgOrderKiller1, avgOrderKiller2, avgOrderHash, avgOrderPrevIter)
 
-			nodes0Percent := 0
-			if totalNodes > 0 {
-				nodes0Percent = int((float64(pos.logSearch.nodesAtDepth0) / float64(totalNodes)) * 100)
-			}
+			avgStartupFen := pos.logTime.allLogTypes[LOG_ONCE_LOAD_FEN].getAverageNsPerCall()
+			avgStartupHash := pos.logTime.allLogTypes[LOG_ONCE_HASH].getAverageNsPerCall()
+			avgStartupEval := pos.logTime.allLogTypes[LOG_ONCE_EVAL].getAverageNsPerCall()
+			avgStartupSearch := pos.logTime.allLogTypes[LOG_ONCE_SEARCH_STARTUP].getAverageNsPerCall()
+			avgStartupTotal := avgStartupFen + avgStartupHash + avgStartupEval + avgStartupSearch
 
-			nodesMinus1Percent := 0
-			if totalNodes > 0 {
-				nodesMinus1Percent = int((float64(pos.logSearch.nodesAtDepth1Min) / float64(totalNodes)) * 100)
-			}
-
-			checkExtensionPercent := 0
-			if totalNodes > 0 {
-				checkExtensionPercent = int((float64(pos.logSearch.checkExtensions) / float64(totalNodes)) * 100)
-			}
-
-			fmt.Printf("Search depth: %v. QS Depth: %v. Knps: %v. Total nodes: %v (+1: %v%%  0:%v%%  -1:%v%%). Check extensions at %v%% of nodes.\n",
-				pos.logSearch.depth, pos.logSearch.qsDepth, knps,
-				totalNodes, nodesPlus1Percent, nodes0Percent, nodesMinus1Percent,
-				checkExtensionPercent)
+			fmt.Printf("Startup: %v (fen: %v, hash: %v, eval: %v, search: %v).\n",
+				avgStartupTotal, avgStartupFen, avgStartupHash, avgStartupEval, avgStartupSearch)
 
 		case 4:
-			totalNodes := pos.logSearch.getTotalNodes()
-
-			ttProbeRate := 0
-			if pos.logSearch.nodesTTProbe > 0 {
-				ttProbeRate = int((float64(pos.logSearch.nodesTTProbe) / float64(totalNodes)) * 100)
-			}
-
-			ttHitRate := 0
-			if pos.logSearch.nodesTTProbe > 0 {
-				ttHitRate = int((float64(pos.logSearch.nodesTTHit) / float64(pos.logSearch.nodesTTProbe)) * 100)
-			}
-
-			ttStoreRate := 0
-			if totalNodes > 0 {
-				ttStoreRate = int((float64(pos.logSearch.nodesTTStore) / float64(totalNodes)) * 100)
-			}
-
-			totalNullMoveTries := pos.logSearch.nullMoveSuccesses + pos.logSearch.nullMoveFailures
-			nullMoveTryRate := 0
-			if totalNodes > 0 {
-				nullMoveTryRate = int((float64(totalNullMoveTries) / float64(totalNodes)) * 100)
-			}
-
-			nullMoveSuccessRate := 0
-			if totalNullMoveTries > 0 {
-				nullMoveSuccessRate = int((float64(pos.logSearch.nullMoveSuccesses) / float64(totalNullMoveTries)) * 100)
-			}
-
-			fmt.Printf("Probed TT at %v%% of nodes. Hit valid TT entry in %v%% of probed nodes. Stored %v%% of nodes in the TT. Tried null move in %v%% of nodes, cutoff %v%% of the time.\n",
-				ttProbeRate, ttHitRate, ttStoreRate, nullMoveTryRate, nullMoveSuccessRate)
+			fmt.Printf("<<< ALL NODES >>>      %v%v\n", pos.logSearch.getOverallSummary(), pos.logSearch.getBranchingFactorSummary())
 
 		case 3:
-			totalNodes := pos.logSearch.getTotalNodes()
-			nodesCreatedMovesCopy := pos.logSearch.moveOrderedNodes + pos.logSearch.moveUnorderedNodes
-
-			genFullLegalMovesRate := 0
-			if totalNodes > 0 {
-				genFullLegalMovesRate = int((float64(pos.logSearch.nodesGeneratedLegalMovesFull) / float64(totalNodes)) * 100)
-			}
-
-			genPartLegalMovesRate := 0
-			if totalNodes > 0 {
-				genPartLegalMovesRate = int((float64(pos.logSearch.nodesGeneratedLegalMovesPart) / float64(totalNodes)) * 100)
-			}
-
-			createMovesCopyRate := 0
-			if totalNodes > 0 {
-				createMovesCopyRate = int((float64(nodesCreatedMovesCopy) / float64(totalNodes)) * 100)
-			}
-
-			orderedNodesRate := 0
-			if totalNodes > 0 {
-				orderedNodesRate = int((float64(pos.logSearch.moveOrderedNodes) / float64(totalNodes)) * 100)
-			}
-
-			fmt.Printf("Fully generated moves at %v%% of nodes. Partially generated moves at %v%% of nodes. Created moves copies at %v%% of nodes. Ordered the moves of %v%% of nodes.\n",
-				genFullLegalMovesRate, genPartLegalMovesRate, createMovesCopyRate, orderedNodesRate)
+			fmt.Printf("<<< ALL NODES >>>      %v%v%v\n", pos.logSearch.getMoveOrderingSummary(), pos.logSearch.getMoveGenerationSummary(), pos.logSearch.getCheckExtensionsSummary())
 
 		case 2:
-			totalNodes := pos.logSearch.getTotalNodes()
-
-			threatMovesSearchRate := 0
-			if totalNodes > 0 {
-				threatMovesSearchRate = int((float64(pos.logSearch.nodesSearchedThreatMoves) / float64(totalNodes)) * 100)
-			}
-
-			threatMovesCutoffRate := 0
-			if pos.logSearch.nodesSearchedThreatMoves > 0 {
-				threatMovesCutoffRate = int((float64(pos.logSearch.nodesThreatCutoffs) / float64(pos.logSearch.nodesSearchedThreatMoves)) * 100)
-			}
-
-			quietMovesSearchRate := 0
-			if totalNodes > 0 {
-				quietMovesSearchRate = int((float64(pos.logSearch.nodesSearchedQuietMoves) / float64(totalNodes)) * 100)
-			}
-
-			quietMovesCutoffRate := 0
-			if pos.logSearch.nodesSearchedQuietMoves > 0 {
-				quietMovesCutoffRate = int((float64(pos.logSearch.nodesQuietCutoffs) / float64(pos.logSearch.nodesSearchedQuietMoves)) * 100)
-			}
-
-			standPatCutoffRate := 0
-			if totalNodes > 0 {
-				standPatCutoffRate = int((float64(pos.logSearch.nodesQSEvalStandPatBetaCuts) / float64(totalNodes)) * 100)
-			}
-
-			bestMovesSearchRate := 0
-			if totalNodes > 0 {
-				bestMovesSearchRate = int((float64(pos.logSearch.nodesSearchedBestMoves) / float64(totalNodes)) * 100)
-			}
-
-			bestMovesCutoffRate := 0
-			if pos.logSearch.nodesSearchedBestMoves > 0 {
-				bestMovesCutoffRate = int((float64(pos.logSearch.nodesBestCutoffs) / float64(pos.logSearch.nodesSearchedBestMoves)) * 100)
-			}
-
-			fmt.Printf("Stand-Pat cutoff at %v%% of nodes. Searched best moves at %v%% of nodes, cutoff %v%% of the time. Searched threat moves at %v%% of nodes, cutoff %v%% of the time. Searched quiet moves at %v%% of nodes, cutoff %v%% of the time.\n",
-				standPatCutoffRate, bestMovesSearchRate, bestMovesCutoffRate, threatMovesSearchRate, threatMovesCutoffRate, quietMovesSearchRate, quietMovesCutoffRate)
+			fmt.Printf("<<< NON-QS NODES >>>   %v%v\n", pos.logSearch.getTTSummary(), pos.logSearch.getNullMoveSummary())
 
 		case 1:
-			avgMoveGen := pos.logOther.allLogTypes[LOG_MOVE_GEN].getAverageNsPerCall()
-			avgMakeMove := pos.logOther.allLogTypes[LOG_MAKE_MOVE].getAverageNsPerCall()
-			avgUndoMove := pos.logOther.allLogTypes[LOG_UNDO_MOVE].getAverageNsPerCall()
-			avgStoreMoves := pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].getAverageNsPerCall()
-			avgEval := pos.logOther.allLogTypes[LOG_EVAL].getAverageNsPerCall()
-			avgGameState := pos.logOther.allLogTypes[LOG_GAME_STATE].getAverageNsPerCall()
-
-			fmt.Printf("<<Average ns>> Move Gen: %v. Make Move: %v. Undo Move: %v. Store move: %v. Eval: %v. Game State: %v.\n",
-				avgMoveGen, avgMakeMove, avgUndoMove, avgStoreMoves, avgEval, avgGameState)
+			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getEvalSummary())
 
 		case 0:
-			avgOrderMovesNotAtRoot := pos.logOther.allLogTypes[LOG_ORDER_MOVES_NOT_AT_ROOT].getAverageNsPerCall()
-			avgTTGet := pos.logOther.allLogTypes[LOG_TT_PROBE].getAverageNsPerCall()
-			avgTTStore := pos.logOther.allLogTypes[LOG_TT_STORE].getAverageNsPerCall()
-			avgIterDeepOrder := pos.logOther.allLogTypes[LOG_ITER_DEEP_MOVE_FIRST].getAverageNsPerCall()
-			avgCreateMoveSlice := pos.logOther.allLogTypes[LOG_CREATE_MOVE_SLICE].getAverageNsPerCall()
-			avgCopyIntoMoveSlice := pos.logOther.allLogTypes[LOG_COPY_INTO_MOVE_SLICE].getAverageNsPerCall()
-			avgOrderKillers := pos.logOther.allLogTypes[LOG_KILLER_MOVE_ORDERING].getAverageNsPerCall()
-			avgOrderHashMove := pos.logOther.allLogTypes[LOG_HASH_MOVE_ORDERING].getAverageNsPerCall()
-
-			fmt.Printf("<<Average ns>> TT Probe: %v. TT Store: %v. Create both move slices: %v. Order threat moves: %v. Copy quiet moves: %v. IterDeep Ordering: %v. Order killers: %v. Order hash moves: %v.\n",
-				avgTTGet, avgTTStore, avgCreateMoveSlice, avgOrderMovesNotAtRoot, avgCopyIntoMoveSlice, avgIterDeepOrder, avgOrderKillers, avgOrderHashMove)
+			fmt.Printf("<<< NON-QS NODES >>>   %v\n", pos.logSearch.getMoveLoopsNormalSummary())
 		}
 	}
-	fmt.Println("======================")
+	fmt.Printf("====================== ")
+	fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getMoveLoopsQsSummary())
+
 	fmt.Println("    a b c d e f g h")
 }
 
@@ -368,7 +260,7 @@ func (pos *Position) startGameLoopTerminalGUI() {
 
 		// if the game is over, break the loop
 		if pos.gameState != STATE_ONGOING {
-			pos.logOther.printLoggedDetails()
+			pos.logTime.printLoggedDetails()
 			break
 		}
 
@@ -414,7 +306,6 @@ func (pos *Position) startGameLoopTerminalGUI() {
 					}
 				}
 			}
-
 		}
 	}
 }

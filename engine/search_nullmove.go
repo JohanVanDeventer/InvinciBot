@@ -7,6 +7,8 @@ package main
 // makes a null move in the position
 func (pos *Position) makeNullMove() {
 
+	pos.logTime.allLogTypes[LOG_MAKE_NULLMOVE].start()
+
 	// first store the game state for undo later
 	pos.previousGameStates[pos.previousGameStatesCounter].pieces = pos.pieces
 	pos.previousGameStates[pos.previousGameStatesCounter].piecesAll = pos.piecesAll
@@ -63,5 +65,7 @@ func (pos *Position) makeNullMove() {
 	pos.totalMovesCounter = 0
 	pos.threatMovesCounter = 0
 	pos.quietMovesCounter = 0
+
+	pos.logTime.allLogTypes[LOG_MAKE_NULLMOVE].stop()
 
 }

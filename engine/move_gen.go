@@ -1,77 +1,29 @@
 package main
 
-import "time"
-
 // --------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------- Legal Move Generation -----------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 /*
--------------------------------------------------------- Move Struct ----------------------------------------------------
-A move needs to have the following information:
-1. From square (easy to obtain when generating moves from that square).
-2. To square (easy to obtain by popping bits returned from move generation).
-3. Move type flag of quiet, capture, castle and promotion:
-	- Castle and promotion is easier, those are separate move generation, so a flag can be set in those functions.
-	- Quiet or capture needs an extra check (combine move bitboard with enemy bitboard including en-passant).
-4. Promotion type (easy to set in promotion move generation instead).
+Legal move generation works in the following stages:
+1. Generate legal moves of each piece (captures, quiet moves and promotions).
+2. Generate en-passant moves.
+3. Generate castling moves.
 
-------------------------------------------------- Pseudo Legal vs Legal Moves ---------------------------------------------
-Pseudo-legal move generation is fast.
-
-More expensive to now implement is:
-- Pinned pieces need to have limited movement.
-- When the king is in check, pieces can only move to the attacking ray to block, or attack the piece giving check.
-- However in double check only the king can move.
-
-Therefore, start off each move generation by casting rays from the king position to identify direct enemy attackers (direct checks).
-Through this we can get a bitboard containing the direct number of enemy attackers. Then the number of checks can be counted.
-We can also get a bitboard containing the enemy attackers and squares inbetween them and the king.
-We can then limit piece movement to this mask.
-Tip: set the mask to all 1's when there are no checks and combining the check mask to the other piece movements (removes if statements later).
-
-Check the number of king attacks:
-- if this is one, we need to limit pieces attacks to the attacking or inbetween squares using the mask obtained above.
-- if this is two, we only generate king moves.
-- if it is one or more, we also do not generate castling moves.
-- if it is one, we can generate promotion moves, if the promotion will block an attack (i.e. fall in the mask of squares attacking the king).
-
-We also need a map of squares attacked by the enemy pieces when generating king moves:
-- the king cannot move to an attacked square.
-- however, remember that a king can only move 1 squares in 8 directions.
-- therefore we only need to check whether an enemy piece attacks each of the 8 squares around the king.
-- we can put this in a function "isSqAttacked".
-- then after generating pseudo-legal moves for the king (which already filters out any blocking friendly pieces, limiting calls to "isSqAttacked"),
-- we check whether each of the remaining squares are attacked, and filter those out from the king move generation.
-
-This does not yet address pinned pieces.
-
-For pinned pieces we:
-- create 4 types of pin masks and store them in a table (pinned UD, LR, ULtDR, DLtUR).
-- pieces can be pinned in these 4 directions.
-- we have a initialized move table for that, which for a specific king square, give the rays in those directions.
-- we therefore need to determine the "pin type" for pieces.
-- we have a function that casts 8 rays from the king, to intialize 4 Bitboards containing pinned piece locations.
-- then given the pin type, we can mask their normal moves with the pinned pieces moves from the table.
-- the result will give just movement while pinned.
-
-Note: for en-passant, check whether the pawn we would take is part of the pin mask (only case where enemy piece is in pinmask).
-
-At the end, valid moves will be a combination of:
-1. Pseudo-legal moves
-2. Inbetween squares attacking king mask
-3. Pinned pieces mask
-
+To generate legal moves of each piece, we generally follow these steps:
+1.1 Get the pseudo-legal moves of each piece (all moves filtered out for blockers).
+1.2 Mask the moves with a king in check mask (if the king is in check, only certain squares can remove the check).
+1.3 Mask the moves with a pin mask (pieces that are pinned can only move along certain rays).
+The final result is only legal moves.
 */
 
 // generate all the legal moves for a position
 // we set a flag "atLeafCheckForOneMove": at leaf nodes we only need to have one move to determine it is not checkmate or stalemate
 func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 
-	start_time := time.Now()
+	pos.logTime.allLogTypes[LOG_MOVE_GEN_TOTAL].start()
 
 	// ------------------------------------------------- Setup ---------------------------------------------
 	// reset the moves counter
-	//pos.availableMovesCounter = 0
 	pos.totalMovesCounter = 0
 	pos.threatMovesCounter = 0
 	pos.quietMovesCounter = 0
@@ -109,93 +61,54 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 
 	// ------------------------------------------------- King Attacks ---------------------------------------------
 	// get attacks on the king
-	//start_1 := time.Now()
 
 	piecesAttKingBB, piecesAndSqAttKingBB := getAttacksOnKing(
-		kingSq,
-		pos.piecesAll[SIDE_BOTH],
-		pos.piecesAll[enSide],
-		pos.piecesAll[frSide],
-		pos.pieces[enSide][PIECE_QUEEN],
-		pos.pieces[enSide][PIECE_ROOK],
-		pos.pieces[enSide][PIECE_KNIGHT],
-		pos.pieces[enSide][PIECE_BISHOP],
-		pos.pieces[enSide][PIECE_PAWN],
-		pos.isWhiteTurn)
-
-	//duration_1 := time.Since(start_1).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_KING_ATTACKS].addTime(int(duration_1))
+		kingSq, pos.piecesAll[SIDE_BOTH], pos.piecesAll[enSide], pos.piecesAll[frSide], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+		pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.isWhiteTurn)
 
 	// ------------------------------------------------- King Moves ---------------------------------------------
 	// get king pseudo-legal moves
 	// filter out attacked squares
 	// the rest are legal moves
-	//start_2 := time.Now()
-	kingMovesPseudo := getKingMovesPseudo(kingSq)
-	kingMovesPseudo &= ^pos.piecesAll[frSide] // mask out moves to friendly pieces
 
+	// get the pseudo legal moves of the piece on that square
+	kingMovesPseudo := getKingMovesPseudo(kingSq)
+
+	// mask out moves to friendly pieces
+	kingMovesPseudo &= ^pos.piecesAll[frSide]
+
+	// check the remaining moves for legality
 	for kingMovesPseudo != 0 {
+
+		// get the next move square
 		nextMoveSq := kingMovesPseudo.popBitGetSq()
+
+		// king can only move to non-threatened squares
 		if !isSqAttacked(
-			nextMoveSq,
-			pos.piecesAll[SIDE_BOTH],
-			pos.pieces[frSide][PIECE_KING],
-			pos.pieces[enSide][PIECE_QUEEN],
-			pos.pieces[enSide][PIECE_ROOK],
-			pos.pieces[enSide][PIECE_KNIGHT],
-			pos.pieces[enSide][PIECE_BISHOP],
-			pos.pieces[enSide][PIECE_PAWN],
-			pos.pieces[enSide][PIECE_KING],
+			nextMoveSq, pos.piecesAll[SIDE_BOTH], pos.pieces[frSide][PIECE_KING], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+			pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.pieces[enSide][PIECE_KING],
 			pos.isWhiteTurn) {
 			if pos.piecesAll[enSide]&bbReferenceArray[nextMoveSq] != 0 { // capture
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.threatMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(kingSq, nextMoveSq, PIECE_KING, MOVE_TYPE_QUIET, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.quietMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
 		}
 	}
-	//duration_2 := time.Since(start_2).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_KING].addTime(int(duration_2))
 
 	// ------------------------------------------------- Pins ---------------------------------------------
 	// get pinned pieces bitboards
-	//start_3 := time.Now()
+
 	pinsUD, pinsLR, pinsULtDR, pinsDLtUR := getPinnedPieces(
-		kingSq,
-		pos.piecesAll[SIDE_BOTH],
-		pos.piecesAll[frSide],
-		pos.pieces[frSide][PIECE_PAWN],
-		pos.piecesAll[enSide],
-		pos.pieces[enSide][PIECE_QUEEN],
-		pos.pieces[enSide][PIECE_ROOK],
-		pos.pieces[enSide][PIECE_BISHOP],
-		pos.enPassantTargetBB,
-		pos.isWhiteTurn)
+		kingSq, pos.piecesAll[SIDE_BOTH], pos.piecesAll[frSide], pos.pieces[frSide][PIECE_PAWN], pos.piecesAll[enSide], pos.pieces[enSide][PIECE_QUEEN],
+		pos.pieces[enSide][PIECE_ROOK], pos.pieces[enSide][PIECE_BISHOP], pos.enPassantTargetBB, pos.isWhiteTurn)
 	pinsCombined := pinsUD | pinsLR | pinsULtDR | pinsDLtUR
 
-	//duration_3 := time.Since(start_3).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_PINS].addTime(int(duration_3))
-
+	// ------------------------------------------------- King Attacks ---------------------------------------------
 	// count the attacks on the king
 	kingChecks := piecesAttKingBB.countBits()
 
@@ -208,10 +121,9 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	}
 
 	// if we are generating moves for leaf nodes, we stop after finding one valid move
-	// NOTE: this is the earliest we can check for this, because we need to store the number of king checks for the game state evaluation
+	// note: this is the earliest we can check for this, because we need to store the number of king checks for the game state evaluation
 	// we also call this after king moves, because we assume most positions will have at least one king move
 	if atLeafCheckForOneMove {
-		//if pos.availableMovesCounter > 0 {
 		if pos.totalMovesCounter > 0 {
 			return
 		}
@@ -230,413 +142,313 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	// ------------------------------------------------- Queen Moves ---------------------------------------------
 	// now we are ready to generate the other piece moves
 	// queens
-	//start_4 := time.Now()
-	for frQueens != 0 { // while there are pieces left
-		nextQueenOriginSq := frQueens.popBitGetSq() // get the square of the piece
 
-		nextQueenMoves := getQueenMovesPseudo( // get the pseudo legal moves of the piece on that square
-			nextQueenOriginSq,
-			pos.piecesAll[SIDE_BOTH])
-		nextQueenMoves &= ^pos.piecesAll[frSide] // mask out moves to friendly pieces
+	// while there are pieces left
+	for frQueens != 0 {
 
-		nextQueenMoves &= kingInCheckMask // mask the moves with the king check mask
+		// get the square of the piece
+		nextQueenOriginSq := frQueens.popBitGetSq()
 
+		// get the pseudo legal moves of the piece on that square
+		nextQueenMoves := getQueenMovesPseudo(nextQueenOriginSq, pos.piecesAll[SIDE_BOTH])
+
+		// mask out moves to friendly pieces
+		nextQueenMoves &= ^pos.piecesAll[frSide]
+
+		// mask the moves with the king check mask
+		nextQueenMoves &= kingInCheckMask
+
+		// if pinned, mask the moves with the pins mask
 		if pinsCombined != 0 {
-			if bbReferenceArray[nextQueenOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
+			if bbReferenceArray[nextQueenOriginSq]&pinsUD != 0 {
 				nextQueenMoves &= movePinnedMasksTable[nextQueenOriginSq][PIN_UD]
-			} else if bbReferenceArray[nextQueenOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextQueenOriginSq]&pinsLR != 0 {
 				nextQueenMoves &= movePinnedMasksTable[nextQueenOriginSq][PIN_LR]
-			} else if bbReferenceArray[nextQueenOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextQueenOriginSq]&pinsULtDR != 0 {
 				nextQueenMoves &= movePinnedMasksTable[nextQueenOriginSq][PIN_ULtDR]
-			} else if bbReferenceArray[nextQueenOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextQueenOriginSq]&pinsDLtUR != 0 {
 				nextQueenMoves &= movePinnedMasksTable[nextQueenOriginSq][PIN_DLtUR]
 			}
 		}
 
+		// finally save the remaining moves
 		for nextQueenMoves != 0 {
 			nextQueenTargetSq := nextQueenMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextQueenTargetSq] != 0 { // capture
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.threatMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextQueenOriginSq, nextQueenTargetSq, PIECE_QUEEN, MOVE_TYPE_QUIET, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.quietMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
 		}
 	}
-	//duration_4 := time.Since(start_4).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_QUEEN].addTime(int(duration_4))
 
 	// ------------------------------------------------- Rook Moves ---------------------------------------------
 	// rooks
-	//start_5 := time.Now()
-	for frRooks != 0 { // while there are pieces left
-		nextRookOriginSq := frRooks.popBitGetSq() // get the square of the piece
 
-		nextRookMoves := getRookMovesPseudo( // get the pseudo legal moves of the piece on that square
-			nextRookOriginSq,
-			pos.piecesAll[SIDE_BOTH])
-		nextRookMoves &= ^pos.piecesAll[frSide] // mask out moves to friendly pieces
+	// while there are pieces left
+	for frRooks != 0 {
 
-		nextRookMoves &= kingInCheckMask // mask the moves with the king check mask
+		// get the square of the piece
+		nextRookOriginSq := frRooks.popBitGetSq()
 
+		// get the pseudo legal moves of the piece on that square
+		nextRookMoves := getRookMovesPseudo(nextRookOriginSq, pos.piecesAll[SIDE_BOTH])
+
+		// mask out moves to friendly pieces
+		nextRookMoves &= ^pos.piecesAll[frSide]
+
+		// mask the moves with the king check mask
+		nextRookMoves &= kingInCheckMask
+
+		// if pinned, mask the moves with the pins mask
 		if pinsCombined != 0 {
-			if bbReferenceArray[nextRookOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
+			if bbReferenceArray[nextRookOriginSq]&pinsUD != 0 {
 				nextRookMoves &= movePinnedMasksTable[nextRookOriginSq][PIN_UD]
-			} else if bbReferenceArray[nextRookOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextRookOriginSq]&pinsLR != 0 {
 				nextRookMoves &= movePinnedMasksTable[nextRookOriginSq][PIN_LR]
-			} else if bbReferenceArray[nextRookOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextRookOriginSq]&pinsULtDR != 0 {
 				nextRookMoves &= movePinnedMasksTable[nextRookOriginSq][PIN_ULtDR]
-			} else if bbReferenceArray[nextRookOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextRookOriginSq]&pinsDLtUR != 0 {
 				nextRookMoves &= movePinnedMasksTable[nextRookOriginSq][PIN_DLtUR]
 			}
 		}
 
+		// finally save the remaining moves
 		for nextRookMoves != 0 {
 			nextRookTargetSq := nextRookMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextRookTargetSq] != 0 { // capture
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.threatMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_QUIET, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.quietMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
 		}
 	}
-	//duration_5 := time.Since(start_5).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_ROOK].addTime(int(duration_5))
 
 	// ------------------------------------------------- Bishop Moves ---------------------------------------------
 	// bishops
-	//start_6 := time.Now()
-	for frBishops != 0 { // while there are pieces left
-		nextBishopOriginSq := frBishops.popBitGetSq() // get the square of the piece
 
-		nextBishopMoves := getBishopMovesPseudo( // get the pseudo legal moves of the piece on that square
-			nextBishopOriginSq,
-			pos.piecesAll[SIDE_BOTH])
-		nextBishopMoves &= ^pos.piecesAll[frSide] // mask out moves to friendly pieces
+	// while there are pieces left
+	for frBishops != 0 {
 
-		nextBishopMoves &= kingInCheckMask // mask the moves with the king check mask
+		// get the square of the piece
+		nextBishopOriginSq := frBishops.popBitGetSq()
 
+		// get the pseudo legal moves of the piece on that square
+		nextBishopMoves := getBishopMovesPseudo(nextBishopOriginSq, pos.piecesAll[SIDE_BOTH])
+
+		// mask out moves to friendly pieces
+		nextBishopMoves &= ^pos.piecesAll[frSide]
+
+		// mask the moves with the king check mask
+		nextBishopMoves &= kingInCheckMask
+
+		// if pinned, mask the moves with the pins mask
 		if pinsCombined != 0 {
-			if bbReferenceArray[nextBishopOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
+			if bbReferenceArray[nextBishopOriginSq]&pinsUD != 0 {
 				nextBishopMoves &= movePinnedMasksTable[nextBishopOriginSq][PIN_UD]
-			} else if bbReferenceArray[nextBishopOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextBishopOriginSq]&pinsLR != 0 {
 				nextBishopMoves &= movePinnedMasksTable[nextBishopOriginSq][PIN_LR]
-			} else if bbReferenceArray[nextBishopOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextBishopOriginSq]&pinsULtDR != 0 {
 				nextBishopMoves &= movePinnedMasksTable[nextBishopOriginSq][PIN_ULtDR]
-			} else if bbReferenceArray[nextBishopOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextBishopOriginSq]&pinsDLtUR != 0 {
 				nextBishopMoves &= movePinnedMasksTable[nextBishopOriginSq][PIN_DLtUR]
 			}
 		}
 
+		// finally save the remaining moves
 		for nextBishopMoves != 0 {
 			nextBishopTargetSq := nextBishopMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextBishopTargetSq] != 0 { // capture
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.threatMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_QUIET, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.quietMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
 		}
 	}
-	//duration_6 := time.Since(start_6).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_BISHOP].addTime(int(duration_6))
 
 	// ------------------------------------------------- Knight Moves ---------------------------------------------
 	// knights
-	//start_7 := time.Now()
-	for frKnights != 0 { // while there are pieces left
-		nextKnightOriginSq := frKnights.popBitGetSq() // get the square of the piece
 
-		nextKnightMoves := getKnightMovesPseudo( // get the pseudo legal moves of the piece on that square
-			nextKnightOriginSq)
-		nextKnightMoves &= ^pos.piecesAll[frSide] // mask out moves to friendly pieces
+	// while there are pieces left
+	for frKnights != 0 {
 
-		nextKnightMoves &= kingInCheckMask // mask the moves with the king check mask
+		// get the square of the piece
+		nextKnightOriginSq := frKnights.popBitGetSq()
 
+		// get the pseudo legal moves of the piece on that square
+		nextKnightMoves := getKnightMovesPseudo(nextKnightOriginSq)
+
+		// mask out moves to friendly pieces
+		nextKnightMoves &= ^pos.piecesAll[frSide]
+
+		// mask the moves with the king check mask
+		nextKnightMoves &= kingInCheckMask
+
+		// if pinned, mask the moves with the pins mask
 		if pinsCombined != 0 {
-			if bbReferenceArray[nextKnightOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
+			if bbReferenceArray[nextKnightOriginSq]&pinsUD != 0 {
 				nextKnightMoves &= movePinnedMasksTable[nextKnightOriginSq][PIN_UD]
-			} else if bbReferenceArray[nextKnightOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextKnightOriginSq]&pinsLR != 0 {
 				nextKnightMoves &= movePinnedMasksTable[nextKnightOriginSq][PIN_LR]
-			} else if bbReferenceArray[nextKnightOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextKnightOriginSq]&pinsULtDR != 0 {
 				nextKnightMoves &= movePinnedMasksTable[nextKnightOriginSq][PIN_ULtDR]
-			} else if bbReferenceArray[nextKnightOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextKnightOriginSq]&pinsDLtUR != 0 {
 				nextKnightMoves &= movePinnedMasksTable[nextKnightOriginSq][PIN_DLtUR]
 			}
 		}
 
+		// finally save the remaining moves
 		for nextKnightMoves != 0 {
 			nextKnightTargetSq := nextKnightMoves.popBitGetSq()
 			if pos.piecesAll[enSide]&bbReferenceArray[nextKnightTargetSq] != 0 { // capture
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.threatMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			} else { // quiet move
-				//start_time_store_move := time.Now()
-
-				//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_QUIET, PROMOTION_NONE)
-				//pos.availableMovesCounter += 1
-
 				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_QUIET, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.quietMovesCounter += 1
-
-				//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-				//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 			}
 		}
 	}
-	//duration_7 := time.Since(start_7).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_KNIGHT].addTime(int(duration_7))
 
 	// ------------------------------------------------- Pawn Moves ---------------------------------------------
 	// pawns
-	//start_8 := time.Now()
-	for frPawns != 0 { // while there are pieces left
 
-		nextPawnOriginSq := frPawns.popBitGetSq() // get the square of the piece
+	// while there are pieces left
+	for frPawns != 0 {
+
+		// get the square of the piece
+		nextPawnOriginSq := frPawns.popBitGetSq()
+
+		// get the pseudo legal moves of the piece on that square
 		var nextPawnMoves Bitboard
-
 		if pos.isWhiteTurn {
-			nextPawnMoves = getPawnMovesWhitePseudo( // get the pseudo legal moves of the piece on that square
+			nextPawnMoves = getPawnMovesWhitePseudo(
 				nextPawnOriginSq,
 				pos.piecesAll[SIDE_BOTH],
 				pos.piecesAll[enSide])
 		} else {
-			nextPawnMoves = getPawnMovesBlackPseudo( // get the pseudo legal moves of the piece on that square
+			nextPawnMoves = getPawnMovesBlackPseudo(
 				nextPawnOriginSq,
 				pos.piecesAll[SIDE_BOTH],
 				pos.piecesAll[enSide])
 		}
-		nextPawnMoves &= ^pos.piecesAll[frSide] // mask out moves to friendly pieces
 
-		nextPawnMoves &= kingInCheckMask // mask the moves with the king check mask
+		// mask out moves to friendly pieces
+		nextPawnMoves &= ^pos.piecesAll[frSide]
 
+		// mask the moves with the king check mask
+		nextPawnMoves &= kingInCheckMask
+
+		// if pinned, mask the moves with the pins mask
 		if pinsCombined != 0 {
-			if bbReferenceArray[nextPawnOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
+			if bbReferenceArray[nextPawnOriginSq]&pinsUD != 0 {
 				nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_UD]
-			} else if bbReferenceArray[nextPawnOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextPawnOriginSq]&pinsLR != 0 {
 				nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_LR]
-			} else if bbReferenceArray[nextPawnOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextPawnOriginSq]&pinsULtDR != 0 {
 				nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_ULtDR]
-			} else if bbReferenceArray[nextPawnOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+			} else if bbReferenceArray[nextPawnOriginSq]&pinsDLtUR != 0 {
 				nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_DLtUR]
 			}
 		}
 
+		// finally save the remaining moves
 		for nextPawnMoves != 0 {
 			nextPawnTargetSq := nextPawnMoves.popBitGetSq()
+
 			if pos.piecesAll[enSide]&bbReferenceArray[nextPawnTargetSq] != 0 { // capture
+
 				if nextPawnTargetSq >= 56 || nextPawnTargetSq <= 7 { // if there is a promotion
-					//start_time_store_move1 := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_QUEEN)
-					//pos.availableMovesCounter += 1
-
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_QUEEN)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
-
-					//duration_time_store_move1 := time.Since(start_time_store_move1).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move1))
-
-					//start_time_store_move2 := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_ROOK)
-					//pos.availableMovesCounter += 1
 
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_ROOK)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
 
-					//duration_time_store_move2 := time.Since(start_time_store_move2).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move2))
-
-					//start_time_store_move3 := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_KNIGHT)
-					//pos.availableMovesCounter += 1
-
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_KNIGHT)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
-
-					//duration_time_store_move3 := time.Since(start_time_store_move3).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move3))
-
-					//start_time_store_move4 := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_BISHOP)
-					//pos.availableMovesCounter += 1
 
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_BISHOP)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
 
-					//duration_time_store_move4 := time.Since(start_time_store_move4).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move4))
 				} else { // if there is not a promotion
-					//start_time_store_move := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
-					//pos.availableMovesCounter += 1
-
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
-
-					//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 				}
+
 			} else { // quiet move
+
 				if nextPawnTargetSq >= 56 || nextPawnTargetSq <= 7 { // if there is a promotion
-					//start_time_store_move1 := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_QUEEN)
-					//pos.availableMovesCounter += 1
-
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_QUEEN)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
-
-					//duration_time_store_move1 := time.Since(start_time_store_move1).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move1))
-
-					//start_time_store_move2 := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_ROOK)
-					//pos.availableMovesCounter += 1
 
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_ROOK)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
 
-					//duration_time_store_move2 := time.Since(start_time_store_move2).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move2))
-
-					//start_time_store_move3 := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_KNIGHT)
-					//pos.availableMovesCounter += 1
-
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_KNIGHT)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
-
-					//duration_time_store_move3 := time.Since(start_time_store_move3).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move3))
-
-					//start_time_store_move4 := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_BISHOP)
-					//pos.availableMovesCounter += 1
 
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_BISHOP)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
 
-					//duration_time_store_move4 := time.Since(start_time_store_move4).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move4))
 				} else { // if there is not a promotion
-					//start_time_store_move := time.Now()
-
 					pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnTargetSq, PIECE_PAWN, MOVE_TYPE_QUIET, PROMOTION_NONE)
 					pos.totalMovesCounter += 1
 					pos.quietMovesCounter += 1
-
-					//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 				}
 			}
 		}
 	}
-	//duration_8 := time.Since(start_8).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_PAWN].addTime(int(duration_8))
 
 	// ------------------------------------------------- En-Passant Moves ---------------------------------------------
 	// captures en-passant (includes checking for en-passant pawn on pin bitmask)
 	// separate check based on the 2 pawn squares that can attack the en-passant target
-	//start_9 := time.Now()
 
-	// special rule start >>>
+	// special rule start
 	// the king in check mask does not include pawns checking the king that can be captured en-passant
 	// therefore, for en-passant captures only, add it to the check mask if a pawn that is giving check can be captured en-passant
 
-	enPassantKingCheckMask := kingInCheckMask // create a copy of the king check mask to adjust if needed
-	if pos.enPassantTargetBB != 0 {           // if there is a possible en-passant capture
-		enPassantTarget := pos.enPassantTargetBB           // get the en-passant bitboard
-		enPassantTargetSq := enPassantTarget.popBitGetSq() // and get its square
+	// create a copy of the king check mask to adjust if needed
+	enPassantKingCheckMask := kingInCheckMask
 
-		pawnsCheckingKing := movePawnsAttackingKingMasks[kingSq][enSide] & pos.pieces[enSide][PIECE_PAWN] // get the enemy pawns are giving check
+	// if there is a possible en-passant capture
+	if pos.enPassantTargetBB != 0 {
 
-		for pawnsCheckingKing != 0 { // for each of them
-			nextCheckerSq := pawnsCheckingKing.popBitGetSq() // get the square of the pawn checking
+		// get the en-passant bitboard and get its square
+		enPassantTarget := pos.enPassantTargetBB
+		enPassantTargetSq := enPassantTarget.popBitGetSq()
+
+		// get the enemy pawns are giving check
+		pawnsCheckingKing := movePawnsAttackingKingMasks[kingSq][enSide] & pos.pieces[enSide][PIECE_PAWN]
+
+		// for each of them
+		for pawnsCheckingKing != 0 {
+
+			// get the square of the pawn checking
+			nextCheckerSq := pawnsCheckingKing.popBitGetSq()
 
 			if pos.isWhiteTurn {
 				if nextCheckerSq+8 == enPassantTargetSq { // if the checking pawn can be captured en-passant
@@ -651,263 +463,206 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 			}
 		}
 	}
-	// special rule end <<<
 
-	enPasTargetMasked := pos.enPassantTargetBB & enPassantKingCheckMask // mask with allowable moves when the king is in check
+	// mask with allowable moves when the king is in check
+	enPasTargetMasked := pos.enPassantTargetBB & enPassantKingCheckMask
 
-	if enPasTargetMasked != 0 { // if an en-passant capture can be made
+	// if an en-passant capture can be made
+	if enPasTargetMasked != 0 {
 
+		// get the bitboard of the pawn that can be captured
 		var enPassantCapturedPieceSqBB Bitboard
 		if pos.isWhiteTurn {
-			enPassantCapturedPieceSqBB = enPasTargetMasked << 8 // get the bitboard of the pawn that can be captured
+			enPassantCapturedPieceSqBB = enPasTargetMasked << 8
 		} else {
-			enPassantCapturedPieceSqBB = enPasTargetMasked >> 8 // get the bitboard of the pawn that can be captured
+			enPassantCapturedPieceSqBB = enPasTargetMasked >> 8
 		}
 
-		enPassantCapturedPieceSq := enPassantCapturedPieceSqBB.popBitGetSq() // get the square of the pawn that can be captured
-		if bbReferenceArray[enPassantCapturedPieceSq]&pinsCombined == 0 {    // only if the en passant captured pawn is not pinned, allow the en-passant
-			pawnsCanCapture := pos.pieces[frSide][PIECE_PAWN] & movePawnsAttackingKingMasks[enPasTargetMasked.popBitGetSq()][frSide] // which pawns can capture
-			for pawnsCanCapture != 0 {                                                                                               // if there are pawns that can capture
-				nextPawnOriginSq := pawnsCanCapture.popBitGetSq() // get the origin of the pawn that can capture
-				nextPawnMoves := pos.enPassantTargetBB            // get the target of the pawn that can capture
+		// get the square of the pawn that can be captured
+		enPassantCapturedPieceSq := enPassantCapturedPieceSqBB.popBitGetSq()
+
+		// only if the en passant captured pawn is not pinned, allow the en-passant
+		if bbReferenceArray[enPassantCapturedPieceSq]&pinsCombined == 0 {
+
+			// which pawns can capture
+			pawnsCanCapture := pos.pieces[frSide][PIECE_PAWN] & movePawnsAttackingKingMasks[enPasTargetMasked.popBitGetSq()][frSide]
+
+			// if there are pawns that can capture
+			for pawnsCanCapture != 0 {
+
+				// get the origin of the pawn that can capture
+				nextPawnOriginSq := pawnsCanCapture.popBitGetSq()
+
+				// get the target of the pawn that can capture
+				nextPawnMoves := pos.enPassantTargetBB
 
 				// now need to check if the CAPTURING pawn is pinned (already checked for CAPTURED pawn pins above)
-				if bbReferenceArray[nextPawnOriginSq]&pinsUD != 0 { // if pinned, mask the moves with the pins mask
+				// if pinned, mask the moves with the pins mask
+				if bbReferenceArray[nextPawnOriginSq]&pinsUD != 0 {
 					nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_UD]
-				} else if bbReferenceArray[nextPawnOriginSq]&pinsLR != 0 { // if pinned, mask the moves with the pins mask
+				} else if bbReferenceArray[nextPawnOriginSq]&pinsLR != 0 {
 					nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_LR]
-				} else if bbReferenceArray[nextPawnOriginSq]&pinsULtDR != 0 { // if pinned, mask the moves with the pins mask
+				} else if bbReferenceArray[nextPawnOriginSq]&pinsULtDR != 0 {
 					nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_ULtDR]
-				} else if bbReferenceArray[nextPawnOriginSq]&pinsDLtUR != 0 { // if pinned, mask the moves with the pins mask
+				} else if bbReferenceArray[nextPawnOriginSq]&pinsDLtUR != 0 {
 					nextPawnMoves &= movePinnedMasksTable[nextPawnOriginSq][PIN_DLtUR]
 				}
 
 				if nextPawnMoves != 0 { // if there are still moves remaining
-					//start_time_store_move := time.Now()
-
-					//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnMoves.popBitGetSq(), PIECE_PAWN, MOVE_TYPE_EN_PASSANT, PROMOTION_NONE)
-					//pos.availableMovesCounter += 1
-
 					pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextPawnOriginSq, nextPawnMoves.popBitGetSq(), PIECE_PAWN, MOVE_TYPE_EN_PASSANT, PROMOTION_NONE)
 					pos.totalMovesCounter += 1
 					pos.threatMovesCounter += 1
-
-					//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-					//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 				}
 			}
 		}
 	}
-	//duration_9 := time.Since(start_9).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_EN_PASSANT].addTime(int(duration_9))
 
 	// ------------------------------------------------- Castling Moves ---------------------------------------------
 	// castling moves
-	//start_10 := time.Now()
+
+	// if we are allowed to generate castling moves
 	if generateCastlingMoves {
+
+		// white castling
 		if pos.isWhiteTurn {
-			if pos.castlingRights[CASTLE_WHITE_KINGSIDE] { // if castling is available
-				castlingSquares := moveCastlingIsClearMasks[CASTLE_WHITE_KINGSIDE] // get the mask
-				castlingMasked := castlingSquares & pos.piecesAll[SIDE_BOTH]       // if there are no pieces on those squares
-				if castlingMasked == 0 {                                           // check if those squares are attacked
+
+			// if castling is available
+			if pos.castlingRights[CASTLE_WHITE_KINGSIDE] {
+
+				// get the mask
+				castlingSquares := moveCastlingIsClearMasks[CASTLE_WHITE_KINGSIDE]
+
+				// if there are no pieces on those squares
+				castlingMasked := castlingSquares & pos.piecesAll[SIDE_BOTH]
+
+				// check if those squares are attacked
+				if castlingMasked == 0 {
 					AttSq1 := 5
 					AttSq2 := 6
 					if !isSqAttacked(
-						AttSq1,
-						pos.piecesAll[SIDE_BOTH],
-						pos.pieces[frSide][PIECE_KING],
-						pos.pieces[enSide][PIECE_QUEEN],
-						pos.pieces[enSide][PIECE_ROOK],
-						pos.pieces[enSide][PIECE_KNIGHT],
-						pos.pieces[enSide][PIECE_BISHOP],
-						pos.pieces[enSide][PIECE_PAWN],
-						pos.pieces[enSide][PIECE_KING],
+						AttSq1, pos.piecesAll[SIDE_BOTH], pos.pieces[frSide][PIECE_KING], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+						pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) && !isSqAttacked(
-						AttSq2,
-						pos.piecesAll[SIDE_BOTH],
-						pos.pieces[frSide][PIECE_KING],
-						pos.pieces[enSide][PIECE_QUEEN],
-						pos.pieces[enSide][PIECE_ROOK],
-						pos.pieces[enSide][PIECE_KNIGHT],
-						pos.pieces[enSide][PIECE_BISHOP],
-						pos.pieces[enSide][PIECE_PAWN],
-						pos.pieces[enSide][PIECE_KING],
+						AttSq2, pos.piecesAll[SIDE_BOTH], pos.pieces[frSide][PIECE_KING], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+						pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) {
-
-						//start_time_store_move := time.Now()
-
-						//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(4, 6, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
-						//pos.availableMovesCounter += 1
 
 						pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(4, 6, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
 						pos.totalMovesCounter += 1
 						pos.quietMovesCounter += 1
-
-						//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-						//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 					}
 				}
 			}
 
-			if pos.castlingRights[CASTLE_WHITE_QUEENSIDE] { // if castling is available
-				castlingSquares := moveCastlingIsClearMasks[CASTLE_WHITE_QUEENSIDE] // get the mask
-				castlingMasked := castlingSquares & pos.piecesAll[SIDE_BOTH]        // if there are no pieces on those squares
-				if castlingMasked == 0 {                                            // check if those squares are attacked
+			// if castling is available
+			if pos.castlingRights[CASTLE_WHITE_QUEENSIDE] {
+
+				// get the mask
+				castlingSquares := moveCastlingIsClearMasks[CASTLE_WHITE_QUEENSIDE]
+
+				// if there are no pieces on those squares
+				castlingMasked := castlingSquares & pos.piecesAll[SIDE_BOTH]
+
+				// check if those squares are attacked
+				if castlingMasked == 0 {
 					AttSq1 := 3
 					AttSq2 := 2
 					if !isSqAttacked(
-						AttSq1,
-						pos.piecesAll[SIDE_BOTH],
-						pos.pieces[frSide][PIECE_KING],
-						pos.pieces[enSide][PIECE_QUEEN],
-						pos.pieces[enSide][PIECE_ROOK],
-						pos.pieces[enSide][PIECE_KNIGHT],
-						pos.pieces[enSide][PIECE_BISHOP],
-						pos.pieces[enSide][PIECE_PAWN],
-						pos.pieces[enSide][PIECE_KING],
+						AttSq1, pos.piecesAll[SIDE_BOTH], pos.pieces[frSide][PIECE_KING], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+						pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) && !isSqAttacked(
-						AttSq2,
-						pos.piecesAll[SIDE_BOTH],
-						pos.pieces[frSide][PIECE_KING],
-						pos.pieces[enSide][PIECE_QUEEN],
-						pos.pieces[enSide][PIECE_ROOK],
-						pos.pieces[enSide][PIECE_KNIGHT],
-						pos.pieces[enSide][PIECE_BISHOP],
-						pos.pieces[enSide][PIECE_PAWN],
-						pos.pieces[enSide][PIECE_KING],
+						AttSq2, pos.piecesAll[SIDE_BOTH], pos.pieces[frSide][PIECE_KING], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+						pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) {
-
-						//start_time_store_move := time.Now()
-
-						//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(4, 2, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
-						//pos.availableMovesCounter += 1
 
 						pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(4, 2, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
 						pos.totalMovesCounter += 1
 						pos.quietMovesCounter += 1
-
-						//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-						//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 					}
 				}
 			}
+
+			// black castling
 		} else {
-			if pos.castlingRights[CASTLE_BLACK_KINGSIDE] { // if castling is available
-				castlingSquares := moveCastlingIsClearMasks[CASTLE_BLACK_KINGSIDE] // get the mask
-				castlingMasked := castlingSquares & pos.piecesAll[SIDE_BOTH]       // if there are no pieces on those squares
-				if castlingMasked == 0 {                                           // check if those squares are attacked
+
+			// if castling is available
+			if pos.castlingRights[CASTLE_BLACK_KINGSIDE] {
+
+				// get the mask
+				castlingSquares := moveCastlingIsClearMasks[CASTLE_BLACK_KINGSIDE]
+
+				// if there are no pieces on those squares
+				castlingMasked := castlingSquares & pos.piecesAll[SIDE_BOTH]
+
+				// check if those squares are attacked
+				if castlingMasked == 0 {
 					AttSq1 := 61
 					AttSq2 := 62
 					if !isSqAttacked(
-						AttSq1,
-						pos.piecesAll[SIDE_BOTH],
-						pos.pieces[frSide][PIECE_KING],
-						pos.pieces[enSide][PIECE_QUEEN],
-						pos.pieces[enSide][PIECE_ROOK],
-						pos.pieces[enSide][PIECE_KNIGHT],
-						pos.pieces[enSide][PIECE_BISHOP],
-						pos.pieces[enSide][PIECE_PAWN],
-						pos.pieces[enSide][PIECE_KING],
+						AttSq1, pos.piecesAll[SIDE_BOTH], pos.pieces[frSide][PIECE_KING], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+						pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) && !isSqAttacked(
-						AttSq2,
-						pos.piecesAll[SIDE_BOTH],
-						pos.pieces[frSide][PIECE_KING],
-						pos.pieces[enSide][PIECE_QUEEN],
-						pos.pieces[enSide][PIECE_ROOK],
-						pos.pieces[enSide][PIECE_KNIGHT],
-						pos.pieces[enSide][PIECE_BISHOP],
-						pos.pieces[enSide][PIECE_PAWN],
-						pos.pieces[enSide][PIECE_KING],
+						AttSq2, pos.piecesAll[SIDE_BOTH], pos.pieces[frSide][PIECE_KING], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+						pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) {
-
-						//start_time_store_move := time.Now()
-
-						//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(60, 62, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
-						//pos.availableMovesCounter += 1
 
 						pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(60, 62, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
 						pos.totalMovesCounter += 1
 						pos.quietMovesCounter += 1
-
-						//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-						//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 					}
 				}
 			}
 
-			if pos.castlingRights[CASTLE_BLACK_QUEENSIDE] { // if castling is available
-				castlingSquares := moveCastlingIsClearMasks[CASTLE_BLACK_QUEENSIDE] // get the mask
-				castlingMasked := castlingSquares & pos.piecesAll[SIDE_BOTH]        // if there are no pieces on those squares
-				if castlingMasked == 0 {                                            // check if those squares are attacked
+			// if castling is available
+			if pos.castlingRights[CASTLE_BLACK_QUEENSIDE] {
+
+				// get the mask
+				castlingSquares := moveCastlingIsClearMasks[CASTLE_BLACK_QUEENSIDE]
+
+				// if there are no pieces on those squares
+				castlingMasked := castlingSquares & pos.piecesAll[SIDE_BOTH]
+
+				// check if those squares are attacked
+				if castlingMasked == 0 {
 					AttSq1 := 59
 					AttSq2 := 58
 					if !isSqAttacked(
-						AttSq1,
-						pos.piecesAll[SIDE_BOTH],
-						pos.pieces[frSide][PIECE_KING],
-						pos.pieces[enSide][PIECE_QUEEN],
-						pos.pieces[enSide][PIECE_ROOK],
-						pos.pieces[enSide][PIECE_KNIGHT],
-						pos.pieces[enSide][PIECE_BISHOP],
-						pos.pieces[enSide][PIECE_PAWN],
-						pos.pieces[enSide][PIECE_KING],
+						AttSq1, pos.piecesAll[SIDE_BOTH], pos.pieces[frSide][PIECE_KING], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+						pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) && !isSqAttacked(
-						AttSq2,
-						pos.piecesAll[SIDE_BOTH],
-						pos.pieces[frSide][PIECE_KING],
-						pos.pieces[enSide][PIECE_QUEEN],
-						pos.pieces[enSide][PIECE_ROOK],
-						pos.pieces[enSide][PIECE_KNIGHT],
-						pos.pieces[enSide][PIECE_BISHOP],
-						pos.pieces[enSide][PIECE_PAWN],
-						pos.pieces[enSide][PIECE_KING],
+						AttSq2, pos.piecesAll[SIDE_BOTH], pos.pieces[frSide][PIECE_KING], pos.pieces[enSide][PIECE_QUEEN], pos.pieces[enSide][PIECE_ROOK],
+						pos.pieces[enSide][PIECE_KNIGHT], pos.pieces[enSide][PIECE_BISHOP], pos.pieces[enSide][PIECE_PAWN], pos.pieces[enSide][PIECE_KING],
 						pos.isWhiteTurn) {
-
-						//start_time_store_move := time.Now()
-
-						//pos.availableMoves[pos.availableMovesCounter] = getEncodedMove(60, 58, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
-						//pos.availableMovesCounter += 1
 
 						pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(60, 58, PIECE_KING, MOVE_TYPE_CASTLE, PROMOTION_NONE)
 						pos.totalMovesCounter += 1
 						pos.quietMovesCounter += 1
-
-						//duration_time_store_move := time.Since(start_time_store_move).Nanoseconds()
-						//pos.logOther.allLogTypes[LOG_STORE_MOVE_TIME].addTime(int(duration_time_store_move))
 					}
 				}
 			}
 		}
 	}
-	//duration_10 := time.Since(start_10).Nanoseconds()
-	//pos.logOther.allLogTypes[LOG_MOVES_CASTLING].addTime(int(duration_10))
 
-	duration_time := time.Since(start_time).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_MOVE_GEN].addTime(int(duration_time))
+	pos.logTime.allLogTypes[LOG_MOVE_GEN_TOTAL].stop()
 }
 
 // --------------------------------------------------------------------------------------------------------------------
 // ---------------- Generate Pseudo-Legal Moves (excluding castling, promoting, pinned pieces and checks) -------------
 // --------------------------------------------------------------------------------------------------------------------
-// gets the moves of a piece from a square filtered for blockers (meaning including blockers but not further down each ray)
-// the result is then also filtered for any friendly pieces (cannot capture friendly pieces)
+// gets the moves of a piece from a square filtered for blockers
 
 func getRookMovesPseudo(sq int, blockers Bitboard) Bitboard {
-
 	blockers &= magicStructsRooks[sq].mask
 	blockers *= magicStructsRooks[sq].magic
 	blockers >>= (64 - magicStructsRooks[sq].shift)
 	return magicRookMovesTable[sq][blockers]
-
 }
 
 func getBishopMovesPseudo(sq int, blockers Bitboard) Bitboard {
-
 	blockers &= magicStructsBishops[sq].mask
 	blockers *= magicStructsBishops[sq].magic
 	blockers >>= (64 - magicStructsBishops[sq].shift)
 	return magicBishopMovesTable[sq][blockers]
-
 }
 
 func getQueenMovesPseudo(sq int, blockers Bitboard) Bitboard {

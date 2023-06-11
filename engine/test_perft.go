@@ -23,7 +23,7 @@ func initTestPositions() {
 
 	// test position 1: starting position
 	testPos1 := TestPosition{}
-	testPos1.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+	testPos1.fen = startingFen
 	testPos1.depthResults = append(testPos1.depthResults, "20")
 	testPos1.depthResults = append(testPos1.depthResults, "400")
 	testPos1.depthResults = append(testPos1.depthResults, "8902")
@@ -99,6 +99,47 @@ func initTestPositions() {
 	testPos7.depthResults = append(testPos7.depthResults, "46721049")
 	testPositions = append(testPositions, testPos7)
 
+	// test position 8 (custom): each: king and 3 pawns on starting squares, and both colored bishops
+	testPos8 := TestPosition{}
+	testPos8.fen = "8/1kpppbb1/8/8/8/8/1BBPPPK1/8 w - - 0 1"
+	testPos8.depthResults = append(testPos8.depthResults, "30")
+	testPos8.depthResults = append(testPos8.depthResults, "855")
+	testPos8.depthResults = append(testPos8.depthResults, "22805")
+	testPos8.depthResults = append(testPos8.depthResults, "594588")
+	testPos8.depthResults = append(testPos8.depthResults, "14762722")
+	testPositions = append(testPositions, testPos8)
+
+	// test position 9 (custom): each: king, queen, rook and 3 pawns
+	testPos9 := TestPosition{}
+	testPos9.fen = "8/4p3/3pkp1R/5q2/3Q4/r2PKP2/4P3/8 b - - 0 1"
+	testPos9.depthResults = append(testPos9.depthResults, "28")
+	testPos9.depthResults = append(testPos9.depthResults, "617")
+	testPos9.depthResults = append(testPos9.depthResults, "14167")
+	testPos9.depthResults = append(testPos9.depthResults, "343514")
+	testPos9.depthResults = append(testPos9.depthResults, "8426450")
+	testPositions = append(testPositions, testPos9)
+
+	// test position 10 (custom): each: king in front of pawns 2 columns of doubled pawns and one rook
+	testPos10 := TestPosition{}
+	testPos10.fen = "4r3/3pp3/2kpp3/8/4K3/3PP3/3PP3/3R4 w - - 0 1"
+	testPos10.depthResults = append(testPos10.depthResults, "11")
+	testPos10.depthResults = append(testPos10.depthResults, "140")
+	testPos10.depthResults = append(testPos10.depthResults, "1989")
+	testPos10.depthResults = append(testPos10.depthResults, "30869")
+	testPos10.depthResults = append(testPos10.depthResults, "448878")
+	testPos10.depthResults = append(testPos10.depthResults, "7248110")
+	testPositions = append(testPositions, testPos10)
+
+	// test position 10 (custom): each: king in front of pawns 2 columns of doubled pawns and back rank of bishops
+	testPos11 := TestPosition{}
+	testPos11.fen = "bbbbbbbb/3pp3/2kpp3/8/8/3PPK2/3PP3/BBBBBBBB w - - 0 1"
+	testPos11.depthResults = append(testPos11.depthResults, "30")
+	testPos11.depthResults = append(testPos11.depthResults, "733")
+	testPos11.depthResults = append(testPos11.depthResults, "18464")
+	testPos11.depthResults = append(testPos11.depthResults, "457276")
+	testPos11.depthResults = append(testPos11.depthResults, "11778803")
+	testPositions = append(testPositions, testPos11)
+
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -127,8 +168,6 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int, bulkCounting b
 	// if there are legal moves, iterate over them
 	//if pos.availableMovesCounter > 0 {
 	if pos.totalMovesCounter > 0 {
-		//legalMoves := make([]Move, pos.availableMovesCounter)
-		//copy(legalMoves, pos.availableMoves[:pos.availableMovesCounter])
 		legalMoves := make([]Move, pos.totalMovesCounter)
 		copy(legalMoves, pos.threatMoves[:pos.threatMovesCounter])
 		copy(legalMoves[pos.threatMovesCounter:], pos.quietMoves[:pos.quietMovesCounter])
@@ -139,9 +178,9 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int, bulkCounting b
 			totalNodeCount += currentNodeCount
 			pos.undoMove()
 
-			if initialDepth == currentDepth {
-				//fmt.Printf("For move: %v, the node count is: %v\n", move, currentNodeCount)
-			}
+			//if initialDepth == currentDepth {
+			//	fmt.Printf("For move (from:%v to:%v promote:%v) the node count is: %v\n", move.getFromSq(), move.getToSq(), move.getPromotionType(), currentNodeCount)
+			//}
 		}
 	}
 
@@ -150,7 +189,7 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int, bulkCounting b
 }
 
 // loop over each perft position and print the results to the terminal
-func printPerftResults() {
+func printPerftTestResults() {
 
 	bulkCounting := true
 
@@ -174,13 +213,26 @@ func printPerftResults() {
 		start_time := time.Now()
 		totalNodes := 0
 
+		// set a flag to catch errors
+		moveGenSuccess := true
+
 		// test each depth and print the results
 		for depth, depthResults := range testPosition.depthResults {
 			resultNodes := newPos.runPerft(depth+1, depth+1, bulkCounting) // run the perft
 			totalNodes += resultNodes
 			fmt.Printf("Depth: %v. Correct test nodes: %v. My nodes: %v.\n", depth+1, depthResults, resultNodes)
 			if depthResults != strconv.Itoa(resultNodes) {
-				fmt.Println("ERROR IN MOVE GENERATION!!!")
+				moveGenSuccess = false
+
+				// code to debug the legal moves generated
+				newPos.generateLegalMoves(false)
+				fmt.Printf("Failure in move gen. Number of moves: %v. Generated moves:\n", newPos.totalMovesCounter)
+				allMoves := make([]Move, newPos.totalMovesCounter)
+				copy(allMoves, newPos.threatMoves[:newPos.threatMovesCounter])
+				copy(allMoves[newPos.threatMovesCounter:], newPos.quietMoves[:newPos.quietMovesCounter])
+				for _, move := range allMoves {
+					fmt.Printf("<<MOVE>> From: %v. To: %v. Promote: %v.\n", move.getFromSq(), move.getToSq(), move.getPromotionType())
+				}
 			}
 		}
 
@@ -192,7 +244,14 @@ func printPerftResults() {
 		// print the logging details
 		// newPos.logOther.printLoggedDetails()
 
-		fmt.Printf("Completed perft in %v seconds. Speed: %v mnps.\n\n", duration_time_sec, mnps)
+		// print the perft speed
+		fmt.Printf("Completed perft in %v seconds. Speed: %v mnps.\n", duration_time_sec, mnps)
 
+		// print the final result
+		if moveGenSuccess {
+			fmt.Printf("[SUCCESS!]\n\n")
+		} else {
+			fmt.Printf("[FAILURE!]\n\n")
+		}
 	}
 }

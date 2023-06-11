@@ -3,11 +3,11 @@ package main
 import "fmt"
 
 // --------------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------- Evaluation Tests -------------------------------------------------
+// ------------------------------------------------- Incremental Tests ------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 // we confirm that our incremental eval and hashing code works correctly (in make and undo move),
 // by playing a move sequence to get to a position,
-// and compare that to the eval and hash when the final fen string is loaded directly
+// and compare that to the eval and hash when the final fen string is loaded directly from the final position
 
 type IncrementalTestSequence struct {
 	fenMoves  []string // fen moves from the starting to final position
@@ -72,7 +72,7 @@ func initIncrementalTestSequences() {
 	test09 := IncrementalTestSequence{moves09, fen09}
 	incrementalTestSequences = append(incrementalTestSequences, test09)
 
-	// test 4
+	// test 10
 	moves10 := []string{"e2e4", "c7c5", "b1c3", "b8c6", "g2g3", "e7e5", "g1f3", "g8f6", "f1b5", "d7d6", "b5c6", "b7c6", "e1g1", "f8e7", "d2d3", "c8b7", "f1e1", "e8g8", "a2a4", "a7a5", "b2b3", "d8d7", "c1b2", "a8d8", "c3b1", "d7e6", "b1d2", "f8e8", "d2c4", "d8a8", "b2c3", "e7d8", "d1d2", "b7a6", "c4a5", "d8a5", "c3a5", "d6d5", "a5c7", "f6g4", "e4d5", "e6f6", "d2e2", "c6d5", "f3e5", "f6e7", "e2g4", "e7c7", "g4f5", "a6c8", "f5f4", "f7f6", "e5f3", "e8e1", "a1e1", "c7f4", "g3f4", "c8f5", "g1g2", "g8f7", "h2h3", "d5d4", "e1a1", "a8g8", "a4a5", "g7g5", "f4g5", "f6g5", "a5a6", "g5g4", "f3e5", "f7e6", "e5g4", "f5g4", "h3g4", "g8g4", "g2f3", "g4g8", "a6a7", "g8a8", "b3b4", "c5b4", "f3e4", "e6d6", "e4d4", "d6c6", "f2f3", "c6b7", "a1b1", "a8a7", "c2c3", "b4b3", "b1b3", "b7c6", "f3f4", "h7h5", "f4f5", "h5h4", "f5f6", "a7d7", "d4e4", "d7d6", "b3b8", "d6f6", "b8h8", "f6e6", "e4d4", "e6d6", "d4c4", "c6b6", "h8h4", "d6c6", "c4b4", "c6c8", "c3c4", "b6c7", "c4c5", "c7d7", "b4c4", "d7e6", "d3d4", "e6f5", "h4h1", "c8a8", "c5c6", "a8a7", "d4d5", "a7c7", "c4c5", "c7a7", "d5d6", "a7a5", "c5b6", "a5a8", "d6d7", "a8b8", "b6c5", "b8b2", "d7d8q", "b2c2", "c5b4", "c2b2", "b4c3", "b2f2", "d8f8", "f5e6", "f8f2", "e6e7", "f2e3", "e7d6", "h1h6", "d6c7", "e3a7", "c7c8", "h6h8"}
 	fen10 := "2k4R/Q7/2P5/8/8/2K5/8/8 b - - 8 78."
 	test10 := IncrementalTestSequence{moves10, fen10}
@@ -82,7 +82,7 @@ func initIncrementalTestSequences() {
 
 func printIncrementalTestResults() {
 
-	fmt.Println("-------------------------------- Eval Test Results ----------------------------------")
+	fmt.Println("----------------------------------------------------------------- Incremental Test Results -------------------------------------------------------------------------")
 
 	for i, testSequence := range incrementalTestSequences {
 
@@ -90,7 +90,7 @@ func printIncrementalTestResults() {
 		pos1 := Position{}
 		pos2 := Position{}
 
-		pos1.initPositionFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+		pos1.initPositionFromFen(startingFen)
 		pos2.initPositionFromFen(testSequence.fenString)
 
 		// play the moves in the first position
@@ -103,15 +103,17 @@ func printIncrementalTestResults() {
 		pos1MaterialEval := pos1.evalMaterial
 		pos1HeatmapEval := pos1.evalHeatmaps
 		pos1OtherEval := pos1.evalOther
+		pos1GameStage := pos1.evalMidVsEndStage
 		pos1EvalTotal := pos1MaterialEval + pos1HeatmapEval + pos1OtherEval
 
 		pos2.evalPosAfter()
 		pos2MaterialEval := pos2.evalMaterial
 		pos2HeatmapEval := pos2.evalHeatmaps
 		pos2OtherEval := pos2.evalOther
+		pos2GameStage := pos2.evalMidVsEndStage
 		pos2EvalTotal := pos2MaterialEval + pos2HeatmapEval + pos2OtherEval
 
-		evalSuccess := pos1EvalTotal == pos2EvalTotal
+		evalSuccess := pos1EvalTotal == pos2EvalTotal && pos1GameStage == pos2GameStage
 
 		// compare the position hashes
 		pos1Hash := pos1.hashOfPos
@@ -135,7 +137,7 @@ func printIncrementalTestResults() {
 			hashMessage = "HASH FAILURE"
 		}
 
-		fmt.Printf("[TEST %v] [%v] [%v] ||| Pos 1 hash: %v. Pos 2 hash: %v. ||| Pos 1 eval: %v (material: %v, heatmap: %v, other: %v). Pos 2 eval: %v (material: %v, heatmap: %v, other: %v).\n",
-			i+1, evalMessage, hashMessage, pos1Hash, pos2Hash, pos1EvalTotal, pos1MaterialEval, pos1HeatmapEval, pos1OtherEval, pos2EvalTotal, pos2MaterialEval, pos2HeatmapEval, pos2OtherEval)
+		fmt.Printf("[TEST %v] [%v] [%v] ||| Pos 1 hash: %v. Pos 2 hash: %v. ||| Pos 1 eval: %v (material: %v, heatmap: %v, other: %v, stage: %v). Pos 2 eval: %v (material: %v, heatmap: %v, other: %v, stage: %v).\n",
+			i+1, evalMessage, hashMessage, pos1Hash, pos2Hash, pos1EvalTotal, pos1MaterialEval, pos1HeatmapEval, pos1OtherEval, pos1GameStage, pos2EvalTotal, pos2MaterialEval, pos2HeatmapEval, pos2OtherEval, pos2GameStage)
 	}
 }

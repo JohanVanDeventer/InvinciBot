@@ -15,8 +15,6 @@ func initEngine() {
 		// general
 		initBBReferenceArray()
 
-		// move structs
-
 		// move generation - normal
 		initMoveLookupTablePawns()
 		initMoveLookupTableKings()
@@ -34,7 +32,6 @@ func initEngine() {
 
 		// perft and tests
 		initTestPositions()
-		initBestMovePositions()
 		initIncrementalTestSequences()
 
 		// hashing

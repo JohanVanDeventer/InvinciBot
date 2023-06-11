@@ -9,8 +9,10 @@ import (
 // ------------------------------------------ Load Position From Fen String -------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 
+// split each part of the Fen string separated by a space and loads it into the position
 func (pos *Position) loadFenIntoPosition(fenString string) {
-	// split each part of the Fen string separated by a space and loads it into the position
+
+	pos.logTime.allLogTypes[LOG_ONCE_LOAD_FEN].start()
 
 	/*
 		example starting Fen string:
@@ -182,4 +184,6 @@ func (pos *Position) loadFenIntoPosition(fenString string) {
 
 	// ---------------- Part 6: Full Moves ---------------------
 	pos.fullMoves, _ = strconv.Atoi(stringParts[5])
+
+	pos.logTime.allLogTypes[LOG_ONCE_LOAD_FEN].stop()
 }

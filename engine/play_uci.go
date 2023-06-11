@@ -176,6 +176,7 @@ func (pos *Position) startUCIInputLoop() {
 		command = strings.TrimSpace(command)
 
 		// respond to the command
+		// --------------------------------- UCI GAME COMMANDS -----------------------------------
 		if command == "uci" { // remember this vs ucinewgame both have "uci" prefix
 			pos.command_uci()
 
@@ -237,7 +238,15 @@ func (pos *Position) startUCIInputLoop() {
 		} else if strings.HasPrefix(command, "quit") {
 			pos.command_quit()
 			runCommandLoop = false
+
+			// --------------------------------- TERMINAL GAME COMMANDS -----------------------------------
+		} else if strings.HasPrefix(command, "terminalnewgame") {
+			initEngine()
+			pos.reset()
+			pos.initPositionFromFen(startingFen)
+			pos.startGameLoopTerminalGUI()
 		}
+
 	}
 }
 
@@ -414,8 +423,8 @@ func (pos *Position) command_uci() {
 	// just acknowledge uci as the communication protocol
 
 	// <<< 1 >>> ID the engine
-	fmt.Printf("id name Invincible 1.0\n")
-	fmt.Printf("id author Johan vD\n")
+	fmt.Printf("id name InvinciBot 1.0\n")
+	fmt.Printf("id author Johan van Deventer\n")
 
 	// <<< 2 >>> Options
 	// none for now
@@ -569,7 +578,6 @@ GUI to engine:
     the last position sent to the engine, the GUI should have sent a "ucinewgame" inbetween.
 */
 func (pos *Position) command_position(command string) {
-	initEngine()
 	pos.reset()
 
 	parts := strings.Split(command, " ")
@@ -585,7 +593,7 @@ func (pos *Position) command_position(command string) {
 		}
 
 		if part == "startpos" {
-			fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+			fen = startingFen
 			pos.initPositionFromFen(fen)
 		}
 
@@ -637,14 +645,11 @@ func (pos *Position) makeUCIMove(input string) {
 	pos.generateLegalMoves(false)
 
 	// if there are no available moves, return
-	//if pos.availableMovesCounter <= 0 {
 	if pos.totalMovesCounter <= 0 {
 		return
 	}
 
 	// else copy the moves
-	//allMoves := make([]Move, pos.availableMovesCounter)
-	//copy(allMoves, pos.availableMoves[:pos.availableMovesCounter])
 	allMoves := make([]Move, pos.totalMovesCounter)
 	copy(allMoves, pos.threatMoves[:pos.threatMovesCounter])
 	copy(allMoves[pos.threatMovesCounter:], pos.quietMoves[:pos.quietMovesCounter])

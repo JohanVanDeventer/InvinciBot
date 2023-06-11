@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/bits"
 )
 
@@ -42,13 +41,6 @@ func initBBReferenceArray() {
 	for sq := 0; sq < 64; sq++ {
 		bbReferenceArray[63-sq] = startingBit
 		startingBit = startingBit << 1
-	}
-}
-
-// just a test function to see if the initialized table is correct
-func printBBReferenceArray() {
-	for _, num := range bbReferenceArray {
-		fmt.Printf("%064b\n", num)
 	}
 }
 
@@ -93,7 +85,16 @@ func (bb *Bitboard) popBitGetSq() int {
 	return sq
 }
 
-// ------------------------------------------------- Display Functions -----------------------------------------------
+// ------------------------------------------------- Debug Functions -----------------------------------------------
+
+/*
+
+// just a test function to see if the initialized table is correct
+func printBBReferenceArray() {
+	for _, num := range bbReferenceArray {
+		fmt.Printf("%064b\n", num)
+	}
+}
 
 func (bb Bitboard) printBitboardSingleLine() {
 	fmt.Printf("%064b\n", bb)
@@ -105,3 +106,4 @@ func (bb Bitboard) printBitboardFancy8x8() {
 		fmt.Printf("%08b\n", row)
 	}
 }
+*/

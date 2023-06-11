@@ -2,7 +2,6 @@ package main
 
 import (
 	"sort"
-	"time"
 )
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -18,8 +17,6 @@ const (
 
 // returns a slice of moves ordered from best to worst
 func (pos *Position) getOrderedThreatMoves() []Move {
-
-	start_time := time.Now()
 
 	// create a copy of the available moves
 	moves := make([]Move, pos.threatMovesCounter)
@@ -85,9 +82,6 @@ func (pos *Position) getOrderedThreatMoves() []Move {
 	for _, move := range moves {
 		move.clearMoveOrderingScore()
 	}
-
-	duration_time := time.Since(start_time).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_ORDER_MOVES_NOT_AT_ROOT].addTime(int(duration_time))
 
 	return moves
 }

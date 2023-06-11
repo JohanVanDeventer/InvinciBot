@@ -5,14 +5,12 @@ package main
 Ideas to consider / implement
 =============================
 
---- Incremental eval ---
-Rather save a heatmap "previous" score in a table for each square.
-Substract that value when moving to the square, and add the new value added to heatmap eval to that square.
+--- Log search ---
+Log details by depth and not in total only.
 
 --- Auto tune ---
-Add a separate "blank" heatmap for all other heatmaps, and combine them at the start of each program with a function call.
-This can then take input from the Python GUI, so the testing can still be done in Python.
-The Python values are passed to the engine before other tables are initiated, so the combined value will be what the engine is playing with.
+Add a function to be able to "modify" eval heatmaps and other parameters before engine init.
+That way it can be passed from the Python match manager.
 
 --- TT ---
 Remove mod operator, replace with something faster.
@@ -21,43 +19,28 @@ Remove mod operator, replace with something faster.
 Add various asserts in the program as tests.
 Check that the incremental heatmap eval is the same for the same position but different paths.
 
---- Endgame tests ---
-Add various endgame test positions to the GUI match, to determine that a change does not influence the endgames badly.
-
---- Null move ---
-Try limiting further null moves if we are in a tree below a null move.
-Might be an improvement or not.
-
 --- QS depth ---
 Increase / decrease qs depth to see effect (is qs too deep?)
 
 --- Eval hash table ---
 If the evaluation takes long, store the eval results in a table instead like the TT.
 
---- 3 fold repetition detection ---
+--- Better 3 fold repetition detection ---
 After a pawn move or a capture or a change in castling rights, we can never again have a 3 fold repetition with positions before that.
 Therefore we don't need to iterate over all previous zobrist hashes, only those since that half move counter was reset.
 
--- Hash Move ---
-Store best moves in the TT.
-Apply internal iterative deepening if no hash move is available.
-
---- Quiet moves ---
-Move the quiet move ordering (killers etc.) only after threat moves have been looped over?
-Can't do because we need quiet moves to sort the best move from the previous iteration.
-Unless we later put the root node call in a separate function.
-
---- Move in TT ---
-Also store best move if available in each TT entry.
+--- IID ---
+Try IID at nodes where there is no hash move available.
 
 --- TT Buckets ---
 2 entries for each TT slot/index to improve hit rates.
+Match the entry size to a cache line size (64 bytes).
 
 --- Branching factor ---
 Log the branching factor during search to roughly measure improvements.
 
---- TT Lookup Qs ---
-Don't save Qs nodes but look up in the TT for Qs nodes?
+--- TT Lookup QS ---
+Don't save QS nodes but look up in the TT for QS nodes?
 Test whether there is an improvement.
 
 --- Better eval ---
@@ -66,7 +49,6 @@ Note: needs to check both sides.
 Doubled pawns?
 Isolated pawns?
 Mobility? Simple pseudo legal moves masked with all blockers (don't go into legal moves only)?
-Bishop pair bonus?
 
 --- TT Size ---
 Test whether increasing the TT size helps improve play.
@@ -75,7 +57,7 @@ Test whether increasing the TT size helps improve play.
 Better move ordering for the root, because it is called only once at the start of each search, we can afford more time consuming calcs.
 
 --- Draw by insufficient material ---
-Especially king vs king (eval game stage count == 0: all pieces off, then also just check pawn count == 0)
+Especially king vs king (eval game stage count == 0: all pieces off, then also just check pawn count == 0), king vs king and knight etc.
 
 --- 50 move rule hash ---
 Check that the TT handles the 50 move rule correctly.
@@ -85,8 +67,5 @@ Play book moves for the first few moves.
 
 --- Reduce memory ---
 Switch to eg. uint8 where possible.
-
--- Heatmap Tuning ---
-Tune heatmap values automatically.
 
 */

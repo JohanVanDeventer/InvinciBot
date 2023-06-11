@@ -1,9 +1,5 @@
 package main
 
-import (
-	"time"
-)
-
 // --------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------- Background ----------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
@@ -399,6 +395,8 @@ func initEvalMaterialAndStageTables() {
 // therefore incremental updates during make move will be correct
 func (pos *Position) evalPosAtStart() {
 
+	pos.logTime.allLogTypes[LOG_ONCE_EVAL].start()
+
 	// start with a zero eval for all eval variables
 	pos.evalMaterial = 0
 	pos.evalHeatmaps = 0
@@ -439,6 +437,8 @@ func (pos *Position) evalPosAtStart() {
 			}
 		}
 	}
+
+	pos.logTime.allLogTypes[LOG_ONCE_EVAL].stop()
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -469,7 +469,7 @@ func initEvalColumnMasks() {
 // evalue a position after for non-incremental evaluations
 func (pos *Position) evalPosAfter() {
 
-	start_time := time.Now()
+	pos.logTime.allLogTypes[LOG_EVAL].start()
 
 	/*
 		// reset other evaluation scores
@@ -497,6 +497,6 @@ func (pos *Position) evalPosAfter() {
 		}
 	*/
 
-	duration_time := time.Since(start_time).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_EVAL].addTime(int(duration_time))
+	pos.logTime.allLogTypes[LOG_EVAL].stop()
+
 }

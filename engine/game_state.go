@@ -1,7 +1,5 @@
 package main
 
-import "time"
-
 // --------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------ Game State --------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
@@ -25,11 +23,10 @@ const (
 // because it uses the number of available moves to determine checkmate and stalemate
 func (pos *Position) getGameStateAndStore() {
 
-	start_time := time.Now()
-	defer pos.logOther.allLogTypes[LOG_GAME_STATE].addTime(int(time.Since(start_time).Nanoseconds()))
+	pos.logTime.allLogTypes[LOG_GAME_STATE].start()
+	defer pos.logTime.allLogTypes[LOG_GAME_STATE].stop()
 
 	// if there are no moves remaining, the king is either in checkmate, or it's stalemate
-	//if pos.availableMovesCounter == 0 {
 	if pos.totalMovesCounter == 0 {
 		if pos.kingChecks > 0 {
 			if !pos.isWhiteTurn {

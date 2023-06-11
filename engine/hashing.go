@@ -97,7 +97,7 @@ func initHashTables() {
 // hash the current position and store the value
 func (pos *Position) hashPosAndStore() {
 
-	start_time := time.Now()
+	pos.logTime.allLogTypes[LOG_ONCE_HASH].start()
 
 	// start the hash
 	positionHash := startingHash
@@ -132,8 +132,7 @@ func (pos *Position) hashPosAndStore() {
 		positionHash ^= hashTableEnPassant[enPSq]
 	}
 
-	duration_time := time.Since(start_time).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_HASHING].addTime(int(duration_time))
-
 	pos.hashOfPos = positionHash
+
+	pos.logTime.allLogTypes[LOG_ONCE_HASH].stop()
 }

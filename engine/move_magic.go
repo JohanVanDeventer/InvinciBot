@@ -1,7 +1,5 @@
 package main
 
-import "math/rand"
-
 // --------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------ Magic Bitboards: Goal ---------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
@@ -186,7 +184,9 @@ func initMagicMasks() {
 // --------------------------------------------------------------------------------------------------------------------
 /*
 Obtained the magic numbers from: https://github.com/GunshipPenguin/shallow-blue/blob/c6d7e9615514a86533a9e0ffddfc96e058fc9cfd/src/attacks.h#L120
+Still need to implement code to generate magic numbers directly.
 */
+
 var rookMagics = [64]uint64{
 	0xa8002c000108020, 0x6c00049b0002001, 0x100200010090040, 0x2480041000800801, 0x280028004000800,
 	0x900410008040022, 0x280020001001080, 0x2880002041000080, 0xa000800080400034, 0x4808020004000,
@@ -221,10 +221,12 @@ var bishopMagics = [64]uint64{
 
 // helper function to get a Bitboard/uint64 with only a few bits set
 // we "&"" various random Bitboards to leave only overlapping bits
+/*
 func getRandomSparseBitboard() Bitboard {
 	filledBitboard := fullBB
 	return filledBitboard & Bitboard(rand.Uint64()) & Bitboard(rand.Uint64()) & Bitboard(rand.Uint64())
 }
+*/
 
 func initMagicNumbers() {
 

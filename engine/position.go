@@ -105,9 +105,9 @@ type Position struct {
 	// killer heuristic variables
 	killerMoves [MAX_DEPTH][2]Move // table to save killer moves
 
-	// log details about time taken, counts etc.
-	logSearch LogSearch
-	logOther  LogOther
+	// logs details about function times and search results
+	logSearch SearchLogger
+	logTime   TimeLogger
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -115,15 +115,18 @@ type Position struct {
 // --------------------------------------------------------------------------------------------------------------------
 // steps needed to get a new position ready to play a game
 
+const startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
 // -------------------------------------------------- Step 1: Load the Fen String -----------------------------------------------
 // load only the fen string into the position
 func (pos *Position) initPositionFromFen(fen string) {
 
+	// add the initialized time logger
+	pos.logTime = getNewTimeLogger()
+	pos.logSearch = getNewSearchLogger()
+
 	// load the fen string into the position
 	pos.loadFenIntoPosition(fen)
-
-	// add the initialized logging manager
-	pos.logOther = getLoggingManager()
 
 	// hash the loaded starting position
 	pos.hashPosAndStore()
@@ -198,8 +201,7 @@ func (pos *Position) reset() {
 	// not done here, done before every search
 
 	// get clean loggers
-	pos.logSearch = LogSearch{}
-	pos.logOther = LogOther{}
+	// done at fen initialization of the position
 
 }
 

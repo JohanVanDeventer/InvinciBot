@@ -1,9 +1,5 @@
 package main
 
-import (
-	"time"
-)
-
 // --------------------------------------------------------------------------------------------------------------------
 // ----------------------------------------------- Previous Game State ------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
@@ -31,7 +27,7 @@ type PreviousState struct {
 // function to undo the last move played
 func (pos *Position) undoMove() {
 
-	start_time := time.Now()
+	pos.logTime.allLogTypes[LOG_UNDO_MOVE].start()
 
 	// if the ply is at the start, we cannot undo the previous move
 	if pos.ply == 0 {
@@ -71,6 +67,6 @@ func (pos *Position) undoMove() {
 	// finally switch the sides
 	pos.isWhiteTurn = !pos.isWhiteTurn
 
-	duration_time := time.Since(start_time).Nanoseconds()
-	pos.logOther.allLogTypes[LOG_UNDO_MOVE].addTime(int(duration_time))
+	pos.logTime.allLogTypes[LOG_UNDO_MOVE].stop()
+
 }
