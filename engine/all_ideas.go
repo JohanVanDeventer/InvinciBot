@@ -5,10 +5,17 @@ package main
 Ideas to consider / implement
 =============================
 
+--- In check ---
+Don't save killer moves while in check, because they are unlikely to be a good move in sibling nodes.
+Because they will likely still be legal, but now not the best move.
+
+--- Bad captures ---
+Add killer moves between equal and losing captures.
+
 --- Check extensions and QS ---
-Don't do check extensions at depth == 0 (causing a change from a qs to normal node).
-But also can't enter qs in check.
-Cannot stand pat in qs in check.
+Only do check extensions at depth == 0, so we don't enter qs in check but also don't grow the tree too much.
+
+Cannot stand pat in qs in check (tested but this results in an ELO loss?).
 
 --- Quiet and Threat Move Ordering ---
 Only order after best moves? Previously did not give an improvement?
@@ -26,9 +33,6 @@ Also maybe don't reduce quiet pawn moves (changes the structure), only piece mov
 
 Formula to reduce more the later in the move list?
 
---- Killer moves ---
-Try only use 1 killer.
-
 --- Quiet Move Ordering ---
 Add a "next move picker" and not sort all moves up front?
 
@@ -45,9 +49,10 @@ Remove mod operator, replace with something faster.
 
 --- QS depth ---
 Increase / decrease qs depth to see effect (is qs too deep/shallow?)
+Should not have an effect if the qs pruning works well.
 
 --- Eval hash table ---
-If the evaluation takes long, store the eval results in a table instead like the TT.
+If the evaluation takes long, store the eval results in a hash table instead like the TT.
 
 --- Better 3 fold repetition detection ---
 After a pawn move or a capture or a change in castling rights, we can never again have a 3 fold repetition with positions before that.
@@ -55,14 +60,11 @@ Therefore we don't need to iterate over all previous zobrist hashes, only those 
 
 --- IID ---
 Try IID at nodes where there is no hash move available.
+Only try at nodes close to the root where better move ordering will have a greater impact.
 
 --- TT Buckets ---
 2 entries for each TT slot/index to improve hit rates.
 Match the entry size to a cache line size (64 bytes).
-
---- TT Lookup QS ---
-Don't save QS nodes but look up in the TT for QS nodes?
-Test whether there is an improvement.
 
 --- Better eval ---
 Note: needs to check both sides.

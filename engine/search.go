@@ -471,34 +471,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// we now check whether there are killer moves that can help the move ordering of quiet moves in other sibling nodes
 		// we get the killer moves, and then loop over them to check whether we have current moves that are the same
 		// if found, we then move killer moves to the front of the quiet move list
-
-		// _____ Killer 1 _____
-		killer1Move := pos.killerMoves[ply][0]
-
-		// we only loop if we previously stored a killer move
-		if killer1Move != BLANK_MOVE {
-
-			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].start()
-
-			killer1Index := -1
-
-			for index, move := range copyOfQuietMoves {
-				if move == killer1Move {
-					killer1Index = index
-				}
-			}
-
-			if killer1Index != -1 {
-				// remove the killer move from the original position
-				copyOfQuietMoves = append(copyOfQuietMoves[:killer1Index], copyOfQuietMoves[killer1Index+1:]...)
-
-				// append the killer move at the start of the list
-				copyOfQuietMoves = append([]Move{killer1Move}, copyOfQuietMoves...)
-			}
-
-			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].stop()
-			pos.logSearch.depthLogs[nodeType].orderKiller1++
-		}
+		// note: we sort killer 2 first, so that killer 1 will be at the 1st position
 
 		// _____ Killer 2 _____
 		killer2Move := pos.killerMoves[ply][1]
@@ -526,6 +499,34 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_2].stop()
 			pos.logSearch.depthLogs[nodeType].orderKiller2++
+		}
+
+		// _____ Killer 1 _____
+		killer1Move := pos.killerMoves[ply][0]
+
+		// we only loop if we previously stored a killer move
+		if killer1Move != BLANK_MOVE {
+
+			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].start()
+
+			killer1Index := -1
+
+			for index, move := range copyOfQuietMoves {
+				if move == killer1Move {
+					killer1Index = index
+				}
+			}
+
+			if killer1Index != -1 {
+				// remove the killer move from the original position
+				copyOfQuietMoves = append(copyOfQuietMoves[:killer1Index], copyOfQuietMoves[killer1Index+1:]...)
+
+				// append the killer move at the start of the list
+				copyOfQuietMoves = append([]Move{killer1Move}, copyOfQuietMoves...)
+			}
+
+			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].stop()
+			pos.logSearch.depthLogs[nodeType].orderKiller1++
 		}
 	}
 
