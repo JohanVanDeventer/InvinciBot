@@ -150,6 +150,26 @@ func (pos *Position) printBoardToTerminal() {
 			fmt.Printf("Evaluation: %v (material: %v, heatmaps: %v, other: %v).\n", totalEval, pos.evalMaterial, pos.evalHeatmaps, pos.evalOther)
 
 		case 6:
+
+			fmt.Printf("<<< ALL NODES >>>      %v%v\n", pos.logSearch.getOverallSummary(), pos.logSearch.getBranchingFactorSummary())
+
+		case 5:
+			fmt.Printf("<<< ALL NODES >>>      %v%v%v\n", pos.logSearch.getMoveOrderingSummary(), pos.logSearch.getMoveGenerationSummary(), pos.logSearch.getCheckExtensionsSummary())
+
+		case 4:
+			fmt.Printf("<<< NON-QS NODES >>>   %v%v\n", pos.logSearch.getTTSummary(), pos.logSearch.getNullMoveSummary())
+
+		case 3:
+			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getEvalSummary())
+
+		case 2:
+			fmt.Printf("<<< NON-QS NODES >>>   %v\n", pos.logSearch.getMoveLoopsNormalSummary())
+
+		case 1:
+			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getMoveLoopsQsSummary())
+
+		case 0:
+
 			avgMoveGen := pos.logTime.allLogTypes[LOG_MOVE_GEN_TOTAL].getAverageNsPerCall()
 			avgMakeMove := pos.logTime.allLogTypes[LOG_MAKE_MOVE].getAverageNsPerCall()
 			avgUndoMove := pos.logTime.allLogTypes[LOG_UNDO_MOVE].getAverageNsPerCall()
@@ -161,46 +181,28 @@ func (pos *Position) printBoardToTerminal() {
 
 			fmt.Printf("<<< AVG TIME TAKEN >>> Move Gen: %v. Make Move: %v. Undo Move: %v. Make Null Move: %v. Eval: %v. Game State: %v. TT Probe: %v. TT Store: %v.\n",
 				avgMoveGen, avgMakeMove, avgUndoMove, avgMakeNullMove, avgEval, avgGameState, avgTTProbe, avgTTStore)
-
-		case 5:
-			avgOrderThreat := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_THREAT_MOVES].getAverageNsPerCall()
-			avgCopyQuiet := pos.logTime.allLogTypes[LOG_SEARCH_COPY_QUIET_MOVES].getAverageNsPerCall()
-			avgOrderKiller1 := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].getAverageNsPerCall()
-			avgOrderKiller2 := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_2].getAverageNsPerCall()
-			avgOrderHash := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_HASH_MOVES].getAverageNsPerCall()
-			avgOrderPrevIter := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_PREVIOUS_ITERATION_MOVES].getAverageNsPerCall()
-			avgOrderTotal := avgOrderThreat + avgCopyQuiet + avgOrderKiller1 + avgOrderKiller2 + avgOrderHash + avgOrderPrevIter
-
-			fmt.Printf("<<< AVG TIME TAKEN >>> Order Moves: %v (threat: %v, quiet: %v, killer1: %v, killer2: %v, hash: %v, prev iter: %v). ",
-				avgOrderTotal, avgOrderThreat, avgCopyQuiet, avgOrderKiller1, avgOrderKiller2, avgOrderHash, avgOrderPrevIter)
-
-			avgStartupFen := pos.logTime.allLogTypes[LOG_ONCE_LOAD_FEN].getAverageNsPerCall()
-			avgStartupHash := pos.logTime.allLogTypes[LOG_ONCE_HASH].getAverageNsPerCall()
-			avgStartupEval := pos.logTime.allLogTypes[LOG_ONCE_EVAL].getAverageNsPerCall()
-			avgStartupSearch := pos.logTime.allLogTypes[LOG_ONCE_SEARCH_STARTUP].getAverageNsPerCall()
-			avgStartupTotal := avgStartupFen + avgStartupHash + avgStartupEval + avgStartupSearch
-
-			fmt.Printf("Startup: %v (fen: %v, hash: %v, eval: %v, search: %v).\n",
-				avgStartupTotal, avgStartupFen, avgStartupHash, avgStartupEval, avgStartupSearch)
-
-		case 4:
-			fmt.Printf("<<< ALL NODES >>>      %v%v\n", pos.logSearch.getOverallSummary(), pos.logSearch.getBranchingFactorSummary())
-
-		case 3:
-			fmt.Printf("<<< ALL NODES >>>      %v%v%v\n", pos.logSearch.getMoveOrderingSummary(), pos.logSearch.getMoveGenerationSummary(), pos.logSearch.getCheckExtensionsSummary())
-
-		case 2:
-			fmt.Printf("<<< NON-QS NODES >>>   %v%v\n", pos.logSearch.getTTSummary(), pos.logSearch.getNullMoveSummary())
-
-		case 1:
-			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getEvalSummary())
-
-		case 0:
-			fmt.Printf("<<< NON-QS NODES >>>   %v\n", pos.logSearch.getMoveLoopsNormalSummary())
 		}
 	}
 	fmt.Printf("====================== ")
-	fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getMoveLoopsQsSummary())
+	avgCopyThreatMoves := pos.logTime.allLogTypes[LOG_SEARCH_COPY_THREAT_MOVES].getAverageNsPerCall()
+	avgCopyQuietMoves := pos.logTime.allLogTypes[LOG_SEARCH_COPY_QUIET_MOVES].getAverageNsPerCall()
+	avgOrderThreat := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_THREAT_MOVES].getAverageNsPerCall()
+	avgOrderKiller1 := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].getAverageNsPerCall()
+	avgOrderKiller2 := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_2].getAverageNsPerCall()
+	avgOrderHash := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_HASH_MOVES].getAverageNsPerCall()
+	avgOrderPrevIter := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_PREVIOUS_ITERATION_MOVES].getAverageNsPerCall()
+
+	fmt.Printf("<<< AVG TIME TAKEN >>> Copy Moves (threat: %v, quiet: %v). Order Moves (threat: %v, killer1: %v, killer2: %v, hash: %v, prev iter: %v). ",
+		avgCopyThreatMoves, avgCopyQuietMoves, avgOrderThreat, avgOrderKiller1, avgOrderKiller2, avgOrderHash, avgOrderPrevIter)
+
+	avgStartupFen := pos.logTime.allLogTypes[LOG_ONCE_LOAD_FEN].getAverageNsPerCall()
+	avgStartupHash := pos.logTime.allLogTypes[LOG_ONCE_HASH].getAverageNsPerCall()
+	avgStartupEval := pos.logTime.allLogTypes[LOG_ONCE_EVAL].getAverageNsPerCall()
+	avgStartupSearch := pos.logTime.allLogTypes[LOG_ONCE_SEARCH_STARTUP].getAverageNsPerCall()
+	avgStartupTotal := avgStartupFen + avgStartupHash + avgStartupEval + avgStartupSearch
+
+	fmt.Printf("Startup: %v (fen: %v, hash: %v, eval: %v, search: %v).\n",
+		avgStartupTotal, avgStartupFen, avgStartupHash, avgStartupEval, avgStartupSearch)
 
 	fmt.Println("    a b c d e f g h")
 }
@@ -261,6 +263,7 @@ func (pos *Position) startGameLoopTerminalGUI() {
 		// if the game is over, break the loop
 		if pos.gameState != STATE_ONGOING {
 			pos.logTime.printLoggedDetails()
+			pos.printBoardToTerminal()
 			break
 		}
 

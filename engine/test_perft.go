@@ -149,6 +149,37 @@ func initTestPositions() {
 	testPos12.depthResults = append(testPos12.depthResults, "58148575")
 	testPositions = append(testPositions, testPos12)
 
+	// test position 13 (ccc): rook captures remove castling rights
+	testPos13 := TestPosition{}
+	testPos13.fen = "r3k2r/8/8/8/3pPp2/8/8/R3K1RR b KQkq e3 0 1"
+	testPos13.depthResults = append(testPos13.depthResults, "29")
+	testPos13.depthResults = append(testPos13.depthResults, "829")
+	testPos13.depthResults = append(testPos13.depthResults, "20501")
+	testPos13.depthResults = append(testPos13.depthResults, "624871")
+	testPos13.depthResults = append(testPos13.depthResults, "15446339")
+	testPositions = append(testPositions, testPos13)
+
+	// test position 14 (ccc): middlegame with en-passant checks, checkmates
+	testPos14 := TestPosition{}
+	testPos14.fen = "8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28"
+	testPos14.depthResults = append(testPos14.depthResults, "5")
+	testPos14.depthResults = append(testPos14.depthResults, "117")
+	testPos14.depthResults = append(testPos14.depthResults, "3293")
+	testPos14.depthResults = append(testPos14.depthResults, "67197")
+	testPos14.depthResults = append(testPos14.depthResults, "1881089")
+	testPos14.depthResults = append(testPos14.depthResults, "38633283")
+	testPositions = append(testPositions, testPos14)
+
+	// test position 15 (ccc): promotions
+	testPos15 := TestPosition{}
+	testPos15.fen = "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1"
+	testPos15.depthResults = append(testPos15.depthResults, "24")
+	testPos15.depthResults = append(testPos15.depthResults, "496")
+	testPos15.depthResults = append(testPos15.depthResults, "9483")
+	testPos15.depthResults = append(testPos15.depthResults, "182838")
+	testPos15.depthResults = append(testPos15.depthResults, "3605103")
+	testPositions = append(testPositions, testPos15)
+
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -229,7 +260,7 @@ func printPerftTestResults() {
 		for depth, depthResults := range testPosition.depthResults {
 			resultNodes := newPos.runPerft(depth+1, depth+1, bulkCounting) // run the perft
 			totalNodes += resultNodes
-			fmt.Printf("Depth: %v. Correct test nodes: %v. My nodes: %v.\n", depth+1, depthResults, resultNodes)
+			//fmt.Printf("Depth: %v. Correct test nodes: %v. My nodes: %v.\n", depth+1, depthResults, resultNodes)
 			if depthResults != strconv.Itoa(resultNodes) {
 				moveGenSuccess = false
 
@@ -258,9 +289,9 @@ func printPerftTestResults() {
 
 		// print the final result
 		if moveGenSuccess {
-			fmt.Printf("[SUCCESS!]\n\n")
+			fmt.Printf("[SUCCESS!]\n")
 		} else {
-			fmt.Printf("[FAILURE!]\n\n")
+			fmt.Printf("[FAILURE!]\n")
 		}
 	}
 }

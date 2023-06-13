@@ -201,7 +201,7 @@ func (pos *Position) reset() {
 	// not done here, done before every search
 
 	// get clean loggers
-	// done at fen initialization of the position
+	// not done here, done at fen initialization of the position
 
 }
 

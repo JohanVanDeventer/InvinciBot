@@ -86,30 +86,31 @@ const (
 	LOG_SEARCH_TT_STORE int = 17
 
 	// order moves
-	LOG_SEARCH_ORDER_THREAT_MOVES             int = 18
+	LOG_SEARCH_COPY_THREAT_MOVES              int = 18
 	LOG_SEARCH_COPY_QUIET_MOVES               int = 19
-	LOG_SEARCH_ORDER_KILLER_1                 int = 20
-	LOG_SEARCH_ORDER_KILLER_2                 int = 21
-	LOG_SEARCH_ORDER_HASH_MOVES               int = 22
-	LOG_SEARCH_ORDER_PREVIOUS_ITERATION_MOVES int = 23
+	LOG_SEARCH_ORDER_THREAT_MOVES             int = 20
+	LOG_SEARCH_ORDER_KILLER_1                 int = 21
+	LOG_SEARCH_ORDER_KILLER_2                 int = 22
+	LOG_SEARCH_ORDER_HASH_MOVES               int = 23
+	LOG_SEARCH_ORDER_PREVIOUS_ITERATION_MOVES int = 24
 
 	// ------------------------------- ONCE-OFF FUNCTIONS -------------------------------
 	// load a position from a fen string
-	LOG_ONCE_LOAD_FEN int = 24
+	LOG_ONCE_LOAD_FEN int = 25
 
 	// hashing
-	LOG_ONCE_HASH int = 25
+	LOG_ONCE_HASH int = 26
 
 	// eval
-	LOG_ONCE_EVAL int = 26
+	LOG_ONCE_EVAL int = 27
 
 	// search startup
-	LOG_ONCE_SEARCH_STARTUP int = 27
+	LOG_ONCE_SEARCH_STARTUP int = 28
 )
 
 // logging manager to manage all the LoggedType structs for a position
 type TimeLogger struct {
-	allLogTypes [28]TimeLogHolder
+	allLogTypes [29]TimeLogHolder
 }
 
 // print all logged details

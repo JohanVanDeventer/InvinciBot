@@ -303,12 +303,15 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	inCheck := pos.kingChecks > 0
 
 	if inCheck && currentDepth <= (initialDepth-2) && initialDepth > 2 {
+
 		currentDepth += 1
+		pos.logSearch.depthLogs[nodeType].checkExtensions++
+
 		if generatedPartialMoves {
 			pos.generateLegalMoves(false)
 			pos.logSearch.depthLogs[nodeType].generatedLegalMovesFull++
 		}
-		pos.logSearch.depthLogs[nodeType].checkExtensions++
+
 	}
 
 	// ------------------------------------------------------------- Evaluation --------------------------------------------------------
@@ -638,13 +641,11 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// we create a bestMove variable to catch the best move to store in the TT
 	bestMove := BLANK_MOVE
 
-	// we count the number of moves tried, to estimate where in the move ordering our cutoff move was found
-	movesTried := 0
-
 	// ------------------------------------------------------- Main Search: Best Moves --------------------------------------------------
 	// start the search and iterate over each move
+	bestMovesTried := 0
 	for _, move := range copyOfBestMoves {
-		movesTried++
+		bestMovesTried++
 
 		// ___________________________________________ Make and Undo Move ___________________________________
 		// play the move, get the score of the node, and undo the move again
@@ -697,8 +698,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			}
 
 			pos.logSearch.depthLogs[nodeType].bestMovesCutoffs++
-			pos.logSearch.depthLogs[nodeType].movesTriedCount++
-			pos.logSearch.depthLogs[nodeType].movesTriedTotalMoves += movesTried
+			pos.logSearch.depthLogs[nodeType].bestMovesTriedCount++
+			pos.logSearch.depthLogs[nodeType].bestMovesTriedTotalMoves += bestMovesTried
 			return beta, false
 		}
 
@@ -712,8 +713,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// ------------------------------------------------------- Main Search: Threat Moves --------------------------------------------------
 	// start the search and iterate over each move
 	pos.logSearch.depthLogs[nodeType].searchedThreatMoves++
+	threatMovesTried := 0
 	for _, move := range copyOfThreatMoves {
-		movesTried++
+		threatMovesTried++
 
 		// ___________________________________________ Make and Undo Move ___________________________________
 		// play the move, get the score of the node, and undo the move again
@@ -753,8 +755,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			}
 
 			pos.logSearch.depthLogs[nodeType].threatMovesCutoffs++
-			pos.logSearch.depthLogs[nodeType].movesTriedCount++
-			pos.logSearch.depthLogs[nodeType].movesTriedTotalMoves += movesTried
+			pos.logSearch.depthLogs[nodeType].threatMovesTriedCount++
+			pos.logSearch.depthLogs[nodeType].threatMovesTriedTotalMoves += threatMovesTried
 			return beta, false
 		}
 
@@ -772,9 +774,11 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// at the depth of zero or lower, we only consider threat moves (captures, en-passant and promotions)
 	// we therefore only iterate over quiet moves at depths > 0 (non-quiescence nodes)
 	if currentDepth > 0 {
+
 		pos.logSearch.depthLogs[nodeType].searchedQuietMoves++
+		quietMovesTried := 0
 		for _, move := range copyOfQuietMoves {
-			movesTried++
+			quietMovesTried++
 
 			// ___________________________________________ Make and Undo Move ___________________________________
 			// play the move, get the score of the node, and undo the move again
@@ -821,8 +825,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				}
 
 				pos.logSearch.depthLogs[nodeType].quietMovesCutoffs++
-				pos.logSearch.depthLogs[nodeType].movesTriedCount++
-				pos.logSearch.depthLogs[nodeType].movesTriedTotalMoves += movesTried
+				pos.logSearch.depthLogs[nodeType].quietMovesTriedCount++
+				pos.logSearch.depthLogs[nodeType].quietMovesTriedTotalMoves += quietMovesTried
 				return beta, false
 			}
 

@@ -5,8 +5,36 @@ package main
 Ideas to consider / implement
 =============================
 
---- Log search ---
-Log details by depth and not in total only.
+--- Check extensions and QS ---
+Don't do check extensions at depth == 0 (causing a change from a qs to normal node).
+But also can't enter qs in check.
+Cannot stand pat in qs in check.
+
+--- Quiet and Threat Move Ordering ---
+Only order after best moves? Previously did not give an improvement?
+
+--- QS TT ---
+Add a small TT specially for QS to fit in the cache.
+
+--- Null move ---
+Reduce depth from 6 to 2 or close to that?
+
+--- LMR ---
+After we have good move ordering, reduce the depth of later moves.
+Don't reduce threat moves.
+Also maybe don't reduce quiet pawn moves (changes the structure), only piece moves?
+
+Formula to reduce more the later in the move list?
+
+--- Killer moves ---
+Try only use 1 killer.
+
+--- Quiet Move Ordering ---
+Add a "next move picker" and not sort all moves up front?
+
+--- TT Startup ---
+Takes around 10ms to create a new TT for each search.
+Keep TT between searches? - later because it will make debugging harder (first implement other ideas, then test this)
 
 --- Auto tune ---
 Add a function to be able to "modify" eval heatmaps and other parameters before engine init.
@@ -15,12 +43,8 @@ That way it can be passed from the Python match manager.
 --- TT ---
 Remove mod operator, replace with something faster.
 
---- Asserts ---
-Add various asserts in the program as tests.
-Check that the incremental heatmap eval is the same for the same position but different paths.
-
 --- QS depth ---
-Increase / decrease qs depth to see effect (is qs too deep?)
+Increase / decrease qs depth to see effect (is qs too deep/shallow?)
 
 --- Eval hash table ---
 If the evaluation takes long, store the eval results in a table instead like the TT.
@@ -35,9 +59,6 @@ Try IID at nodes where there is no hash move available.
 --- TT Buckets ---
 2 entries for each TT slot/index to improve hit rates.
 Match the entry size to a cache line size (64 bytes).
-
---- Branching factor ---
-Log the branching factor during search to roughly measure improvements.
 
 --- TT Lookup QS ---
 Don't save QS nodes but look up in the TT for QS nodes?

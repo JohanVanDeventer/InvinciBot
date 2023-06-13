@@ -15,7 +15,7 @@ const (
 	MOVE_ORDERING_SCORE_OFFSET int = 4096
 )
 
-// returns a slice of moves ordered from best to worst
+// returns a slice of threat moves ordered from best to worst
 func (pos *Position) getOrderedThreatMoves() []Move {
 
 	// create a copy of the available moves
