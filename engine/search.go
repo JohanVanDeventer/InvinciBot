@@ -439,7 +439,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	pos.logTime.allLogTypes[LOG_SEARCH_ORDER_THREAT_MOVES].start()
 
-	// create a slice with the length of the available moves and  copy the ordered moves into the created slice
+	// create a slice with the length of the available moves and copy the ordered moves into the created slice
 	copyOfThreatMoves := make([]Move, pos.threatMovesCounter)
 	copy(copyOfThreatMoves, pos.getOrderedThreatMoves())
 
@@ -460,74 +460,6 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 		pos.logTime.allLogTypes[LOG_SEARCH_COPY_QUIET_MOVES].stop()
 		pos.logSearch.depthLogs[nodeType].copyQuietMoves++
-
-		// _____________ Killer Moves ____________
-		// killer moves try to improve the move ordering of quiet moves
-		// we store the move that caused a beta-cutoff as a killer move to be tried in sibling nodes
-		// we identify sibling nodes using the killerMoves[ply][entry] table
-		// we store 2 killer moves in the table for each ply (new and old killer move)
-		// we replace the old move, and keep the new move for each depth as we find killer moves
-		// after having previously stored killer moves,
-		// we now check whether there are killer moves that can help the move ordering of quiet moves in other sibling nodes
-		// we get the killer moves, and then loop over them to check whether we have current moves that are the same
-		// if found, we then move killer moves to the front of the quiet move list
-		// note: we sort killer 2 first, so that killer 1 will be at the 1st position
-
-		// _____ Killer 2 _____
-		killer2Move := pos.killerMoves[ply][1]
-
-		// we only loop if we previously stored a killer move
-		if killer2Move != BLANK_MOVE {
-
-			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_2].start()
-
-			killer2Index := -1
-
-			for index, move := range copyOfQuietMoves {
-				if move == killer2Move {
-					killer2Index = index
-				}
-			}
-
-			if killer2Index != -1 {
-				// remove the killer move from the original position
-				copyOfQuietMoves = append(copyOfQuietMoves[:killer2Index], copyOfQuietMoves[killer2Index+1:]...)
-
-				// append the killer move at the start of the list
-				copyOfQuietMoves = append([]Move{killer2Move}, copyOfQuietMoves...)
-			}
-
-			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_2].stop()
-			pos.logSearch.depthLogs[nodeType].orderKiller2++
-		}
-
-		// _____ Killer 1 _____
-		killer1Move := pos.killerMoves[ply][0]
-
-		// we only loop if we previously stored a killer move
-		if killer1Move != BLANK_MOVE {
-
-			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].start()
-
-			killer1Index := -1
-
-			for index, move := range copyOfQuietMoves {
-				if move == killer1Move {
-					killer1Index = index
-				}
-			}
-
-			if killer1Index != -1 {
-				// remove the killer move from the original position
-				copyOfQuietMoves = append(copyOfQuietMoves[:killer1Index], copyOfQuietMoves[killer1Index+1:]...)
-
-				// append the killer move at the start of the list
-				copyOfQuietMoves = append([]Move{killer1Move}, copyOfQuietMoves...)
-			}
-
-			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].stop()
-			pos.logSearch.depthLogs[nodeType].orderKiller1++
-		}
 	}
 
 	// ___________________________________ BEST MOVES: HASH ___________________________________
@@ -768,6 +700,79 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 	}
 
+	// ------------------------------------------------------- Order Moves: Quiet Moves --------------------------------------------------
+	// we now order quiet moves before searching quiet moves
+	if currentDepth > 0 {
+
+		// _____________ Killer Moves ____________
+		// killer moves try to improve the move ordering of quiet moves
+		// we store the move that caused a beta-cutoff as a killer move to be tried in sibling nodes
+		// we identify sibling nodes using the killerMoves[ply][entry] table
+		// we store 2 killer moves in the table for each ply (new and old killer move)
+		// we replace the old move, and keep the new move for each depth as we find killer moves
+		// after having previously stored killer moves,
+		// we now check whether there are killer moves that can help the move ordering of quiet moves in other sibling nodes
+		// we get the killer moves, and then loop over them to check whether we have current moves that are the same
+		// if found, we then move killer moves to the front of the quiet move list
+		// note: we sort killer 2 first, so that killer 1 will be at the 1st position
+
+		// _____ Killer 2 _____
+		killer2Move := pos.killerMoves[ply][1]
+
+		// we only loop if we previously stored a killer move
+		if killer2Move != BLANK_MOVE {
+
+			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_2].start()
+
+			killer2Index := -1
+
+			for index, move := range copyOfQuietMoves {
+				if move == killer2Move {
+					killer2Index = index
+				}
+			}
+
+			if killer2Index != -1 {
+				// remove the killer move from the original position
+				copyOfQuietMoves = append(copyOfQuietMoves[:killer2Index], copyOfQuietMoves[killer2Index+1:]...)
+
+				// append the killer move at the start of the list
+				copyOfQuietMoves = append([]Move{killer2Move}, copyOfQuietMoves...)
+			}
+
+			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_2].stop()
+			pos.logSearch.depthLogs[nodeType].orderKiller2++
+		}
+
+		// _____ Killer 1 _____
+		killer1Move := pos.killerMoves[ply][0]
+
+		// we only loop if we previously stored a killer move
+		if killer1Move != BLANK_MOVE {
+
+			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].start()
+
+			killer1Index := -1
+
+			for index, move := range copyOfQuietMoves {
+				if move == killer1Move {
+					killer1Index = index
+				}
+			}
+
+			if killer1Index != -1 {
+				// remove the killer move from the original position
+				copyOfQuietMoves = append(copyOfQuietMoves[:killer1Index], copyOfQuietMoves[killer1Index+1:]...)
+
+				// append the killer move at the start of the list
+				copyOfQuietMoves = append([]Move{killer1Move}, copyOfQuietMoves...)
+			}
+
+			pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].stop()
+			pos.logSearch.depthLogs[nodeType].orderKiller1++
+		}
+	}
+
 	// ------------------------------------------------------- Main Search: Quiet Moves --------------------------------------------------
 	// start the search and iterate over each move
 
@@ -840,7 +845,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	}
 
 	// ---------------------------------------------------- TT Store Entry -----------------------------------------------
-	// after iteration over all the moves, we store the node in the TT
+	// after iterating over all the moves, we store the node in the TT
 	// we only store TT entries for non-quiescence nodes because they are fully searched
 
 	if currentDepth > 0 {

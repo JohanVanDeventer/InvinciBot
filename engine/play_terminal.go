@@ -95,10 +95,21 @@ func (pos *Position) printBoardToTerminal() {
 	pos.evalPosAfter()
 
 	if pos.isWhiteTurn {
-		fmt.Printf("======================\n")
+		fmt.Printf("====================== ")
 	} else {
-		fmt.Printf("======================\n")
+		fmt.Printf("====================== ")
 	}
+
+	if pos.isWhiteTurn {
+		fmt.Printf("<<< GAME INFO >>>      Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v. ",
+			gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
+	} else {
+		fmt.Printf("<<< GAME INFO >>>      Turn: Black. Game Status: %v. Current move: %v. 50-move counter: %v. ",
+			gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
+	}
+
+	totalEval := pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+	fmt.Printf("Evaluation: %v (material: %v, heatmaps: %v, other: %v).\n", totalEval, pos.evalMaterial, pos.evalHeatmaps, pos.evalOther)
 
 	for rowCounter := 7; rowCounter >= 0; rowCounter-- {
 
@@ -138,26 +149,16 @@ func (pos *Position) printBoardToTerminal() {
 		switch rowCounter {
 
 		case 7:
-			if pos.isWhiteTurn {
-				fmt.Printf("<<< GAME INFO >>>      Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v. ",
-					gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
-			} else {
-				fmt.Printf("<<< GAME INFO >>>      Turn: Black. Game Status: %v. Current move: %v. 50-move counter: %v. ",
-					gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
-			}
-
-			totalEval := pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
-			fmt.Printf("Evaluation: %v (material: %v, heatmaps: %v, other: %v).\n", totalEval, pos.evalMaterial, pos.evalHeatmaps, pos.evalOther)
-
-		case 6:
-
 			fmt.Printf("<<< ALL NODES >>>      %v%v\n", pos.logSearch.getOverallSummary(), pos.logSearch.getBranchingFactorSummary())
 
-		case 5:
+		case 6:
 			fmt.Printf("<<< ALL NODES >>>      %v%v%v\n", pos.logSearch.getMoveOrderingSummary(), pos.logSearch.getMoveGenerationSummary(), pos.logSearch.getCheckExtensionsSummary())
 
+		case 5:
+			fmt.Printf("<<< NON-QS NODES >>>   %v%v\n", pos.logSearch.getTTNormalSummary(), pos.logSearch.getNullMoveSummary())
+
 		case 4:
-			fmt.Printf("<<< NON-QS NODES >>>   %v%v\n", pos.logSearch.getTTSummary(), pos.logSearch.getNullMoveSummary())
+			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getTTQsSummary())
 
 		case 3:
 			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getEvalSummary())

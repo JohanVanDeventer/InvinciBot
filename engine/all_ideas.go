@@ -13,12 +13,7 @@ Because they will likely still be legal, but now not the best move.
 Add killer moves between equal and losing captures.
 
 --- Check extensions and QS ---
-Only do check extensions at depth == 0, so we don't enter qs in check but also don't grow the tree too much.
-
 Cannot stand pat in qs in check (tested but this results in an ELO loss?).
-
---- Quiet and Threat Move Ordering ---
-Only order after best moves? Previously did not give an improvement?
 
 --- QS TT ---
 Add a small TT specially for QS to fit in the cache.

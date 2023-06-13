@@ -214,7 +214,7 @@ func (log *SearchLogger) getBranchingFactorSummary() string {
 	return summary
 }
 
-func (log *SearchLogger) getTTSummary() string {
+func (log *SearchLogger) getTTNormalSummary() string {
 
 	// create the summary string
 	summary := ""
@@ -223,13 +223,13 @@ func (log *SearchLogger) getTTSummary() string {
 	totalNodes := log.depthLogs[NODE_TYPE_NORMAL].nodes
 
 	// tt probe
-	ttProbeTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttProbe+log.depthLogs[NODE_TYPE_QS].ttProbe)
+	ttProbeTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttProbe)
 	summary += "TT Probe: " + strconv.Itoa(ttProbeTotalPercent) + "%. "
 
 	// tt hit
-	ttHitExactTotal := log.depthLogs[NODE_TYPE_NORMAL].ttHitExact + log.depthLogs[NODE_TYPE_QS].ttHitExact
-	ttHitLowerTotal := log.depthLogs[NODE_TYPE_NORMAL].ttHitLower + log.depthLogs[NODE_TYPE_QS].ttHitLower
-	ttHitUpperTotal := log.depthLogs[NODE_TYPE_NORMAL].ttHitUpper + log.depthLogs[NODE_TYPE_QS].ttHitUpper
+	ttHitExactTotal := log.depthLogs[NODE_TYPE_NORMAL].ttHitExact
+	ttHitLowerTotal := log.depthLogs[NODE_TYPE_NORMAL].ttHitLower
+	ttHitUpperTotal := log.depthLogs[NODE_TYPE_NORMAL].ttHitUpper
 	ttHitTotal := ttHitExactTotal + ttHitLowerTotal + ttHitUpperTotal
 
 	ttHitExactPercent := getPercent(ttHitTotal, ttHitExactTotal)
@@ -243,19 +243,66 @@ func (log *SearchLogger) getTTSummary() string {
 	summary += "upper: " + strconv.Itoa(ttHitUpperPercent) + "%). "
 
 	// tt retrieve hash move
-	ttRetrieveHashMoveTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttRetrievedHashMove+log.depthLogs[NODE_TYPE_QS].ttRetrievedHashMove)
+	ttRetrieveHashMoveTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttRetrievedHashMove)
 	summary += "TT Retrieve Hash: " + strconv.Itoa(ttRetrieveHashMoveTotalPercent) + "%. "
 
 	// tt tested hash move
-	ttTestedHashMoveTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttTestedHashMove+log.depthLogs[NODE_TYPE_QS].ttTestedHashMove)
+	ttTestedHashMoveTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttTestedHashMove)
 	summary += "TT Test Hash: " + strconv.Itoa(ttTestedHashMoveTotalPercent) + "%. "
 
 	// tt used and ordered hash move
-	ttUsedAndOrderedHashMoveTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttUsedAndOrderedHashMove+log.depthLogs[NODE_TYPE_QS].ttUsedAndOrderedHashMove)
+	ttUsedAndOrderedHashMoveTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttUsedAndOrderedHashMove)
 	summary += "TT Order Hash: " + strconv.Itoa(ttUsedAndOrderedHashMoveTotalPercent) + "%. "
 
 	// tt store
-	ttStoreTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttStore+log.depthLogs[NODE_TYPE_QS].ttStore)
+	ttStoreTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttStore)
+	summary += "TT Store: " + strconv.Itoa(ttStoreTotalPercent) + "%. "
+
+	return summary
+}
+
+func (log *SearchLogger) getTTQsSummary() string {
+
+	// create the summary string
+	summary := ""
+
+	// total nodes
+	totalNodes := log.depthLogs[NODE_TYPE_QS].nodes
+
+	// tt probe
+	ttProbeTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].ttProbe)
+	summary += "TT Probe: " + strconv.Itoa(ttProbeTotalPercent) + "%. "
+
+	// tt hit
+	ttHitExactTotal := log.depthLogs[NODE_TYPE_QS].ttHitExact
+	ttHitLowerTotal := log.depthLogs[NODE_TYPE_QS].ttHitLower
+	ttHitUpperTotal := log.depthLogs[NODE_TYPE_QS].ttHitUpper
+	ttHitTotal := ttHitExactTotal + ttHitLowerTotal + ttHitUpperTotal
+
+	ttHitExactPercent := getPercent(ttHitTotal, ttHitExactTotal)
+	ttHitLowerPercent := getPercent(ttHitTotal, ttHitLowerTotal)
+	ttHitUpperPercent := getPercent(ttHitTotal, ttHitUpperTotal)
+	ttHitTotalPercent := getPercent(totalNodes, ttHitTotal)
+
+	summary += "TT Hit: " + strconv.Itoa(ttHitTotalPercent) + "% ("
+	summary += "exact: " + strconv.Itoa(ttHitExactPercent) + "%, "
+	summary += "lower: " + strconv.Itoa(ttHitLowerPercent) + "%, "
+	summary += "upper: " + strconv.Itoa(ttHitUpperPercent) + "%). "
+
+	// tt retrieve hash move
+	ttRetrieveHashMoveTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].ttRetrievedHashMove)
+	summary += "TT Retrieve Hash: " + strconv.Itoa(ttRetrieveHashMoveTotalPercent) + "%. "
+
+	// tt tested hash move
+	ttTestedHashMoveTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].ttTestedHashMove)
+	summary += "TT Test Hash: " + strconv.Itoa(ttTestedHashMoveTotalPercent) + "%. "
+
+	// tt used and ordered hash move
+	ttUsedAndOrderedHashMoveTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].ttUsedAndOrderedHashMove)
+	summary += "TT Order Hash: " + strconv.Itoa(ttUsedAndOrderedHashMoveTotalPercent) + "%. "
+
+	// tt store
+	ttStoreTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].ttStore)
 	summary += "TT Store: " + strconv.Itoa(ttStoreTotalPercent) + "%. "
 
 	return summary
