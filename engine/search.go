@@ -974,16 +974,65 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// we therefore only iterate over quiet moves at depths > 0 (non-quiescence nodes)
 	if currentDepth > 0 {
 
+		// _____________ Late Move Reductions _____________
+
+		// ___ Idea ___
+		// at the moment other quiet moves represent about 1%-2% of the cut nodes on average in the middlegame
+		// this can rise to about 7%-8% in the endgame
+		// we therefore don't want to waste too much time searching these "late" moves in the move ordering scheme
+		// we therefore apply a reduction in the search depth to these moves, and search with a zero width window
+		// if a move is able to improve alpha, we know the move is better than expected,
+		// and we do a re-search with the full window and the full depth
+		// if alpha is not improved, we saved time in doing a reduced depth search
+
+		// ___ Restrictions ___
+		// we don't reduce any threat moves (captures or promotions)
+		// we also don't reduce any moves when we are in check (as we need to resolve the tactical implications)
+		// we also don't reduce while we are at the root
+		// we also don't reduce if we are too close to qs (we need at least a bit of time to check all replies before qs)
+		canDoLMR := !inCheck && currentDepth < initialDepth && currentDepth > 2
+
+		// ___ Depth Reduction ___
+		// we use a formula to calculate the depth reduction based on the remaining depth
+		// remember: LMR is cumulative (reduce child nodes despite the fact that the parent node was also reduced)
+		// so reductions need to be not as aggressive, because cumulative reductions will stack quickly
+		lmr := 0
+		if canDoLMR {
+			lmr = 1 + currentDepth/5
+		}
+
 		quietOtherMovesTried := 0
 		for _, move := range copyOfQuietMoves {
 			quietOtherMovesTried++
 
 			// ___________________________________________ Make and Undo Move ___________________________________
 			// play the move, get the score of the node, and undo the move again
-			pos.makeMove(move)
-			score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
-			moveValue := 0 - score
-			pos.undoMove()
+			var score int
+			var terminated bool
+			var moveValue int
+
+			if canDoLMR {
+				// ___________ LMR: Zero-Width Window ___________
+				pos.makeMove(move)
+				score, terminated = pos.negamax(initialDepth, currentDepth-lmr-1, 0-(alpha+1), 0-alpha, tt, qsDepth, ply, false)
+				moveValue = 0 - score
+				pos.undoMove()
+
+				// ___________ LMR: Fail-High Research ___________
+				if moveValue > alpha {
+					pos.makeMove(move)
+					score, terminated = pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
+					moveValue = 0 - score
+					pos.undoMove()
+				}
+
+			} else {
+				// ___________ No LMR ___________
+				pos.makeMove(move)
+				score, terminated = pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
+				moveValue = 0 - score
+				pos.undoMove()
+			}
 
 			// if the search was terminated, return with a zero value
 			if terminated {
