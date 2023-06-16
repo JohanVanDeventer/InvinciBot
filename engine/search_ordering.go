@@ -15,8 +15,8 @@ const (
 	MOVE_ORDERING_SCORE_OFFSET int = 4096
 )
 
-// returns a slice of threat moves ordered from best to worst
-func (pos *Position) getOrderedThreatMoves() []Move {
+// returns a slice of threat moves ordered from best to worst at qs nodes
+func (pos *Position) getOrderedThreatMovesQsNodes() ([]Move, []Move) {
 
 	// create a copy of the available moves
 	moves := make([]Move, pos.threatMovesCounter)
@@ -83,5 +83,92 @@ func (pos *Position) getOrderedThreatMoves() []Move {
 		move.clearMoveOrderingScore()
 	}
 
-	return moves
+	return moves, []Move{}
+}
+
+// returns a slice of threat moves ordered from best to worst at normal nodes
+func (pos *Position) getOrderedThreatMovesNormalNodes() ([]Move, []Move) {
+
+	// create a copy of the available moves
+	moves := make([]Move, pos.threatMovesCounter)
+	copy(moves, pos.threatMoves[:pos.threatMovesCounter])
+
+	// loop over moves to score them
+	for i, move := range pos.threatMoves[:pos.threatMovesCounter] {
+
+		// set the score of the move to zero
+		moveOrderScore := MOVE_ORDERING_SCORE_OFFSET
+
+		// get the relevant move information
+		moveType := move.getMoveType()
+		promotionType := move.getPromotionType()
+
+		// ------------------------------------------- PROMOTIONS: VALUE GAINED -------------------------------------
+		// if there is a promotion, add that promoted piece's value less the pawn value
+		// the score is done from the white side (positve score), because for move ordering this is the point
+		if promotionType != PROMOTION_NONE {
+			moveOrderScore += (evalTableMaterial[SIDE_WHITE][promotionType] - VALUE_PAWN)
+		}
+
+		// ------------------------------------------- CAPTURES: VALUE GAINED -------------------------------------
+		// MOVE_TYPE_EN_PASSANT: no bonus because pawn traded for pawn = 0 incremental value
+		// MOVE_TYPE_CAPTURE: evaluate below
+		if moveType == MOVE_TYPE_CAPTURE {
+			var enemyPiece int = 6 // set to 6 to catch bugs
+			var enSide int = SIDE_WHITE
+			if pos.isWhiteTurn {
+				enSide = SIDE_BLACK
+			}
+			toSq := move.getToSq()
+			piece := move.getPiece()
+
+			if pos.pieces[enSide][PIECE_PAWN].isBitSet(toSq) {
+				enemyPiece = PIECE_PAWN
+			} else if pos.pieces[enSide][PIECE_KNIGHT].isBitSet(toSq) {
+				enemyPiece = PIECE_KNIGHT
+			} else if pos.pieces[enSide][PIECE_BISHOP].isBitSet(toSq) {
+				enemyPiece = PIECE_BISHOP
+			} else if pos.pieces[enSide][PIECE_ROOK].isBitSet(toSq) {
+				enemyPiece = PIECE_ROOK
+			} else if pos.pieces[enSide][PIECE_QUEEN].isBitSet(toSq) {
+				enemyPiece = PIECE_QUEEN
+			}
+
+			// add the difference between the captured and friendly piece
+			// therefore lower piece value captures higher piece value is evaluated first
+			moveOrderScore += (evalTableMaterial[SIDE_WHITE][enemyPiece]) - (evalTableMaterial[SIDE_WHITE][piece])
+		}
+
+		// ------------------------------------------- SAVE THE SCORE -------------------------------------
+		// finally set the updated move score if the score is not zero
+		moves[i].setMoveOrderingScore(moveOrderScore)
+	}
+
+	// now sort the moves
+	// define the custom comparator function
+	// sort the moves based on the scores using the comparator function
+	sort.Slice(moves, func(i, j int) bool { return moves[i].getMoveOrderingScore() > moves[j].getMoveOrderingScore() })
+
+	// finally clear the move ordering scores (to make comparison easier later to other moves)
+	// we also catch the index of the moves where the "bad" captures start, to search them later
+	badCapturesStartIndex := -1 // set to -1 to catch bugs
+	for index, move := range moves {
+
+		// if we have not yet got the index of bad captures, get that
+		if badCapturesStartIndex == -1 {
+			if move.getMoveOrderingScore() < MOVE_ORDERING_SCORE_OFFSET {
+				badCapturesStartIndex = index
+			}
+		}
+
+		// finally clear the move ordering score
+		move.clearMoveOrderingScore()
+	}
+
+	// split the moves into good and bad captures
+	if badCapturesStartIndex == -1 {
+		return moves, []Move{}
+	} else {
+		return moves[:badCapturesStartIndex], moves[badCapturesStartIndex:]
+	}
 }

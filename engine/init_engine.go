@@ -48,6 +48,7 @@ func initEngine() {
 		// search
 		initQSDepthLimits()
 
+		// finally, set the init flag
 		initEngineWasDone = true
 	}
 }

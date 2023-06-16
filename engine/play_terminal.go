@@ -249,10 +249,10 @@ func (pos *Position) startGameLoopTerminalGUI() {
 
 	if computerPlaysWhite || computerPlaysBlack {
 		var timeInput string
-		fmt.Printf("Enter the time the computer is allowed per move in seconds: ")
+		fmt.Printf("Enter the time the computer is allowed per move in milliseconds: ")
 		fmt.Scanln(&timeInput)
 		timeInt, _ := strconv.Atoi(timeInput)
-		timePerMoveMs = timeInt * 1000
+		timePerMoveMs = timeInt
 	}
 
 	// start the loop

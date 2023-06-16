@@ -50,26 +50,33 @@ type SearchDepthLog struct {
 	nullMoveSuccesses int // tried a null move and got a cutoff
 	nullMoveFailures  int // tried a null move and did not get a cutoff
 
-	// details about occurences of each of the main move loops
-	searchedThreatMoves int // nodes where all quiet moves were looped over
-	searchedQuietMoves  int // nodes where all quiet moves were looped over
-	// searchedBestMoves - not needed: we search best moves each time a hash move was successfully ordered
-
 	// details about cutoffs in each of the main move loops
-	threatMovesCutoffs int // beta cuts when looping over threat nodes
-	quietMovesCutoffs  int // beta cuts when looping over quiet nodes
-	bestMovesCutoffs   int // beta cuts when looping over best nodes
-	noCutoffs          int // nodes where we returned alpha
+	loopedOverMoves int // number of nodes where we actually looped over moves
 
-	// details about where in the move list the best/cutoff move was found
-	bestMovesTriedTotalMoves int // sum of the index of the best moves
-	bestMovesTriedCount      int // total best moves found
+	bestMovesCutoffs         int // beta cuts when looping over best nodes
+	bestMovesNoCutoffs       int // no beta cuts when looping over best nodes
+	bestMovesTriedBeforeCuts int // sum of the index of the best moves
+	bestMovesTriedWhenNoCuts int // sum of the total moves when there were no cuts
 
-	threatMovesTriedTotalMoves int // sum of the index of the best moves
-	threatMovesTriedCount      int // total best moves found
+	threatGoodMovesCutoffs         int // beta cuts when looping over threat nodes
+	threatGoodMovesNoCutoffs       int // no beta cuts when looping over threat nodes
+	threatGoodMovesTriedBeforeCuts int // sum of the index of the best moves
+	threatGoodMovesTriedWhenNoCuts int // sum of the index of the best moves
 
-	quietMovesTriedTotalMoves int // sum of the index of the best moves
-	quietMovesTriedCount      int // total best moves found
+	threatBadMovesCutoffs         int // beta cuts when looping over threat nodes
+	threatBadMovesNoCutoffs       int // no beta cuts when looping over threat nodes
+	threatBadMovesTriedBeforeCuts int // sum of the index of the best moves
+	threatBadMovesTriedWhenNoCuts int // sum of the index of the best moves
+
+	quietKillerMovesCutoffs         int // beta cuts when looping over quiet nodes
+	quietKillerMovesNoCutoffs       int // no beta cuts when looping over quiet nodes
+	quietKillerMovesTriedBeforeCuts int // sum of the index of the best moves
+	quietKillerMovesTriedWhenNoCuts int // sum of the index of the best moves
+
+	quietOtherMovesCutoffs         int // beta cuts when looping over quiet nodes
+	quietOtherMovesNoCutoffs       int // no beta cuts when looping over quiet nodes
+	quietOtherMovesTriedBeforeCuts int // sum of the index of the best moves
+	quietOtherMovesTriedWhenNoCuts int // sum of the index of the best moves
 
 }
 
@@ -440,35 +447,86 @@ func (log *SearchLogger) getMoveLoopsNormalSummary() string {
 
 	// total nodes
 	totalNodes := log.depthLogs[NODE_TYPE_NORMAL].nodes
-	nodesWithCutoffs := log.depthLogs[NODE_TYPE_NORMAL].bestMovesCutoffs + log.depthLogs[NODE_TYPE_NORMAL].threatMovesCutoffs + log.depthLogs[NODE_TYPE_NORMAL].quietMovesCutoffs
-	nodesWithoutCutoffs := log.depthLogs[NODE_TYPE_NORMAL].noCutoffs
-	nodesLoopedOver := nodesWithCutoffs + nodesWithoutCutoffs
+	nodesLoopedOver := log.depthLogs[NODE_TYPE_NORMAL].loopedOverMoves
+	nodesWithCutoffs := log.depthLogs[NODE_TYPE_NORMAL].bestMovesCutoffs + log.depthLogs[NODE_TYPE_NORMAL].threatGoodMovesCutoffs + log.depthLogs[NODE_TYPE_NORMAL].threatBadMovesCutoffs + log.depthLogs[NODE_TYPE_NORMAL].quietKillerMovesCutoffs + log.depthLogs[NODE_TYPE_NORMAL].quietOtherMovesCutoffs
 
 	loopedOverNodesPercent := getPercent(totalNodes, nodesLoopedOver)
 	nodesWithCutoffsPercent := getPercent(nodesLoopedOver, nodesWithCutoffs)
-	nodesWithoutCutoffsPercent := getPercent(nodesLoopedOver, nodesWithoutCutoffs)
+	nodesWithoutCutoffsPercent := 100 - nodesWithCutoffsPercent
 
-	summary += "Looped Over Moves: " + strconv.Itoa(loopedOverNodesPercent) + "%. "
-	summary += "No Cutoffs: " + strconv.Itoa(nodesWithoutCutoffsPercent) + "%. "
-	summary += "Cutoffs: " + strconv.Itoa(nodesWithCutoffsPercent) + "% ("
+	summary += "Loop: " + strconv.Itoa(loopedOverNodesPercent) + "%. "
+	summary += "NoCut: " + strconv.Itoa(nodesWithoutCutoffsPercent) + "%. "
+	summary += "Cut: " + strconv.Itoa(nodesWithCutoffsPercent) + "% ("
 
-	// cut type
-	bestCutsPercent := getPercent(nodesWithCutoffs, log.depthLogs[NODE_TYPE_NORMAL].bestMovesCutoffs)
-	threatCutsPercent := getPercent(nodesWithCutoffs, log.depthLogs[NODE_TYPE_NORMAL].threatMovesCutoffs)
-	quietCutsPercent := getPercent(nodesWithCutoffs, log.depthLogs[NODE_TYPE_NORMAL].quietMovesCutoffs)
+	// cut type split
+	bestCuts := log.depthLogs[NODE_TYPE_NORMAL].bestMovesCutoffs
+	bestCutsPercent := getPercent(nodesWithCutoffs, bestCuts)
 
-	summary += "best: " + strconv.Itoa(bestCutsPercent) + "%, "
-	summary += "threat: " + strconv.Itoa(threatCutsPercent) + "%, "
-	summary += "quiet: " + strconv.Itoa(quietCutsPercent) + "%). "
+	threatGoodCuts := log.depthLogs[NODE_TYPE_NORMAL].threatGoodMovesCutoffs
+	threatGoodCutsPercent := getPercent(nodesWithCutoffs, threatGoodCuts)
+
+	quietKillerCuts := log.depthLogs[NODE_TYPE_NORMAL].quietKillerMovesCutoffs
+	quietKillerCutsPercent := getPercent(nodesWithCutoffs, quietKillerCuts)
+
+	threatBadCuts := log.depthLogs[NODE_TYPE_NORMAL].threatBadMovesCutoffs
+	threatBadCutsPercent := getPercent(nodesWithCutoffs, threatBadCuts)
+
+	quietOtherCuts := log.depthLogs[NODE_TYPE_NORMAL].quietOtherMovesCutoffs
+	quietOtherCutsPercent := getPercent(nodesWithCutoffs, quietOtherCuts)
+
+	summary += "b: " + strconv.Itoa(bestCutsPercent) + "%, "
+	summary += "gT: " + strconv.Itoa(threatGoodCutsPercent) + "%, "
+	summary += "kQ: " + strconv.Itoa(quietKillerCutsPercent) + "%, "
+	summary += "bT: " + strconv.Itoa(threatBadCutsPercent) + "%, "
+	summary += "oQ: " + strconv.Itoa(quietOtherCutsPercent) + "%). "
+
+	// cut success rate
+	bestNoCuts := log.depthLogs[NODE_TYPE_NORMAL].bestMovesNoCutoffs
+	bestTotal := bestCuts + bestNoCuts
+	bestCutsRatio := getPercent(bestTotal, bestCuts)
+	summary += "Success (b: " + strconv.Itoa(bestCutsRatio) + "%, "
+
+	threatGoodNoCuts := log.depthLogs[NODE_TYPE_NORMAL].threatGoodMovesNoCutoffs
+	threatGoodTotal := threatGoodCuts + threatGoodNoCuts
+	threatGoodCutsRatio := getPercent(threatGoodTotal, threatGoodCuts)
+	summary += "gT: " + strconv.Itoa(threatGoodCutsRatio) + "%, "
+
+	quietKillerNoCuts := log.depthLogs[NODE_TYPE_NORMAL].quietKillerMovesNoCutoffs
+	quietKillerTotal := quietKillerCuts + quietKillerNoCuts
+	quietKillerCutsRatio := getPercent(quietKillerTotal, quietKillerCuts)
+	summary += "kQ: " + strconv.Itoa(quietKillerCutsRatio) + "%, "
+
+	threatBadNoCuts := log.depthLogs[NODE_TYPE_NORMAL].threatBadMovesNoCutoffs
+	threatBadTotal := threatBadCuts + threatBadNoCuts
+	threatBadCutsRatio := getPercent(threatBadTotal, threatBadCuts)
+	summary += "bT: " + strconv.Itoa(threatBadCutsRatio) + "%, "
+
+	quietOtherNoCuts := log.depthLogs[NODE_TYPE_NORMAL].quietOtherMovesNoCutoffs
+	quietOtherTotal := quietOtherCuts + quietOtherNoCuts
+	quietOtherCutsRatio := getPercent(quietOtherTotal, quietOtherCuts)
+	summary += "oQ: " + strconv.Itoa(quietOtherCutsRatio) + "%). "
 
 	// cut move index
-	avgBestMoveIndex := float64(log.depthLogs[NODE_TYPE_NORMAL].bestMovesTriedTotalMoves) / float64(log.depthLogs[NODE_TYPE_NORMAL].bestMovesTriedCount)
-	avgThreatMoveIndex := float64(log.depthLogs[NODE_TYPE_NORMAL].threatMovesTriedTotalMoves) / float64(log.depthLogs[NODE_TYPE_NORMAL].threatMovesTriedCount)
-	avgQuietMoveIndex := float64(log.depthLogs[NODE_TYPE_NORMAL].quietMovesTriedTotalMoves) / float64(log.depthLogs[NODE_TYPE_NORMAL].quietMovesTriedCount)
+	avgBestMoveIndex := float64(log.depthLogs[NODE_TYPE_NORMAL].bestMovesTriedBeforeCuts) / float64(bestCuts)
+	avgBestMoveLength := float64(log.depthLogs[NODE_TYPE_NORMAL].bestMovesTriedWhenNoCuts) / float64(bestNoCuts)
 
-	summary += "Best Move Avg Index (best: " + strconv.FormatFloat(avgBestMoveIndex, 'f', 2, 64) + ", "
-	summary += "threat: " + strconv.FormatFloat(avgThreatMoveIndex, 'f', 2, 64) + ", "
-	summary += "quiet: " + strconv.FormatFloat(avgQuietMoveIndex, 'f', 2, 64) + "). "
+	avgGoodThreatMoveIndex := float64(log.depthLogs[NODE_TYPE_NORMAL].threatGoodMovesTriedBeforeCuts) / float64(threatGoodCuts)
+	avgGoodThreatMoveLength := float64(log.depthLogs[NODE_TYPE_NORMAL].threatGoodMovesTriedWhenNoCuts) / float64(threatGoodNoCuts)
+
+	avgBadThreatMoveIndex := float64(log.depthLogs[NODE_TYPE_NORMAL].threatBadMovesTriedBeforeCuts) / float64(threatBadCuts)
+	avgBadThreatMoveLength := float64(log.depthLogs[NODE_TYPE_NORMAL].threatBadMovesTriedWhenNoCuts) / float64(threatBadNoCuts)
+
+	avgKillerQuietMoveIndex := float64(log.depthLogs[NODE_TYPE_NORMAL].quietKillerMovesTriedBeforeCuts) / float64(quietKillerCuts)
+	avgKillerQuietMoveLength := float64(log.depthLogs[NODE_TYPE_NORMAL].quietKillerMovesTriedWhenNoCuts) / float64(quietKillerNoCuts)
+
+	avgOtherQuietMoveIndex := float64(log.depthLogs[NODE_TYPE_NORMAL].quietOtherMovesTriedBeforeCuts) / float64(quietOtherCuts)
+	avgOtherQuietMoveLength := float64(log.depthLogs[NODE_TYPE_NORMAL].quietOtherMovesTriedWhenNoCuts) / float64(quietOtherNoCuts)
+
+	summary += "CutIdx/Len (b: " + strconv.FormatFloat(avgBestMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgBestMoveLength, 'f', 2, 64) + ", "
+	summary += "gT: " + strconv.FormatFloat(avgGoodThreatMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgGoodThreatMoveLength, 'f', 2, 64) + ", "
+	summary += "kQ: " + strconv.FormatFloat(avgKillerQuietMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgKillerQuietMoveLength, 'f', 2, 64) + ", "
+	summary += "bT: " + strconv.FormatFloat(avgBadThreatMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgBadThreatMoveLength, 'f', 2, 64) + ", "
+	summary += "oQ: " + strconv.FormatFloat(avgOtherQuietMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgOtherQuietMoveLength, 'f', 2, 64) + "). "
 
 	return summary
 }
@@ -480,35 +538,86 @@ func (log *SearchLogger) getMoveLoopsQsSummary() string {
 
 	// total nodes
 	totalNodes := log.depthLogs[NODE_TYPE_QS].nodes
-	nodesWithCutoffs := log.depthLogs[NODE_TYPE_QS].bestMovesCutoffs + log.depthLogs[NODE_TYPE_QS].threatMovesCutoffs + log.depthLogs[NODE_TYPE_QS].quietMovesCutoffs
-	nodesWithoutCutoffs := log.depthLogs[NODE_TYPE_QS].noCutoffs
-	nodesLoopedOver := nodesWithCutoffs + nodesWithoutCutoffs
+	nodesLoopedOver := log.depthLogs[NODE_TYPE_QS].loopedOverMoves
+	nodesWithCutoffs := log.depthLogs[NODE_TYPE_QS].bestMovesCutoffs + log.depthLogs[NODE_TYPE_QS].threatGoodMovesCutoffs + log.depthLogs[NODE_TYPE_QS].threatBadMovesCutoffs + log.depthLogs[NODE_TYPE_QS].quietKillerMovesCutoffs + log.depthLogs[NODE_TYPE_QS].quietOtherMovesCutoffs
 
 	loopedOverNodesPercent := getPercent(totalNodes, nodesLoopedOver)
 	nodesWithCutoffsPercent := getPercent(nodesLoopedOver, nodesWithCutoffs)
-	nodesWithoutCutoffsPercent := getPercent(nodesLoopedOver, nodesWithoutCutoffs)
+	nodesWithoutCutoffsPercent := 100 - nodesWithCutoffsPercent
 
-	summary += "Looped Over Moves: " + strconv.Itoa(loopedOverNodesPercent) + "%. "
-	summary += "No Cutoffs: " + strconv.Itoa(nodesWithoutCutoffsPercent) + "%. "
-	summary += "Cutoffs: " + strconv.Itoa(nodesWithCutoffsPercent) + "% ("
+	summary += "Loop: " + strconv.Itoa(loopedOverNodesPercent) + "%. "
+	summary += "NoCut: " + strconv.Itoa(nodesWithoutCutoffsPercent) + "%. "
+	summary += "Cut: " + strconv.Itoa(nodesWithCutoffsPercent) + "% ("
 
-	// cut type
-	bestCutsPercent := getPercent(nodesWithCutoffs, log.depthLogs[NODE_TYPE_QS].bestMovesCutoffs)
-	threatCutsPercent := getPercent(nodesWithCutoffs, log.depthLogs[NODE_TYPE_QS].threatMovesCutoffs)
-	quietCutsPercent := getPercent(nodesWithCutoffs, log.depthLogs[NODE_TYPE_QS].quietMovesCutoffs)
+	// cut type split
+	bestCuts := log.depthLogs[NODE_TYPE_QS].bestMovesCutoffs
+	bestCutsPercent := getPercent(nodesWithCutoffs, bestCuts)
 
-	summary += "best: " + strconv.Itoa(bestCutsPercent) + "%, "
-	summary += "threat: " + strconv.Itoa(threatCutsPercent) + "%, "
-	summary += "quiet: " + strconv.Itoa(quietCutsPercent) + "%). "
+	threatGoodCuts := log.depthLogs[NODE_TYPE_QS].threatGoodMovesCutoffs
+	threatGoodCutsPercent := getPercent(nodesWithCutoffs, threatGoodCuts)
+
+	quietKillerCuts := log.depthLogs[NODE_TYPE_QS].quietKillerMovesCutoffs
+	quietKillerCutsPercent := getPercent(nodesWithCutoffs, quietKillerCuts)
+
+	threatBadCuts := log.depthLogs[NODE_TYPE_QS].threatBadMovesCutoffs
+	threatBadCutsPercent := getPercent(nodesWithCutoffs, threatBadCuts)
+
+	quietOtherCuts := log.depthLogs[NODE_TYPE_QS].quietOtherMovesCutoffs
+	quietOtherCutsPercent := getPercent(nodesWithCutoffs, quietOtherCuts)
+
+	summary += "b: " + strconv.Itoa(bestCutsPercent) + "%, "
+	summary += "gT: " + strconv.Itoa(threatGoodCutsPercent) + "%, "
+	summary += "kQ: " + strconv.Itoa(quietKillerCutsPercent) + "%, "
+	summary += "bT: " + strconv.Itoa(threatBadCutsPercent) + "%, "
+	summary += "oQ: " + strconv.Itoa(quietOtherCutsPercent) + "%). "
+
+	// cut success rate
+	bestNoCuts := log.depthLogs[NODE_TYPE_QS].bestMovesNoCutoffs
+	bestTotal := bestCuts + bestNoCuts
+	bestCutsRatio := getPercent(bestTotal, bestCuts)
+	summary += "Success (b: " + strconv.Itoa(bestCutsRatio) + "%, "
+
+	threatGoodNoCuts := log.depthLogs[NODE_TYPE_QS].threatGoodMovesNoCutoffs
+	threatGoodTotal := threatGoodCuts + threatGoodNoCuts
+	threatGoodCutsRatio := getPercent(threatGoodTotal, threatGoodCuts)
+	summary += "gT: " + strconv.Itoa(threatGoodCutsRatio) + "%, "
+
+	quietKillerNoCuts := log.depthLogs[NODE_TYPE_QS].quietKillerMovesNoCutoffs
+	quietKillerTotal := quietKillerCuts + quietKillerNoCuts
+	quietKillerCutsRatio := getPercent(quietKillerTotal, quietKillerCuts)
+	summary += "kQ: " + strconv.Itoa(quietKillerCutsRatio) + "%, "
+
+	threatBadNoCuts := log.depthLogs[NODE_TYPE_QS].threatBadMovesNoCutoffs
+	threatBadTotal := threatBadCuts + threatBadNoCuts
+	threatBadCutsRatio := getPercent(threatBadTotal, threatBadCuts)
+	summary += "bT: " + strconv.Itoa(threatBadCutsRatio) + "%, "
+
+	quietOtherNoCuts := log.depthLogs[NODE_TYPE_QS].quietOtherMovesNoCutoffs
+	quietOtherTotal := quietOtherCuts + quietOtherNoCuts
+	quietOtherCutsRatio := getPercent(quietOtherTotal, quietOtherCuts)
+	summary += "oQ: " + strconv.Itoa(quietOtherCutsRatio) + "%). "
 
 	// cut move index
-	avgBestMoveIndex := float64(log.depthLogs[NODE_TYPE_QS].bestMovesTriedTotalMoves) / float64(log.depthLogs[NODE_TYPE_QS].bestMovesTriedCount)
-	avgThreatMoveIndex := float64(log.depthLogs[NODE_TYPE_QS].threatMovesTriedTotalMoves) / float64(log.depthLogs[NODE_TYPE_QS].threatMovesTriedCount)
-	avgQuietMoveIndex := float64(log.depthLogs[NODE_TYPE_QS].quietMovesTriedTotalMoves) / float64(log.depthLogs[NODE_TYPE_QS].quietMovesTriedCount)
+	avgBestMoveIndex := float64(log.depthLogs[NODE_TYPE_QS].bestMovesTriedBeforeCuts) / float64(bestCuts)
+	avgBestMoveLength := float64(log.depthLogs[NODE_TYPE_QS].bestMovesTriedWhenNoCuts) / float64(bestNoCuts)
 
-	summary += "Best Move Avg Index (best: " + strconv.FormatFloat(avgBestMoveIndex, 'f', 2, 64) + ", "
-	summary += "threat: " + strconv.FormatFloat(avgThreatMoveIndex, 'f', 2, 64) + ", "
-	summary += "quiet: " + strconv.FormatFloat(avgQuietMoveIndex, 'f', 2, 64) + "). "
+	avgGoodThreatMoveIndex := float64(log.depthLogs[NODE_TYPE_QS].threatGoodMovesTriedBeforeCuts) / float64(threatGoodCuts)
+	avgGoodThreatMoveLength := float64(log.depthLogs[NODE_TYPE_QS].threatGoodMovesTriedWhenNoCuts) / float64(threatGoodNoCuts)
+
+	avgBadThreatMoveIndex := float64(log.depthLogs[NODE_TYPE_QS].threatBadMovesTriedBeforeCuts) / float64(threatBadCuts)
+	avgBadThreatMoveLength := float64(log.depthLogs[NODE_TYPE_QS].threatBadMovesTriedWhenNoCuts) / float64(threatBadNoCuts)
+
+	avgKillerQuietMoveIndex := float64(log.depthLogs[NODE_TYPE_QS].quietKillerMovesTriedBeforeCuts) / float64(quietKillerCuts)
+	avgKillerQuietMoveLength := float64(log.depthLogs[NODE_TYPE_QS].quietKillerMovesTriedWhenNoCuts) / float64(quietKillerNoCuts)
+
+	avgOtherQuietMoveIndex := float64(log.depthLogs[NODE_TYPE_QS].quietOtherMovesTriedBeforeCuts) / float64(quietOtherCuts)
+	avgOtherQuietMoveLength := float64(log.depthLogs[NODE_TYPE_QS].quietOtherMovesTriedWhenNoCuts) / float64(quietOtherNoCuts)
+
+	summary += "CutIdx/Len (b: " + strconv.FormatFloat(avgBestMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgBestMoveLength, 'f', 2, 64) + ", "
+	summary += "gT: " + strconv.FormatFloat(avgGoodThreatMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgGoodThreatMoveLength, 'f', 2, 64) + ", "
+	summary += "kQ: " + strconv.FormatFloat(avgKillerQuietMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgKillerQuietMoveLength, 'f', 2, 64) + ", "
+	summary += "bT: " + strconv.FormatFloat(avgBadThreatMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgBadThreatMoveLength, 'f', 2, 64) + ", "
+	summary += "oQ: " + strconv.FormatFloat(avgOtherQuietMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgOtherQuietMoveLength, 'f', 2, 64) + "). "
 
 	return summary
 }

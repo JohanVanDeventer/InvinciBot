@@ -484,7 +484,7 @@ func (pos *Position) makeMove(move Move) {
 	// reset the half-move counter (for 50-move rule) when a pawn moves, or there is a capture/promotion
 	// else increment it by 1
 	if piece == PIECE_PAWN || moveType == MOVE_TYPE_CAPTURE || moveType == MOVE_TYPE_EN_PASSANT || promotionType != PROMOTION_NONE {
-		pos.halfMoves = 1
+		pos.halfMoves = 0
 	} else {
 		pos.halfMoves += 1
 	}
@@ -499,7 +499,6 @@ func (pos *Position) makeMove(move Move) {
 	pos.hashOfPos ^= hashTableSideToMove[0]
 
 	// also, reset the move counter because no moves have been generated for the new position yet
-	//pos.availableMovesCounter = 0
 	pos.totalMovesCounter = 0
 	pos.threatMovesCounter = 0
 	pos.quietMovesCounter = 0

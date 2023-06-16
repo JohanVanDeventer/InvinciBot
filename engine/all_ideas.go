@@ -5,6 +5,22 @@ package main
 Ideas to consider / implement
 =============================
 
+--- Search stats ---
+Add avg length of the loops of each move type.
+
+--- QS Checks ---
+Remove check extensions where qs depth is -1 and below (useless because we don't generate check evasions).
+Rather generate all evasions.
+
+--- Hash Move Success Rate ---
+Only get around 6% cutoffs when using the TT move. Is this expected or too low?
+
+--- Threat Moves ---
+Special bonus for taking the queen for all moves (can almost never be a losing capture).
+
+--- MVV LVA ---
+Try MVV-LVA ordering again later (no improvement from current ordering).
+
 --- In check ---
 Don't save killer moves while in check, because they are unlikely to be a good move in sibling nodes.
 Because they will likely still be legal, but now not the best move.
