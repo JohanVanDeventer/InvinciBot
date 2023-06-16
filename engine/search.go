@@ -977,8 +977,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// _____________ Late Move Reductions _____________
 
 		// ___ Idea ___
-		// at the moment other quiet moves represent about 1%-2% of the cut nodes on average in the middlegame
-		// this can rise to about 7%-8% in the endgame
+		// at the moment other quiet moves represent at most about 1%-2% of the cut nodes on average in the middlegame
+		// because we have good move ordering before we reach this point
 		// we therefore don't want to waste too much time searching these "late" moves in the move ordering scheme
 		// we therefore apply a reduction in the search depth to these moves, and search with a zero width window
 		// if a move is able to improve alpha, we know the move is better than expected,
@@ -990,15 +990,34 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// we also don't reduce any moves when we are in check (as we need to resolve the tactical implications)
 		// we also don't reduce while we are at the root
 		// we also don't reduce if we are too close to qs (we need at least a bit of time to check all replies before qs)
+		// for now we don't reduce killer moves (to test later whether reducing killers also would be an improvement)
 		canDoLMR := !inCheck && currentDepth < initialDepth && currentDepth > 2
 
 		// ___ Depth Reduction ___
 		// we use a formula to calculate the depth reduction based on the remaining depth
 		// remember: LMR is cumulative (reduce child nodes despite the fact that the parent node was also reduced)
-		// so reductions need to be not as aggressive, because cumulative reductions will stack quickly
+		// so reductions need to be not too aggressive, because cumulative reductions will stack quickly
 		lmr := 0
 		if canDoLMR {
 			lmr = 1 + currentDepth/5
+		}
+
+		// ___ Endgame LMR ___
+		// we can't reduce as much in the endgame because other quiet moves go up to a much as 10% of cut types
+		// because of factors such as king opposition, pawn pushes to get close to promotions etc.
+		// we therefore reduce lmr the closer we are to the endgame
+		if canDoLMR {
+			if pos.evalMidVsEndStage <= 4 {
+				canDoLMR = false
+			} else if pos.evalMidVsEndStage <= 8 {
+				if lmr > 1 {
+					lmr = 1
+				}
+			} else if pos.evalMidVsEndStage <= 12 {
+				if lmr > 2 {
+					lmr = 2
+				}
+			}
 		}
 
 		quietOtherMovesTried := 0
@@ -1018,12 +1037,16 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				moveValue = 0 - score
 				pos.undoMove()
 
+				pos.logSearch.depthLogs[nodeType].lmrReducedNodes++
+
 				// ___________ LMR: Fail-High Research ___________
 				if moveValue > alpha {
 					pos.makeMove(move)
 					score, terminated = pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
 					moveValue = 0 - score
 					pos.undoMove()
+
+					pos.logSearch.depthLogs[nodeType].lmrReducedNodesFailures++
 				}
 
 			} else {
@@ -1032,6 +1055,8 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				score, terminated = pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
 				moveValue = 0 - score
 				pos.undoMove()
+
+				pos.logSearch.depthLogs[nodeType].lmrNonReducedNodes++
 			}
 
 			// if the search was terminated, return with a zero value

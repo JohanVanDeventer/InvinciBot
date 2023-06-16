@@ -161,30 +161,35 @@ func (pos *Position) printBoardToTerminal() {
 			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getTTQsSummary())
 
 		case 3:
-			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getEvalSummary())
+			fmt.Printf("<<< NON-QS NODES >>>   %v\n", pos.logSearch.getLMRSummary())
 
 		case 2:
-			fmt.Printf("<<< NON-QS NODES >>>   %v\n", pos.logSearch.getMoveLoopsNormalSummary())
+			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getEvalSummary())
 
 		case 1:
-			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getMoveLoopsQsSummary())
+			fmt.Printf("<<< NON-QS NODES >>>   %v\n", pos.logSearch.getMoveLoopsNormalSummary())
 
 		case 0:
+			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getMoveLoopsQsSummary())
 
-			avgMoveGen := pos.logTime.allLogTypes[LOG_MOVE_GEN_TOTAL].getAverageNsPerCall()
-			avgMakeMove := pos.logTime.allLogTypes[LOG_MAKE_MOVE].getAverageNsPerCall()
-			avgUndoMove := pos.logTime.allLogTypes[LOG_UNDO_MOVE].getAverageNsPerCall()
-			avgMakeNullMove := pos.logTime.allLogTypes[LOG_MAKE_NULLMOVE].getAverageNsPerCall()
-			avgEval := pos.logTime.allLogTypes[LOG_EVAL].getAverageNsPerCall()
-			avgGameState := pos.logTime.allLogTypes[LOG_GAME_STATE].getAverageNsPerCall()
-			avgTTProbe := pos.logTime.allLogTypes[LOG_SEARCH_TT_PROBE].getAverageNsPerCall()
-			avgTTStore := pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].getAverageNsPerCall()
-
-			fmt.Printf("<<< AVG TIME TAKEN >>> Move Gen: %v. Make Move: %v. Undo Move: %v. Make Null Move: %v. Eval: %v. Game State: %v. TT Probe: %v. TT Store: %v.\n",
-				avgMoveGen, avgMakeMove, avgUndoMove, avgMakeNullMove, avgEval, avgGameState, avgTTProbe, avgTTStore)
 		}
 	}
 	fmt.Printf("====================== ")
+
+	avgMoveGen := pos.logTime.allLogTypes[LOG_MOVE_GEN_TOTAL].getAverageNsPerCall()
+	avgMakeMove := pos.logTime.allLogTypes[LOG_MAKE_MOVE].getAverageNsPerCall()
+	avgUndoMove := pos.logTime.allLogTypes[LOG_UNDO_MOVE].getAverageNsPerCall()
+	avgMakeNullMove := pos.logTime.allLogTypes[LOG_MAKE_NULLMOVE].getAverageNsPerCall()
+	avgEval := pos.logTime.allLogTypes[LOG_EVAL].getAverageNsPerCall()
+	avgGameState := pos.logTime.allLogTypes[LOG_GAME_STATE].getAverageNsPerCall()
+	avgTTProbe := pos.logTime.allLogTypes[LOG_SEARCH_TT_PROBE].getAverageNsPerCall()
+	avgTTStore := pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].getAverageNsPerCall()
+
+	fmt.Printf("<<< AVG TIME TAKEN >>> Move Gen: %v. Make Move: %v. Undo Move: %v. Make Null Move: %v. Eval: %v. Game State: %v. TT Probe: %v. TT Store: %v.\n",
+		avgMoveGen, avgMakeMove, avgUndoMove, avgMakeNullMove, avgEval, avgGameState, avgTTProbe, avgTTStore)
+
+	fmt.Printf("    a b c d e f g h    ")
+
 	avgCopyThreatMoves := pos.logTime.allLogTypes[LOG_SEARCH_COPY_THREAT_MOVES].getAverageNsPerCall()
 	avgCopyQuietMoves := pos.logTime.allLogTypes[LOG_SEARCH_COPY_QUIET_MOVES].getAverageNsPerCall()
 	avgOrderThreat := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_THREAT_MOVES].getAverageNsPerCall()
@@ -202,10 +207,8 @@ func (pos *Position) printBoardToTerminal() {
 	avgStartupSearch := pos.logTime.allLogTypes[LOG_ONCE_SEARCH_STARTUP].getAverageNsPerCall()
 	avgStartupTotal := avgStartupFen + avgStartupHash + avgStartupEval + avgStartupSearch
 
-	fmt.Printf("Startup: %v (fen: %v, hash: %v, eval: %v, search: %v).\n",
+	fmt.Printf("Startup: %v (fen: %v, hash: %v, eval: %v, search: %v).\n\n",
 		avgStartupTotal, avgStartupFen, avgStartupHash, avgStartupEval, avgStartupSearch)
-
-	fmt.Println("    a b c d e f g h")
 }
 
 // computer looks for and plays the best move in the position

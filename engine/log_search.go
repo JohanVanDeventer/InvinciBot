@@ -78,6 +78,10 @@ type SearchDepthLog struct {
 	quietOtherMovesTriedBeforeCuts int // sum of the index of the best moves
 	quietOtherMovesTriedWhenNoCuts int // sum of the index of the best moves
 
+	// LMR
+	lmrReducedNodes         int // other quiet nodes where lmr was applied
+	lmrReducedNodesFailures int // other quiet nodes where lmr was applied and it was a failure (re-searched)
+	lmrNonReducedNodes      int // other quiet nodes where lmr was not applied
 }
 
 const (
@@ -618,6 +622,29 @@ func (log *SearchLogger) getMoveLoopsQsSummary() string {
 	summary += "kQ: " + strconv.FormatFloat(avgKillerQuietMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgKillerQuietMoveLength, 'f', 2, 64) + ", "
 	summary += "bT: " + strconv.FormatFloat(avgBadThreatMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgBadThreatMoveLength, 'f', 2, 64) + ", "
 	summary += "oQ: " + strconv.FormatFloat(avgOtherQuietMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgOtherQuietMoveLength, 'f', 2, 64) + "). "
+
+	return summary
+}
+
+func (log *SearchLogger) getLMRSummary() string {
+
+	// create the summary string
+	summary := ""
+
+	// lmr stats
+	lmrReduceNodes := log.depthLogs[NODE_TYPE_NORMAL].lmrReducedNodes
+	lmrNonReducedNodes := log.depthLogs[NODE_TYPE_NORMAL].lmrNonReducedNodes
+	totalNodes := lmrReduceNodes + lmrNonReducedNodes
+
+	lmrTryPercent := getPercent(totalNodes, lmrReduceNodes)
+	lmrNotTryPercent := getPercent(totalNodes, lmrNonReducedNodes)
+
+	summary += "LMR NotTry: " + strconv.Itoa(lmrNotTryPercent) + "%. "
+	summary += "LMR Try: " + strconv.Itoa(lmrTryPercent) + "% ("
+
+	lmrReduceNodesFailures := log.depthLogs[NODE_TYPE_NORMAL].lmrReducedNodesFailures
+	lmrFailurePercent := getPercent(lmrReduceNodes, lmrReduceNodesFailures)
+	summary += "re-searches: " + strconv.Itoa(lmrFailurePercent) + "%). "
 
 	return summary
 }

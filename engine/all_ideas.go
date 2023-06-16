@@ -5,13 +5,16 @@ package main
 Ideas to consider / implement
 =============================
 
+--- LMR and Pawns ---
+Test whether completely removing LMR from pawn pushes is a gain (especially in the endgame).
+
+--- LMR and Killers ---
+Test whether we can also apply LMR to killer moves, because they are also quiet moves.
+
 --- Increase pieces values ---
 Queen should be equal to 2 rooks.
 Knight and Bishop should be at 4 pawns.
 Rook should be at 6 pawns.
-
---- LMR and Endgame ---
-Limit LMR in the endgame where quiet moves become much more important.
 
 --- Search stats ---
 Add avg length of the loops of each move type.
