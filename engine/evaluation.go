@@ -346,10 +346,10 @@ Some eval is done incrementally, some for each position from the start.
 const (
 	// direct material value in centipawns
 	VALUE_PAWN   int = 100
-	VALUE_KNIGHT int = 300
-	VALUE_BISHOP int = 315
-	VALUE_ROOK   int = 510
-	VALUE_QUEEN  int = 900
+	VALUE_KNIGHT int = 400
+	VALUE_BISHOP int = 420
+	VALUE_ROOK   int = 600
+	VALUE_QUEEN  int = 1200
 
 	// stage of the game (mid vs end) value
 	STAGE_VAL_QUEEN    int = 4

@@ -5,6 +5,9 @@ package main
 Ideas to consider / implement
 =============================
 
+--- Move gen ---
+Generate pawn moves before other pieces (for quiet move ordering).
+
 --- IID ---
 At normal nodes above say depth 4, if we don't have a hash move,
 use IID to get a best move to search first (otherwise we rely blindly on other moves).
