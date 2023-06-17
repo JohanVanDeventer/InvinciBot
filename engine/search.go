@@ -126,7 +126,7 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 		ply := 0
 
 		// do the search
-		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, &tt, qsDepth, ply, false)
+		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, tt, qsDepth, ply, false)
 
 		// store the best move from the search only after each iteration, and continue with the next iteration
 		// in case of terminated searches in the middle of a search, we can't use that move, and exit immediately
@@ -358,7 +358,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 	}
 
-	// ----------------------------------------------------------- Null Moves ---------------------------------------------------------
+	// ----------------------------------------------------------- Null Move Pruning ---------------------------------------------------------
 
 	// ___ Idea ___
 	// a null move is a move where we do nothing and just pass the turn to the opponent
@@ -675,7 +675,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// so beta is the lowest bound for next searches
 				pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].start()
 
-				tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta), move)
+				tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 				pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
 				pos.logSearch.depthLogs[nodeType].ttStore++
@@ -735,7 +735,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// so beta is the lowest bound for next searches
 				pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].start()
 
-				tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta), move)
+				tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 				pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
 				pos.logSearch.depthLogs[nodeType].ttStore++
@@ -882,7 +882,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					// so beta is the lowest bound for next searches
 					pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].start()
 
-					tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta), move)
+					tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 					pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
 					pos.logSearch.depthLogs[nodeType].ttStore++
@@ -943,7 +943,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// so beta is the lowest bound for next searches
 				pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].start()
 
-				tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta), move)
+				tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 				pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
 				pos.logSearch.depthLogs[nodeType].ttStore++
@@ -1090,7 +1090,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					// so beta is the lowest bound for next searches
 					pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].start()
 
-					tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_LOWERBOUND, int32(beta), move)
+					tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 					pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
 					pos.logSearch.depthLogs[nodeType].ttStore++
@@ -1125,13 +1125,13 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		if alpha > alphaOriginal {
 			// if alpha increased in the search, we know the exact value of the node, because:
 			// we did not fail high, because we already would have had a beta cut before this code
-			tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_EXACT, int32(alpha), bestMove)
+			tt.storeNewTTEntry(pos.hashOfPos, bestMove, int32(alpha), uint8(currentDepth), TT_FLAG_EXACT)
 
 		} else {
 			// if alpha did not increase in the search, this node failed low
 			// it did not fail high, because no beta cut was found
 			// this node value is therefore the upper bound for next searches
-			tt.storeNewTTEntry(pos.hashOfPos, uint8(currentDepth), TT_FLAG_UPPERBOUND, int32(alpha), BLANK_MOVE)
+			tt.storeNewTTEntry(pos.hashOfPos, BLANK_MOVE, int32(alpha), uint8(currentDepth), TT_FLAG_UPPERBOUND)
 		}
 
 		pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()

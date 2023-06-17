@@ -637,10 +637,8 @@ func (log *SearchLogger) getLMRSummary() string {
 	totalNodes := lmrReduceNodes + lmrNonReducedNodes
 
 	lmrTryPercent := getPercent(totalNodes, lmrReduceNodes)
-	lmrNotTryPercent := getPercent(totalNodes, lmrNonReducedNodes)
 
-	summary += "LMR NotTry: " + strconv.Itoa(lmrNotTryPercent) + "%. "
-	summary += "LMR Try: " + strconv.Itoa(lmrTryPercent) + "% ("
+	summary += "LMR on other quiet moves: " + strconv.Itoa(lmrTryPercent) + "% ("
 
 	lmrReduceNodesFailures := log.depthLogs[NODE_TYPE_NORMAL].lmrReducedNodesFailures
 	lmrFailurePercent := getPercent(lmrReduceNodes, lmrReduceNodesFailures)

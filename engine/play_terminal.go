@@ -101,10 +101,10 @@ func (pos *Position) printBoardToTerminal() {
 	}
 
 	if pos.isWhiteTurn {
-		fmt.Printf("<<< GAME INFO >>>      Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v. ",
+		fmt.Printf("< INFO >     Turn: White. Game Status: %v. Current move: %v. 50-move counter: %v. ",
 			gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
 	} else {
-		fmt.Printf("<<< GAME INFO >>>      Turn: Black. Game Status: %v. Current move: %v. 50-move counter: %v. ",
+		fmt.Printf("< INFO >     Turn: Black. Game Status: %v. Current move: %v. 50-move counter: %v. ",
 			gameStateToText[pos.gameState], pos.fullMoves, pos.halfMoves)
 	}
 
@@ -149,28 +149,28 @@ func (pos *Position) printBoardToTerminal() {
 		switch rowCounter {
 
 		case 7:
-			fmt.Printf("<<< ALL NODES >>>      %v%v\n", pos.logSearch.getOverallSummary(), pos.logSearch.getBranchingFactorSummary())
+			fmt.Printf("< ALL >      %v%v\n", pos.logSearch.getOverallSummary(), pos.logSearch.getBranchingFactorSummary())
 
 		case 6:
-			fmt.Printf("<<< ALL NODES >>>      %v%v%v\n", pos.logSearch.getMoveOrderingSummary(), pos.logSearch.getMoveGenerationSummary(), pos.logSearch.getCheckExtensionsSummary())
+			fmt.Printf("< ALL >      %v%v%v\n", pos.logSearch.getMoveOrderingSummary(), pos.logSearch.getMoveGenerationSummary(), pos.logSearch.getCheckExtensionsSummary())
 
 		case 5:
-			fmt.Printf("<<< NON-QS NODES >>>   %v%v\n", pos.logSearch.getTTNormalSummary(), pos.logSearch.getNullMoveSummary())
+			fmt.Printf("< NON-QS >   %v\n", pos.logSearch.getTTNormalSummary())
 
 		case 4:
-			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getTTQsSummary())
+			fmt.Printf("< QS >       %v\n", pos.logSearch.getTTQsSummary())
 
 		case 3:
-			fmt.Printf("<<< NON-QS NODES >>>   %v\n", pos.logSearch.getLMRSummary())
+			fmt.Printf("< NON-QS >   %v%v\n", pos.logSearch.getNullMoveSummary(), pos.logSearch.getLMRSummary())
 
 		case 2:
-			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getEvalSummary())
+			fmt.Printf("< QS >       %v\n", pos.logSearch.getEvalSummary())
 
 		case 1:
-			fmt.Printf("<<< NON-QS NODES >>>   %v\n", pos.logSearch.getMoveLoopsNormalSummary())
+			fmt.Printf("< NON-QS >   %v\n", pos.logSearch.getMoveLoopsNormalSummary())
 
 		case 0:
-			fmt.Printf("<<< QS NODES >>>       %v\n", pos.logSearch.getMoveLoopsQsSummary())
+			fmt.Printf("< QS >       %v\n", pos.logSearch.getMoveLoopsQsSummary())
 
 		}
 	}
@@ -185,7 +185,7 @@ func (pos *Position) printBoardToTerminal() {
 	avgTTProbe := pos.logTime.allLogTypes[LOG_SEARCH_TT_PROBE].getAverageNsPerCall()
 	avgTTStore := pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].getAverageNsPerCall()
 
-	fmt.Printf("<<< AVG TIME TAKEN >>> Move Gen: %v. Make Move: %v. Undo Move: %v. Make Null Move: %v. Eval: %v. Game State: %v. TT Probe: %v. TT Store: %v.\n",
+	fmt.Printf("< AVG TIME > Move Gen: %v. Make Move: %v. Undo Move: %v. Make Null Move: %v. Eval: %v. Game State: %v. TT Probe: %v. TT Store: %v.\n",
 		avgMoveGen, avgMakeMove, avgUndoMove, avgMakeNullMove, avgEval, avgGameState, avgTTProbe, avgTTStore)
 
 	fmt.Printf("    a b c d e f g h    ")
@@ -198,7 +198,7 @@ func (pos *Position) printBoardToTerminal() {
 	avgOrderHash := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_HASH_MOVES].getAverageNsPerCall()
 	avgOrderPrevIter := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_PREVIOUS_ITERATION_MOVES].getAverageNsPerCall()
 
-	fmt.Printf("<<< AVG TIME TAKEN >>> Copy Moves (threat: %v, quiet: %v). Order Moves (threat: %v, killer1: %v, killer2: %v, hash: %v, prev iter: %v). ",
+	fmt.Printf("< AVG TIME > Copy Moves (threat: %v, quiet: %v). Order Moves (threat: %v, killer1: %v, killer2: %v, hash: %v, prev iter: %v). ",
 		avgCopyThreatMoves, avgCopyQuietMoves, avgOrderThreat, avgOrderKiller1, avgOrderKiller2, avgOrderHash, avgOrderPrevIter)
 
 	avgStartupFen := pos.logTime.allLogTypes[LOG_ONCE_LOAD_FEN].getAverageNsPerCall()
@@ -206,9 +206,10 @@ func (pos *Position) printBoardToTerminal() {
 	avgStartupEval := pos.logTime.allLogTypes[LOG_ONCE_EVAL].getAverageNsPerCall()
 	avgStartupSearch := pos.logTime.allLogTypes[LOG_ONCE_SEARCH_STARTUP].getAverageNsPerCall()
 	avgStartupTotal := avgStartupFen + avgStartupHash + avgStartupEval + avgStartupSearch
+	avgStartupTotalMs := avgStartupTotal / 1000000
 
-	fmt.Printf("Startup: %v (fen: %v, hash: %v, eval: %v, search: %v).\n\n",
-		avgStartupTotal, avgStartupFen, avgStartupHash, avgStartupEval, avgStartupSearch)
+	fmt.Printf("Startup (%v ms): %v (fen: %v, hash: %v, eval: %v, search: %v).\n\n",
+		avgStartupTotalMs, avgStartupTotal, avgStartupFen, avgStartupHash, avgStartupEval, avgStartupSearch)
 }
 
 // computer looks for and plays the best move in the position
