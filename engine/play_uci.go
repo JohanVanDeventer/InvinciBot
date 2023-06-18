@@ -642,7 +642,7 @@ func (pos *Position) makeUCIMove(input string) {
 	}
 
 	// generate moves before a move can be processed
-	pos.generateLegalMoves(false)
+	pos.generateLegalMoves()
 
 	// if there are no available moves, return
 	if pos.totalMovesCounter <= 0 {
@@ -825,7 +825,7 @@ func (pos *Position) command_go(command string) (string, bool) {
 		// however, in those cases we never even get to iterate over moves, because we return a search score of 0 early at the root for 3-fold repetitions
 		// therefore, in the rare case where 3-fold repetition is not claimed, we still need to add code to manage that
 		// for now, we just take the 1st legal move as the best move (we assume it will be rare)
-		pos.generateLegalMoves(false)
+		pos.generateLegalMoves()
 		if pos.quietMovesCounter > 0 {
 			bestMove = pos.quietMoves[0]
 		} else {

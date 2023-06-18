@@ -93,6 +93,9 @@ type Position struct {
 	evalOther         int // other evaluation metrics (doubled pawns, bishop pair, king to king distance etc.)
 	evalMidVsEndStage int // piece value count used for tapered heatmap eval
 
+	evalWhiteMobility int // white mobility score from the last move gen for white
+	evalBlackMobility int // black mobility score from the last move gen for black
+
 	// best move search variables
 	bestMoveSoFar Move // used to store the best move in the search
 	bestMove      Move // store the best move from the search after each iteration
@@ -187,6 +190,9 @@ func (pos *Position) reset() {
 	pos.evalHeatmaps = 0
 	pos.evalOther = 0
 	pos.evalMidVsEndStage = 0
+
+	pos.evalWhiteMobility = 0
+	pos.evalBlackMobility = 0
 
 	// reset the best moves
 	pos.bestMoveSoFar = BLANK_MOVE

@@ -90,7 +90,7 @@ var unicodeChessIcons [2][6]string = [2][6]string{
 // prints the board to the terminal
 func (pos *Position) printBoardToTerminal() {
 
-	pos.generateLegalMoves(false)
+	pos.generateLegalMoves()
 	pos.getGameStateAndStore()
 	pos.evalPosAfter()
 
@@ -285,7 +285,7 @@ func (pos *Position) startGameLoopTerminalGUI() {
 					fmt.Printf("Enter the move: ")
 					fmt.Scanln(&userInput)
 
-					pos.generateLegalMoves(false)
+					pos.generateLegalMoves()
 					success := pos.playInputMove(userInput)
 
 					if success {
@@ -306,7 +306,7 @@ func (pos *Position) startGameLoopTerminalGUI() {
 					fmt.Printf("Enter the move: ")
 					fmt.Scanln(&userInput)
 
-					pos.generateLegalMoves(false)
+					pos.generateLegalMoves()
 					success := pos.playInputMove(userInput)
 
 					if success {

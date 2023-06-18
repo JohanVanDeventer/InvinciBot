@@ -198,7 +198,7 @@ func (pos *Position) runPerft(initialDepth int, currentDepth int, bulkCounting b
 	totalNodeCount := 0
 
 	// generate legal moves
-	pos.generateLegalMoves(false)
+	pos.generateLegalMoves()
 
 	// check for bulk-counting enhacements
 	if bulkCounting && currentDepth == 1 {
@@ -265,7 +265,7 @@ func printPerftTestResults() {
 				moveGenSuccess = false
 
 				// code to debug the legal moves generated
-				newPos.generateLegalMoves(false)
+				newPos.generateLegalMoves()
 				fmt.Printf("Failure in move gen. Number of moves: %v. Generated moves:\n", newPos.totalMovesCounter)
 				allMoves := make([]Move, newPos.totalMovesCounter)
 				copy(allMoves, newPos.threatMoves[:newPos.threatMovesCounter])

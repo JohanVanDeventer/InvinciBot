@@ -18,6 +18,8 @@ type PreviousState struct {
 	evalHeatmaps      int
 	evalOther         int
 	evalMidVsEndStage int
+	evalWhiteMobility int
+	evalBlackMobility int
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -48,6 +50,8 @@ func (pos *Position) undoMove() {
 	pos.evalHeatmaps = pos.previousGameStates[pos.previousGameStatesCounter].evalHeatmaps
 	pos.evalOther = pos.previousGameStates[pos.previousGameStatesCounter].evalOther
 	pos.evalMidVsEndStage = pos.previousGameStates[pos.previousGameStatesCounter].evalMidVsEndStage
+	pos.evalWhiteMobility = pos.previousGameStates[pos.previousGameStatesCounter].evalWhiteMobility
+	pos.evalBlackMobility = pos.previousGameStates[pos.previousGameStatesCounter].evalBlackMobility
 
 	// also restore the hash
 	pos.previousHashesCounter -= 1

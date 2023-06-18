@@ -21,8 +21,10 @@ func main() {
 		fmt.Printf("-----------------------------------------\n")
 
 		// main tests
+		// TODO: fix small eval bug: possibly related to rounding black scores vs white scores (no big impact for now)
+		// TODO: fix small mobility difference: only after a few moves played from each side will mobility be accurate (no big impact for now)
 		printPerftTestResults()
-		printIncrementalTestResults() // TODO: fix small eval bug: possibly related to rounding black scores vs white scores, but no big impact for now
+		printIncrementalTestResults()
 	}
 
 	// create a new position for the engine to start with

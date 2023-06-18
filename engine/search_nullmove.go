@@ -20,6 +20,8 @@ func (pos *Position) makeNullMove() {
 	pos.previousGameStates[pos.previousGameStatesCounter].evalHeatmaps = pos.evalHeatmaps
 	pos.previousGameStates[pos.previousGameStatesCounter].evalOther = pos.evalOther
 	pos.previousGameStates[pos.previousGameStatesCounter].evalMidVsEndStage = pos.evalMidVsEndStage
+	pos.previousGameStates[pos.previousGameStatesCounter].evalWhiteMobility = pos.evalWhiteMobility
+	pos.previousGameStates[pos.previousGameStatesCounter].evalBlackMobility = pos.evalBlackMobility
 
 	pos.previousGameStatesCounter += 1
 

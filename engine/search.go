@@ -250,19 +250,10 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	// _____________________________ Move Generation ______________________________
 	// if there is not a TT hit, we need to start with work on the current node
-	// first, we generate all legal moves, or at least one move when we are at a leaf node
+	// first, we generate all legal moves
 	// we can then determine if the game is over (no legal moves is checkmate or stalemate)
-	generatedPartialMoves := false // flag to catch partial move generation
-
-	if currentDepth <= qsDepth { // leaf nodes: partial move generation
-		pos.generateLegalMoves(true)
-		generatedPartialMoves = true
-		pos.logSearch.depthLogs[nodeType].generatedLegalMovesPart++
-
-	} else { // other nodes: full move generation
-		pos.generateLegalMoves(false)
-		pos.logSearch.depthLogs[nodeType].generatedLegalMovesFull++
-	}
+	pos.generateLegalMoves()
+	pos.logSearch.depthLogs[nodeType].generatedLegalMovesFull++
 
 	// _____________________________ Game State ______________________________
 	// once we have generated at least some legal moves, we check whether the game is over
@@ -299,19 +290,11 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// we only do this at nodes at least 2 below the initial depth,
 	// because increasing at 1 below would put us back at the root and mess up the root-specific code
 	// additionally, we only extend in iterative deepening depth > 2 (depth 2 should just be a quick search)
-	// we also now need to fully generate legal moves if we only generated them partially before
 	inCheck := pos.kingChecks > 0
 
 	if inCheck && currentDepth <= (initialDepth-2) && initialDepth > 2 {
-
 		currentDepth += 1
 		pos.logSearch.depthLogs[nodeType].checkExtensions++
-
-		if generatedPartialMoves {
-			pos.generateLegalMoves(false)
-			pos.logSearch.depthLogs[nodeType].generatedLegalMovesFull++
-		}
-
 	}
 
 	// ------------------------------------------------------------- Evaluation --------------------------------------------------------
@@ -323,6 +306,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	if currentDepth <= qsDepth {
 		pos.evalPosAfter()
 		pos.logSearch.depthLogs[nodeType].evalLeafNodes++
+
 		if pos.isWhiteTurn {
 			return pos.evalMaterial + pos.evalHeatmaps + pos.evalOther, false
 		} else {
@@ -426,7 +410,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			pos.logSearch.depthLogs[nodeType].nullMoveFailures++
 
 			// if we don't return early, we need to again generate all legal moves in the position (making and undoing moves reset the legal moves)
-			pos.generateLegalMoves(false)
+			pos.generateLegalMoves()
 		}
 	}
 

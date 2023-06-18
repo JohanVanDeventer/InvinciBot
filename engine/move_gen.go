@@ -18,7 +18,7 @@ The final result is only legal moves.
 
 // generate all the legal moves for a position
 // we set a flag "atLeafCheckForOneMove": at leaf nodes we only need to have one move to determine it is not checkmate or stalemate
-func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
+func (pos *Position) generateLegalMoves() {
 
 	pos.logTime.allLogTypes[LOG_MOVE_GEN_TOTAL].start()
 
@@ -27,6 +27,9 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	pos.totalMovesCounter = 0
 	pos.threatMovesCounter = 0
 	pos.quietMovesCounter = 0
+
+	// set a mobility bonus counter for moves we want to give a mobility bonus to
+	mobilityBonusCounter := 0
 
 	// assign the friendly and enemy pieces and sides
 	var frKing Bitboard
@@ -118,15 +121,6 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 	// if the number of checks is two, no other moves are possible (already generated king moves above)
 	if kingChecks >= 2 {
 		return
-	}
-
-	// if we are generating moves for leaf nodes, we stop after finding one valid move
-	// note: this is the earliest we can check for this, because we need to store the number of king checks for the game state evaluation
-	// we also call this after king moves, because we assume most positions will have at least one king move
-	if atLeafCheckForOneMove {
-		if pos.totalMovesCounter > 0 {
-			return
-		}
 	}
 
 	// for single checks, generate moves masked with the king attacked sq mask
@@ -224,10 +218,12 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.threatMovesCounter += 1
+				mobilityBonusCounter++
 			} else { // quiet move
 				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextRookOriginSq, nextRookTargetSq, PIECE_ROOK, MOVE_TYPE_QUIET, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.quietMovesCounter += 1
+				mobilityBonusCounter++
 			}
 		}
 	}
@@ -270,10 +266,12 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.threatMovesCounter += 1
+				mobilityBonusCounter++
 			} else { // quiet move
 				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextBishopOriginSq, nextBishopTargetSq, PIECE_BISHOP, MOVE_TYPE_QUIET, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.quietMovesCounter += 1
+				mobilityBonusCounter++
 			}
 		}
 	}
@@ -316,10 +314,12 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 				pos.threatMoves[pos.threatMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_CAPTURE, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.threatMovesCounter += 1
+				mobilityBonusCounter++
 			} else { // quiet move
 				pos.quietMoves[pos.quietMovesCounter] = getEncodedMove(nextKnightOriginSq, nextKnightTargetSq, PIECE_KNIGHT, MOVE_TYPE_QUIET, PROMOTION_NONE)
 				pos.totalMovesCounter += 1
 				pos.quietMovesCounter += 1
+				mobilityBonusCounter++
 			}
 		}
 	}
@@ -640,6 +640,17 @@ func (pos *Position) generateLegalMoves(atLeafCheckForOneMove bool) {
 					}
 				}
 			}
+		}
+	}
+
+	// ------------------------------------------------- Eval Mobility ---------------------------------------------
+	// before we end the function, we store the mobility bonus counter
+	// we don't update when in check to remove wild fluctuations
+	if kingChecks == 0 {
+		if pos.isWhiteTurn {
+			pos.evalWhiteMobility = mobilityBonusCounter
+		} else {
+			pos.evalBlackMobility = mobilityBonusCounter
 		}
 	}
 

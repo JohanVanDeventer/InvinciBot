@@ -5,8 +5,12 @@ package main
 Ideas to consider / implement
 =============================
 
+--- Mobility ---
+Smooth the mobility as the average of say the past 2 or 3, not just the last one.
+Also add back queen mobility, but at say 1/2 or 1/3 of the actual mobility.
+
 --- Move gen ---
-Generate pawn moves before other pieces (for quiet move ordering).
+Generate pawn moves before other pieces (for quiet move ordering to get avg earlier cutoffs).
 
 --- IID ---
 At normal nodes above say depth 4, if we don't have a hash move,
@@ -14,13 +18,6 @@ use IID to get a best move to search first (otherwise we rely blindly on other m
 
 --- LMR and Pawns ---
 Test whether completely removing LMR from pawn pushes is a gain (especially in the endgame).
-
---- Increase pieces values ---
-Queen should be equal to 2 rooks.
-Knight and Bishop should be at 4 pawns.
-Rook should be at 6 pawns.
-
-This is to prevent trading 2 minors for a rook and pawn.
 
 --- QS Checks ---
 Rather generate all evasions in qs.
@@ -56,12 +53,8 @@ Therefore we don't need to iterate over all previous zobrist hashes, only those 
 Not a massive improvement, test again later.
 
 --- Better eval ---
-Note: needs to check both sides fully,
-therefore any incremental eval calculations should be preferred.
-
 - Doubled pawns?
 - Isolated pawns?
-- Mobility? Simple pseudo legal moves masked with all blockers (don't go into legal moves only)?
 
 --- TT Size ---
 Test whether increasing the TT size helps improve play.
