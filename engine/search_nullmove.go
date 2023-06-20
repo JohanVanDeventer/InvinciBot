@@ -15,6 +15,7 @@ func (pos *Position) makeNullMove() {
 	pos.previousGameStates[pos.previousGameStatesCounter].castlingRights = pos.castlingRights
 	pos.previousGameStates[pos.previousGameStatesCounter].enPassantTargetBB = pos.enPassantTargetBB
 	pos.previousGameStates[pos.previousGameStatesCounter].halfMoves = pos.halfMoves
+	pos.previousGameStates[pos.previousGameStatesCounter].hash3FoldRepStart = pos.hash3FoldRepStart
 	pos.previousGameStates[pos.previousGameStatesCounter].kingChecks = pos.kingChecks
 	pos.previousGameStates[pos.previousGameStatesCounter].evalMaterial = pos.evalMaterial
 	pos.previousGameStates[pos.previousGameStatesCounter].evalHeatmaps = pos.evalHeatmaps

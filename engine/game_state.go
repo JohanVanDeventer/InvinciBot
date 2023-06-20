@@ -51,7 +51,7 @@ func (pos *Position) getGameStateAndStore() {
 
 	// 3-fold repetition
 	countOfOccurences := 1 // current pos is the 1st occurence
-	for _, previousHash := range pos.previousHashes[:pos.previousHashesCounter] {
+	for _, previousHash := range pos.previousHashes[pos.hash3FoldRepStart:pos.previousHashesCounter] {
 		if pos.hashOfPos == previousHash {
 			countOfOccurences += 1
 		}

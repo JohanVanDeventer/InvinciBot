@@ -13,6 +13,7 @@ type PreviousState struct {
 	castlingRights    [4]bool
 	enPassantTargetBB Bitboard
 	halfMoves         int
+	hash3FoldRepStart int
 	kingChecks        int
 	evalMaterial      int
 	evalHeatmaps      int
@@ -45,6 +46,7 @@ func (pos *Position) undoMove() {
 	pos.castlingRights = pos.previousGameStates[pos.previousGameStatesCounter].castlingRights
 	pos.enPassantTargetBB = pos.previousGameStates[pos.previousGameStatesCounter].enPassantTargetBB
 	pos.halfMoves = pos.previousGameStates[pos.previousGameStatesCounter].halfMoves
+	pos.hash3FoldRepStart = pos.previousGameStates[pos.previousGameStatesCounter].hash3FoldRepStart
 	pos.kingChecks = pos.previousGameStates[pos.previousGameStatesCounter].kingChecks
 	pos.evalMaterial = pos.previousGameStates[pos.previousGameStatesCounter].evalMaterial
 	pos.evalHeatmaps = pos.previousGameStates[pos.previousGameStatesCounter].evalHeatmaps

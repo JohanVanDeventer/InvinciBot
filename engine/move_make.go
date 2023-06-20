@@ -16,6 +16,7 @@ func (pos *Position) makeMove(move Move) {
 	pos.previousGameStates[pos.previousGameStatesCounter].castlingRights = pos.castlingRights
 	pos.previousGameStates[pos.previousGameStatesCounter].enPassantTargetBB = pos.enPassantTargetBB
 	pos.previousGameStates[pos.previousGameStatesCounter].halfMoves = pos.halfMoves
+	pos.previousGameStates[pos.previousGameStatesCounter].hash3FoldRepStart = pos.hash3FoldRepStart
 	pos.previousGameStates[pos.previousGameStatesCounter].kingChecks = pos.kingChecks
 	pos.previousGameStates[pos.previousGameStatesCounter].evalMaterial = pos.evalMaterial
 	pos.previousGameStates[pos.previousGameStatesCounter].evalHeatmaps = pos.evalHeatmaps
@@ -485,8 +486,13 @@ func (pos *Position) makeMove(move Move) {
 
 	// reset the half-move counter (for 50-move rule) when a pawn moves, or there is a capture/promotion
 	// else increment it by 1
+	// as a side-effect, we can also update the counter from where we loop over to check 3-fold repetitions
+	// because after a capture, en-passant, a pawn move, or a promotion (removing a pawn),
+	// we can never again in the future have a position hash the same as the current one,
+	// so we update that counter to match this hash counter (less 1 to be safe with indexing: negligible performance impact)
 	if piece == PIECE_PAWN || moveType == MOVE_TYPE_CAPTURE || moveType == MOVE_TYPE_EN_PASSANT || promotionType != PROMOTION_NONE {
 		pos.halfMoves = 0
+		pos.hash3FoldRepStart = pos.previousHashesCounter - 1
 	} else {
 		pos.halfMoves += 1
 	}

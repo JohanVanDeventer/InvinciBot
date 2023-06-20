@@ -75,13 +75,14 @@ type Position struct {
 	quietMovesCounter  int       // counter points to the number of moves added
 
 	// previous game states
-	previousGameStates        [768]PreviousState
-	previousGameStatesCounter int
+	previousGameStates        [768]PreviousState // stack of information to allow undo move
+	previousGameStatesCounter int                // counter of where we are in the stack
 
 	// hash of position
-	hashOfPos             Bitboard
-	previousHashes        [768]Bitboard
-	previousHashesCounter int
+	hashOfPos             Bitboard      // Zobrist hash of the current position
+	previousHashes        [768]Bitboard // stack of previous stored hashes
+	previousHashesCounter int           // counter of where we are in the stack
+	hash3FoldRepStart     int           // counter for where we need to start looping for checking 3-fold repetitions
 
 	// game state
 	gameState  int
@@ -180,6 +181,7 @@ func (pos *Position) reset() {
 	// reset the other counters
 	pos.previousGameStatesCounter = 0
 	pos.previousHashesCounter = 0
+	pos.hash3FoldRepStart = 0
 
 	// reset the game state variables
 	pos.gameState = STATE_ONGOING

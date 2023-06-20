@@ -802,7 +802,7 @@ func (pos *Position) command_go(command string) (string, bool) {
 			timeFactor = 8
 		}
 	} else { // if there is no increment, we just set a constant factor
-		timeFactor = 48
+		timeFactor = 60
 	}
 
 	// calculate the time we have for the search
@@ -823,8 +823,13 @@ func (pos *Position) command_go(command string) (string, bool) {
 		// the issue is that a 3-fold repetition might not be automatically claimed by an opponent in the gui (we assume we will always claim it),
 		// and we then need to play on until it is claimed,
 		// however, in those cases we never even get to iterate over moves, because we return a search score of 0 early at the root for 3-fold repetitions
+		// because it just gets a draw score immediately at the root
 		// therefore, in the rare case where 3-fold repetition is not claimed, we still need to add code to manage that
 		// for now, we just take the 1st legal move as the best move (we assume it will be rare)
+		// note: this has now been limited to Lichess games only, and in all the cases so far the 3-fold-repetition draw was correctly recorded
+		// the issue seems to be a mismatch between the timing of the Lichess bot receiving the draw
+		// and sending the search command to to the engine for the next move
+		// so it seems like this issue is not really an issue, but we still need to better manage this in a future update
 		pos.generateLegalMoves()
 		if pos.quietMovesCounter > 0 {
 			bestMove = pos.quietMoves[0]
