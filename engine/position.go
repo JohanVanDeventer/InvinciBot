@@ -97,6 +97,8 @@ type Position struct {
 	evalWhiteMobility int // white mobility score from the last move gen for white
 	evalBlackMobility int // black mobility score from the last move gen for black
 
+	evalPawnHashTable [PAWN_HASH_TABLE_SIZE]PawnStructureTable // stores pawn structure evals for a given hash
+
 	// best move search variables
 	bestMoveSoFar Move // used to store the best move in the search
 	bestMove      Move // store the best move from the search after each iteration
@@ -195,6 +197,7 @@ func (pos *Position) reset() {
 
 	pos.evalWhiteMobility = 0
 	pos.evalBlackMobility = 0
+	// we don't reset the pawn structure eval table, that remains the same between searches
 
 	// reset the best moves
 	pos.bestMoveSoFar = BLANK_MOVE

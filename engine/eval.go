@@ -112,33 +112,18 @@ func (pos *Position) evalPosAtStart() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------
-// ----------------------------------------------- Eval: Doubled Pawns Setup ------------------------------------------
-// --------------------------------------------------------------------------------------------------------------------
-// setup for evaluating doubled pawns
-
-const (
-	DOUBLED_PAWN_PENALTY int = 10 // penalty for a pawn if there are other pawns on that column
-)
-
-var columnMasks [8]Bitboard // masks where all the bits for that column only is set
-
-// create masks for each column on the board
-func initEvalColumnMasks() {
-	for col := 0; col < 8; col++ {
-		newBitboard := emptyBB
-		for row := 0; row < 8; row++ {
-			newBitboard.setBit(sqFromRowAndCol(row, col))
-		}
-		columnMasks[col] = newBitboard
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------
 // ----------------------------------------------------- Eval: Other --------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------------
 
 const (
 	MOBILITY_BONUS int = 3 // bonus for each available knight, bishop and rook move
+)
+
+const (
+	DOUBLED_PAWN_PENALTY  int = -5  // penalty for a pawn if there are other friendly pawns on that column
+	ISOLATED_PAWN_PENALTY int = -15 // penalty for a pawn without other friendly pawns on the 2 columns besides
+	PASSED_PAWN_BONUS     int = 15  // bonus for a pawn that has no enemy pawns in front of it in the left, middle, and right columns
+	PROTECTED_PAWN_BONUS  int = 5   // bonus for a pawn that is also directly protected by a friendly pawn behind it
 )
 
 // evalue a position after for non-incremental evaluations
@@ -157,34 +142,95 @@ func (pos *Position) evalPosAfter() {
 	// and pawn moves will normally dominate in the opening, where we really want other piece mobility
 	// king mobility is not scored, because normally we want pieces to surround the king to protect it
 
-	// we also
 	pos.evalOther += pos.evalWhiteMobility * MOBILITY_BONUS
 	pos.evalOther -= pos.evalBlackMobility * MOBILITY_BONUS
 
-	/*
+	// ------------------------------------------------- PAWN STRUCTURE --------------------------------------------------
+	// we give penalties and bonuses for good and bad pawn structures
+	// we also store the results of the eval in a hash table specifically for pawn structure
 
-		// ------------------------------------------------- DOUBLED PAWNS --------------------------------------------------
+	whitePawns := pos.pieces[SIDE_WHITE][PIECE_PAWN]
+	blackPawns := pos.pieces[SIDE_BLACK][PIECE_PAWN]
+
+	// we look up the pawn structure hash in a small table
+	// if the pawn structure is the same, we just use the last evaluation, else we re-calculate the pawn structure eval
+	// and overwrite it in the hash table
+	pawnHash := (whitePawns | blackPawns) % PAWN_HASH_TABLE_SIZE_BB
+	if whitePawns != pos.evalPawnHashTable[pawnHash].whitePawns || blackPawns != pos.evalPawnHashTable[pawnHash].blackPawns {
+
+		// set the starting eval
+		pawnStructureEval := 0
+
 		// white pawns
-		for col := 0; col < 8; col++ {
-			colMask := columnMasks[col]                                 // get the column mask
-			maskedPawns := colMask & pos.pieces[SIDE_WHITE][PIECE_PAWN] // get the pawns on that mask
-			pawnsOnColCount := maskedPawns.countBits()                  // count the pawns
-			if pawnsOnColCount > 1 {                                    // if there are more than 1 pawn, we have doubled pawns
-				pos.evalOther -= DOUBLED_PAWN_PENALTY * pawnsOnColCount
+		whitePawnsPop := pos.pieces[SIDE_WHITE][PIECE_PAWN]
+		for whitePawnsPop != 0 {
+			pawnSq := whitePawnsPop.popBitGetSq()
+			_, pawnCol := rowAndColFromSq(pawnSq)
+
+			// doubled pawns (if more than 1 friendly pawn on the same col)
+			friendlyPawnsOnCol := (whitePawns & pawnColumnMasks[pawnCol]).countBits()
+			if friendlyPawnsOnCol > 1 {
+				pawnStructureEval += DOUBLED_PAWN_PENALTY
+			}
+
+			// isolated pawns (if exactly 1 friendly pawn in the mask)
+			friendlyPawnsOn3Col := (whitePawns & pawnIsolatedMasks[pawnCol]).countBits()
+			if friendlyPawnsOn3Col == 1 {
+				pawnStructureEval += ISOLATED_PAWN_PENALTY
+			}
+
+			// passed pawns (if no enemy pawns on the 3 columns in front of the pawn)
+			enemyPawnsInFront := (blackPawns & pawnPassedMasks[SIDE_WHITE][pawnSq]).countBits()
+			if enemyPawnsInFront == 0 {
+				pawnStructureEval += PASSED_PAWN_BONUS
+			}
+
+			// protected pawns (if the pawn is directly protected by a friendly pawn)
+			friendlyPawnsProtecting := (whitePawns & movePawnsAttackingKingMasks[pawnSq][SIDE_WHITE]).countBits()
+			if friendlyPawnsProtecting > 0 {
+				pawnStructureEval += PROTECTED_PAWN_BONUS
 			}
 		}
 
 		// black pawns
-		for col := 0; col < 8; col++ {
-			colMask := columnMasks[col]                                 // get the column mask
-			maskedPawns := colMask & pos.pieces[SIDE_BLACK][PIECE_PAWN] // get the pawns on that mask
-			pawnsOnColCount := maskedPawns.countBits()                  // count the pawns
-			if pawnsOnColCount > 1 {                                    // if there are more than 1 pawn, we have doubled pawns
-				pos.evalOther += DOUBLED_PAWN_PENALTY * pawnsOnColCount
+		blackPawnsPop := pos.pieces[SIDE_BLACK][PIECE_PAWN]
+		for blackPawnsPop != 0 {
+			pawnSq := blackPawnsPop.popBitGetSq()
+			_, pawnCol := rowAndColFromSq(pawnSq)
+
+			// doubled pawns (if more than 1 friendly pawn on the same col)
+			friendlyPawnsOnCol := (blackPawns & pawnColumnMasks[pawnCol]).countBits()
+			if friendlyPawnsOnCol > 1 {
+				pawnStructureEval -= friendlyPawnsOnCol * DOUBLED_PAWN_PENALTY
+			}
+
+			// isolated pawns (if exactly 1 friendly pawn in the mask)
+			friendlyPawnsOn3Col := (blackPawns & pawnIsolatedMasks[pawnCol]).countBits()
+			if friendlyPawnsOn3Col == 1 {
+				pawnStructureEval -= ISOLATED_PAWN_PENALTY
+			}
+
+			// passed pawns (if no enemy pawns on the 3 columns in front of the pawn)
+			enemyPawnsInFront := (whitePawns & pawnPassedMasks[SIDE_BLACK][pawnSq]).countBits()
+			if enemyPawnsInFront == 0 {
+				pawnStructureEval -= PASSED_PAWN_BONUS
+			}
+
+			// protected pawns (if the pawn is directly protected by a friendly pawn)
+			friendlyPawnsProtecting := (blackPawns & movePawnsAttackingKingMasks[pawnSq][SIDE_BLACK]).countBits()
+			if friendlyPawnsProtecting > 0 {
+				pawnStructureEval -= PROTECTED_PAWN_BONUS
 			}
 		}
-	*/
+
+		// finally, save the results for use next time
+		pos.evalPawnHashTable[pawnHash].whitePawns = whitePawns
+		pos.evalPawnHashTable[pawnHash].blackPawns = blackPawns
+		pos.evalPawnHashTable[pawnHash].value = pawnStructureEval
+	}
+
+	// finally add the pawn structure eval
+	pos.evalOther += pos.evalPawnHashTable[pawnHash].value
 
 	pos.logTime.allLogTypes[LOG_EVAL].stop()
-
 }

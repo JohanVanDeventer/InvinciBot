@@ -17,7 +17,6 @@ The final result is only legal moves.
 */
 
 // generate all the legal moves for a position
-// we set a flag "atLeafCheckForOneMove": at leaf nodes we only need to have one move to determine it is not checkmate or stalemate
 func (pos *Position) generateLegalMoves() {
 
 	pos.logTime.allLogTypes[LOG_MOVE_GEN_TOTAL].start()

@@ -40,7 +40,7 @@ func initEngine() {
 		// eval
 		initEvalTables()
 		initEvalMaterialAndStageTables()
-		initEvalColumnMasks()
+		initEvalPawnMasks()
 
 		// terminal gui
 		initGameStateToText()

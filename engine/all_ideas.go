@@ -5,6 +5,51 @@ package main
 Ideas to consider / implement
 =============================
 
+--- Null move pruning eval ---
+Use full eval and not just simple eval for null moves, now that other eval is more important.
+
+--- Draw Detection ---
+Add detection of drawn endgames, even though we are up material.
+Split between strict draw (draw according to the rules), or drawish (tendency to be a draw).
+
+Strict draws (cannot be checkmate):
+___________________________________
+- k vs k
+- kn v k
+- kb v k
+
+Drawish (tends to be a draw):
+_____________________________
+(single queens or rooks)
+- kq vs kq
+- kr vs kr
+(minors only):
+- kn vs kn
+- kn vs kb
+- kb vs kb
+(queen vs minors):
+- kq vs krr
+- kq vs kbb
+- kq vs knn
+(rook vs minors):
+- krb vs kr
+- krn vs kr
+
+--- Eval bishop pair ---
+Bonus for having the bishop pair.
+
+--- Eval King Safety ---
+Use the move generation done at each turn, and count the number of squares next to the king that are attacked,
+(we already calculate this for move generation).
+Give a penalty for each square that is attacked.
+
+Additionally, count the king checks as part of that score (to de-incentivise allowing checks).
+
+Scale this down towards the endgame.
+
+--- Index speedup ---
+Change the /8 and %8 indexing to just look up the row and column directly (precomputed), if it is slow.
+
 --- Static null move pruning / reverse futility pruning ---
 A cheaper way than doing a null move (which is saying the opponent can have a free move),
 is saying if the evaluation less a margin is still above beta, take an early cut.
@@ -43,21 +88,14 @@ if currentDepth >= 1 && !inCheck {
 --- Search and draws ---
 Try scoring the 1st repetition as a draw and not the 2nd to save search depth?
 
---- Killer moves ---
+--- Killer moves in endgame ---
 In the endgame, sort killer moves before good threat moves?
 The cutoff rate for those moves seem higher in the LATE endagme (stage value at most 5 or less).
-
---- Eval ---
-- King safety
-- Passed pawn bonus
 
 --- SEE ---
 Recursive call line negamax where we input the bitboards,
 and only look for recaptures on a particular square.
 Once this is done, try MVV-LVA again, where "bad" captured have a SEE test.
-
---- LMR and Pawns ---
-Test whether completely removing LMR from pawn pushes is a gain (especially in the endgame).
 
 --- QS TT ---
 Add a small TT specially for QS to fit in the cache.
@@ -72,21 +110,6 @@ If eval + cature piece value < alpha by a margin, just ignore (likely to fail lo
 --- Auto tune ---
 Add a function to be able to "modify" eval heatmaps and other parameters before engine init.
 That way it can be passed from the Python match manager.
-
---- TT ---
-Remove mod operator, replace with bitboard & operations.
-This assumes the TT is a power of 2 size.
-
---- Eval hash table ---
-If the evaluation takes long, store the eval results in a hash table instead like the TT.
-
---- Better 3 fold repetition detection ---
-After a pawn move or a capture or a change in castling rights, we can never again have a 3 fold repetition with positions before that.
-Therefore we don't need to iterate over all previous zobrist hashes, only those since that half move counter was reset.
-
---- Better eval ---
-- Doubled pawns?
-- Isolated pawns?
 
 --- TT Size ---
 Test whether increasing the TT size helps improve play at longer time controls (vs lower cache hits)?
@@ -134,14 +157,6 @@ Smooth the mobility as the average of say the past 2 or 3, not just the last one
 Also add back queen mobility, but at say 1/2 or 1/3 of the actual mobility.
 
 This did not show a noticeable improvement.
-
---- Move gen ---
-Generate pawn moves before other pieces (for quiet move ordering to get avg earlier cutoffs).
-Also:
-- Castling moves in front of quiet moves
-- Pawn moves, then knight, bishop, rook, queen
-
-Was unclear, sometimes better, sometimes worse.
 
 --- QS Checks ---
 Rather generate all evasions in qs.
