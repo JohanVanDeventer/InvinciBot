@@ -5,7 +5,14 @@ package main
 Ideas to consider / implement
 =============================
 
---- Null move pruning eval ---
+--- Eval Normalizing ---
+The eval terms should be "normalized" around zero.
+For example, don't give a mobility bonus for each knight move,
+but for each knight move above average (say 4).
+
+This should apply to all eval terms. Above normal is a bonus, below normal is a penalty.
+
+--- Null Move Pruning Eval ---
 Use full eval and not just simple eval for null moves, now that other eval is more important.
 
 --- Draw Detection ---
@@ -38,48 +45,9 @@ _____________________________
 --- Eval bishop pair ---
 Bonus for having the bishop pair.
 
---- Eval King Safety ---
-Use the move generation done at each turn, and count the number of squares next to the king that are attacked,
-(we already calculate this for move generation).
-Give a penalty for each square that is attacked.
-
-Additionally, count the king checks as part of that score (to de-incentivise allowing checks).
-
-Scale this down towards the endgame.
-
 --- Index speedup ---
 Change the /8 and %8 indexing to just look up the row and column directly (precomputed), if it is slow.
 
---- Static null move pruning / reverse futility pruning ---
-A cheaper way than doing a null move (which is saying the opponent can have a free move),
-is saying if the evaluation less a margin is still above beta, take an early cut.
-The margin is higher the higher the depth is, because of deep tactics.
-
-We don't do it in check, or at qs nodes, or when beta is close to checkmate.
-
-if currentDepth >= 1 && !inCheck {
-	pos.evalPosAfter()
-	var staticScore int
-
-	if pos.isWhiteTurn {
-		staticScore = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
-	} else {
-		staticScore = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
-	}
-
-	var staticNullMoveMargin int
-	if currentDepth == 1 {
-		staticNullMoveMargin = VALUE_BISHOP
-	} else if currentDepth == 2 {
-		staticNullMoveMargin = VALUE_ROOK
-	} else if currentDepth == 3 {
-		staticNullMoveMargin = VALUE_QUEEN
-	}
-
-	if (staticScore - staticNullMoveMargin) >= beta {
-		return beta, false
-	}
-}
 
 --- Magic Bitboards ---
 1. Add function to generate own magic numbers.
@@ -169,5 +137,14 @@ Generate only captures in qs - flag the move generator.
 
 The issue was that mobility cannot be scored in qs because we don't generate all the moves.
 So even though move gen was 50% faster, the impact on mobility evaluation was too big.
+
+--- Eval King Safety ---
+Use the move generation done at each turn, and count the number of squares next to the king that are attacked,
+(we already calculate this for move generation).
+Give a penalty for each square that is attacked.
+Additionally, count the king checks as part of that score (to de-incentivise allowing checks).
+Scale this down towards the endgame.
+
+This did not show an improvement, so come back to this later.
 
 */

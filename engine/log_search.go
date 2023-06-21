@@ -46,9 +46,11 @@ type SearchDepthLog struct {
 	evalQSStandPatAlphaRaises int // number of alpha raises in quiescence using stand pat
 
 	// special search extensions and cuts
-	checkExtensions   int // nodes where the depth was extended due to a check
-	nullMoveSuccesses int // tried a null move and got a cutoff
-	nullMoveFailures  int // tried a null move and did not get a cutoff
+	checkExtensions         int // nodes where the depth was extended due to a check
+	nullMoveSuccesses       int // tried a null move and got a cutoff
+	nullMoveFailures        int // tried a null move and did not get a cutoff
+	staticNullMovePrunes    int // nodes where we had a static null move prune
+	staticNullMoveNonPrunes int // nodes where we did not have a static null move prune
 
 	// details about cutoffs in each of the main move loops
 	loopedOverMoves int // number of nodes where we actually looped over moves
@@ -422,24 +424,46 @@ func (log *SearchLogger) getCheckExtensionsSummary() string {
 	return summary
 }
 
-func (log *SearchLogger) getNullMoveSummary() string {
+func (log *SearchLogger) getPruningAndReductionSummary() string {
 
 	// create the summary string
 	summary := ""
 
-	// total normal nodes
-	totalNodes := log.depthLogs[NODE_TYPE_NORMAL].nodes
-
 	// null moves
+	totalNormalNodes := log.depthLogs[NODE_TYPE_NORMAL].nodes
 	nullMoveTotal := log.depthLogs[NODE_TYPE_NORMAL].nullMoveFailures + log.depthLogs[NODE_TYPE_NORMAL].nullMoveSuccesses
 
-	nullMoveTotalPercent := getPercent(totalNodes, nullMoveTotal)
+	nullMoveTotalPercent := getPercent(totalNormalNodes, nullMoveTotal)
 	nullMoveSuccessPercent := getPercent(nullMoveTotal, log.depthLogs[NODE_TYPE_NORMAL].nullMoveSuccesses)
 	nullMoveFailurePercent := getPercent(nullMoveTotal, log.depthLogs[NODE_TYPE_NORMAL].nullMoveFailures)
 
 	summary += "Try Null Moves: " + strconv.Itoa(nullMoveTotalPercent) + "% ("
 	summary += "success: " + strconv.Itoa(nullMoveSuccessPercent) + "%, "
 	summary += "failure: " + strconv.Itoa(nullMoveFailurePercent) + "%). "
+
+	// lmr stats
+	lmrReduceNodes := log.depthLogs[NODE_TYPE_NORMAL].lmrReducedNodes
+	lmrNonReducedNodes := log.depthLogs[NODE_TYPE_NORMAL].lmrNonReducedNodes
+	totalLMRNodes := lmrReduceNodes + lmrNonReducedNodes
+
+	lmrTryPercent := getPercent(totalLMRNodes, lmrReduceNodes)
+
+	summary += "LMR on other quiet moves: " + strconv.Itoa(lmrTryPercent) + "% ("
+
+	lmrReduceNodesFailures := log.depthLogs[NODE_TYPE_NORMAL].lmrReducedNodesFailures
+	lmrFailurePercent := getPercent(lmrReduceNodes, lmrReduceNodesFailures)
+	summary += "re-searches: " + strconv.Itoa(lmrFailurePercent) + "%). "
+
+	// static null move pruning (SNMP)
+	snmPrunes := log.depthLogs[NODE_TYPE_NORMAL].staticNullMovePrunes
+	snmNonPrunes := log.depthLogs[NODE_TYPE_NORMAL].staticNullMoveNonPrunes
+	totalSNMPTries := snmPrunes + snmNonPrunes
+
+	snmTryPercent := getPercent(totalNormalNodes, totalSNMPTries)
+	snmTriesSuccessRate := getPercent(totalSNMPTries, snmPrunes)
+
+	summary += "Try StNullMvPrune: " + strconv.Itoa(snmTryPercent) + "% ("
+	summary += "success rate: " + strconv.Itoa(snmTriesSuccessRate) + "%). "
 
 	return summary
 }
@@ -622,27 +646,6 @@ func (log *SearchLogger) getMoveLoopsQsSummary() string {
 	summary += "kQ: " + strconv.FormatFloat(avgKillerQuietMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgKillerQuietMoveLength, 'f', 2, 64) + ", "
 	summary += "bT: " + strconv.FormatFloat(avgBadThreatMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgBadThreatMoveLength, 'f', 2, 64) + ", "
 	summary += "oQ: " + strconv.FormatFloat(avgOtherQuietMoveIndex, 'f', 2, 64) + "/" + strconv.FormatFloat(avgOtherQuietMoveLength, 'f', 2, 64) + "). "
-
-	return summary
-}
-
-func (log *SearchLogger) getLMRSummary() string {
-
-	// create the summary string
-	summary := ""
-
-	// lmr stats
-	lmrReduceNodes := log.depthLogs[NODE_TYPE_NORMAL].lmrReducedNodes
-	lmrNonReducedNodes := log.depthLogs[NODE_TYPE_NORMAL].lmrNonReducedNodes
-	totalNodes := lmrReduceNodes + lmrNonReducedNodes
-
-	lmrTryPercent := getPercent(totalNodes, lmrReduceNodes)
-
-	summary += "LMR on other quiet moves: " + strconv.Itoa(lmrTryPercent) + "% ("
-
-	lmrReduceNodesFailures := log.depthLogs[NODE_TYPE_NORMAL].lmrReducedNodesFailures
-	lmrFailurePercent := getPercent(lmrReduceNodes, lmrReduceNodesFailures)
-	summary += "re-searches: " + strconv.Itoa(lmrFailurePercent) + "%). "
 
 	return summary
 }

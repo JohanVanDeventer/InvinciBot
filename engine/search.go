@@ -160,6 +160,9 @@ const (
 	PLY_PENALTY int = 5000 // ply penalty is to get the shortest checkmate path: queen is 900 value so 5k is enough
 
 	NODES_BEFORE_CHECK_INTERRUPT int = 5000 // after this many nodes, we check whether we need to stop the search
+
+	MIN_CHECKMATE = BLACK_WIN_VALUE + (1000 * PLY_PENALTY) // below this score is just checkmate scores
+	MAX_CHECKMATE = WHITE_WIN_VALUE - (1000 * PLY_PENALTY) // above this score is just checkmate scores
 )
 
 // return the score, along with a flag for whether the search was aborted
@@ -342,6 +345,37 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		}
 	}
 
+	// ------------------------------------------- Static Null Move Pruning / Reverse Futility Pruning ---------------------------------------
+	// this is basically a cheaper version of null move pruning below
+	// if our static evaluation is so good that even if we give ourselves a big hit materially,
+	// and we are still above beta, we assume this node will fail high and we can prune it
+	// we don't do this while in check to limit tactical weakness
+	// we also don't test this if beta is close to checkmate
+	// we do this for all nodes that are not qs, however the margin increases for each depth
+
+	if currentDepth > 0 && !inCheck && initialDepth > 2 && beta < MAX_CHECKMATE && currentDepth != initialDepth {
+
+		// get the static eval
+		pos.evalPosAfter()
+		var staticEval int
+		if pos.isWhiteTurn {
+			staticEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+		} else {
+			staticEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
+		}
+
+		// set the pruning margin
+		pruningMargin := currentDepth * VALUE_PAWN
+
+		// check whether we can prune
+		if staticEval-pruningMargin > beta {
+			pos.logSearch.depthLogs[nodeType].staticNullMovePrunes++
+			return beta, false
+		}
+		pos.logSearch.depthLogs[nodeType].staticNullMoveNonPrunes++
+
+	}
+
 	// ----------------------------------------------------------- Null Move Pruning ---------------------------------------------------------
 
 	// ___ Idea ___
@@ -411,8 +445,72 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 			// if we don't return early, we need to again generate all legal moves in the position (making and undoing moves reset the legal moves)
 			pos.generateLegalMoves()
+			pos.logSearch.depthLogs[nodeType].generatedLegalMovesFull++
 		}
 	}
+
+	/* (commenting out for now: did not give an improvement)
+
+	// ----------------------------------------------------------- Razoring --------------------------------------------------------
+	// if we are close to the qs depth and the evaluation is very bad for us (below alpha by a large margin),
+	// we try to immediately drop to qsearch
+	// to confirm the position will likely fail low (i.e. no moves will cause an alpha increase)
+	// so in qsearch basically only a capture or promotion above that can save the position
+	// if the qsearch confirms a fail-low, we trust it and fail low by returning alpha
+	// we don't try this in the endgame, where not pruning quiet moves become more important
+	// we also don't try this if the parent was a null move (to allow all replies to the null move)
+	// we also don't try this if beta is a checkmate score
+	if currentDepth <= 2 && currentDepth > 0 {
+		if initialDepth > 2 && !inCheck && pos.evalMidVsEndStage >= 8 && !parentWasNull && beta < MAX_CHECKMATE {
+
+			// get the static eval
+			pos.evalPosAfter()
+			var staticEval int
+			if pos.isWhiteTurn {
+				staticEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+			} else {
+				staticEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
+			}
+
+			// set the razoring margin
+			var razorMargin int
+			if currentDepth == 1 {
+				razorMargin = VALUE_KNIGHT
+			} else {
+				razorMargin = VALUE_ROOK
+			}
+
+			// if the static eval + the razoring margin is below alpha
+			// we start a direct negamax search at depth -1 (to not allow check extensions out of qs),
+			// but we increase the qs depth by 1 to compensate
+			// we don't do a move, so we don't swap alpha and beta
+			// we are still at the same level, so we decrease ply by 1, because it will immediately be increased again
+			if (staticEval + razorMargin) < alpha {
+
+				// do the qsearch
+				score, terminated := pos.negamax(initialDepth, -1, alpha, beta, tt, qsDepth-1, ply-1, false)
+				moveValue := 0 - score
+
+				// if the search was terminated, return with a zero value
+				if terminated {
+					return 0, true
+				}
+
+				// now check whether the value improved alpha
+				// if not, we regenerate the legal moves (they are overwritten in qsearch)
+				if moveValue < alpha {
+					pos.logSearch.depthLogs[nodeType].razorSuccesses++
+					return alpha, false
+				} else {
+					pos.logSearch.depthLogs[nodeType].razorFailures++
+					pos.logSearch.depthLogs[nodeType].generatedLegalMovesFull++
+					pos.generateLegalMoves()
+				}
+			}
+		}
+	}
+
+	*/
 
 	// ----------------------------------------------------------- Order Moves --------------------------------------------------------
 	// if we are not at a leaf node, we start ordering moves for the search to try optimise cutoffs

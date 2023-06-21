@@ -161,7 +161,7 @@ func (pos *Position) printBoardToTerminal() {
 			fmt.Printf("< QS >       %v\n", pos.logSearch.getTTQsSummary())
 
 		case 3:
-			fmt.Printf("< NON-QS >   %v%v\n", pos.logSearch.getNullMoveSummary(), pos.logSearch.getLMRSummary())
+			fmt.Printf("< NON-QS >   %v\n", pos.logSearch.getPruningAndReductionSummary())
 
 		case 2:
 			fmt.Printf("< QS >       %v\n", pos.logSearch.getEvalSummary())
