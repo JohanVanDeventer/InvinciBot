@@ -40,10 +40,13 @@ type SearchDepthLog struct {
 	generatedLegalMovesPart int // nodes where legal moves were generated until at least one is found
 
 	// eval details
-	evalLeafNodes             int // number of leaf nodes evaluated
-	evalQSNodes               int // number of QS nodes evaluated (excluding leaf nodes)
-	evalQSStandPatBetaCuts    int // number of beta cuts in quiescence using stand pat
-	evalQSStandPatAlphaRaises int // number of alpha raises in quiescence using stand pat
+	evalNode int // number of nodes evaluated
+
+	// qs details
+	qsLeafNodes           int // number of leaf nodes evaluated
+	qsOtherNodes          int // number of QS nodes evaluated (excluding leaf nodes)
+	qsStandPatBetaCuts    int // number of beta cuts in quiescence using stand pat
+	qsStandPatAlphaRaises int // number of alpha raises in quiescence using stand pat
 
 	// special search extensions and cuts
 	checkExtensions         int // nodes where the depth was extended due to a check
@@ -375,29 +378,29 @@ func (log *SearchLogger) getMoveGenerationSummary() string {
 	return summary
 }
 
-func (log *SearchLogger) getEvalSummary() string {
+func (log *SearchLogger) getQsSummary() string {
 
 	// create the summary string
 	summary := ""
 
 	// total qs nodes
 	totalNodes := log.depthLogs[NODE_TYPE_QS].nodes
+	leafNodes := log.depthLogs[NODE_TYPE_QS].qsLeafNodes
+	otherNodes := log.depthLogs[NODE_TYPE_QS].qsOtherNodes
 
 	// eval leaf vs other qs nodes
-	evalNodesTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].evalLeafNodes+log.depthLogs[NODE_TYPE_QS].evalQSNodes)
-	evalNodesLeafPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].evalLeafNodes)
-	evalNodesOtherPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].evalQSNodes)
+	leafPercent := getPercent(totalNodes, leafNodes)
+	otherPercent := getPercent(totalNodes, otherNodes)
 
-	summary += "Eval Nodes: " + strconv.Itoa(evalNodesTotalPercent) + "% ("
-	summary += "leaf: " + strconv.Itoa(evalNodesLeafPercent) + "%, "
-	summary += "other qs: " + strconv.Itoa(evalNodesOtherPercent) + "%). "
+	summary += "Nodes (leaf: " + strconv.Itoa(leafPercent) + "%, "
+	summary += "other: " + strconv.Itoa(otherPercent) + "%). "
 
 	// cutoffs
-	evalSPBeta := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].evalQSStandPatBetaCuts)
-	evalSPAlpha := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].evalQSStandPatAlphaRaises)
+	qsBetaPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].qsStandPatBetaCuts)
+	qsAlphaPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].qsStandPatAlphaRaises)
 
-	summary += "Stand Pat Beta Cuts: " + strconv.Itoa(evalSPBeta) + "%. "
-	summary += "Stand Pat Alpha Raises: " + strconv.Itoa(evalSPAlpha) + "%. "
+	summary += "Stand Pat (beta cuts: " + strconv.Itoa(qsBetaPercent) + "%, "
+	summary += "alpha raises: " + strconv.Itoa(qsAlphaPercent) + "%). "
 
 	return summary
 }
@@ -420,6 +423,21 @@ func (log *SearchLogger) getCheckExtensionsSummary() string {
 	summary += "Check Extensions: " + strconv.Itoa(totalCheckExtensionsPercent) + "% ("
 	summary += "normal: " + strconv.Itoa(normalCheckExtensionsPercent) + "%, "
 	summary += "qs: " + strconv.Itoa(qsCheckExtensionsPercent) + "%). "
+
+	return summary
+}
+
+func (log *SearchLogger) getEvalSummary() string {
+
+	// create the summary string
+	summary := ""
+
+	// get the total nodes evaluated
+	totalNodes := log.getTotalNodes()
+	evalNodes := log.depthLogs[NODE_TYPE_NORMAL].evalNode + log.depthLogs[NODE_TYPE_QS].evalNode
+	evalPercent := getPercent(totalNodes, evalNodes)
+
+	summary += "Eval: " + strconv.Itoa(evalPercent) + "%. "
 
 	return summary
 }

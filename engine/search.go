@@ -28,9 +28,7 @@ const (
 	MAX_DEPTH int = 100 // we set a max depth for the search (otherwise messes with assigning a best move)
 )
 
-var (
-	qsDepthLimitTable [MAX_DEPTH + 1]int
-)
+var qsDepthLimitTable [MAX_DEPTH + 1]int
 
 func initQSDepthLimits() {
 	for depth := 0; depth <= MAX_DEPTH; depth++ {
@@ -301,47 +299,43 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	}
 
 	// ------------------------------------------------------------- Evaluation --------------------------------------------------------
-	// if we are at a leaf or quiescence node, we now evaluate the position
+	// we now evaluate the position (we need this for all normal and qs nodes in some way)
 
-	// ________________________________ LEAF NODE EVALUATION _______________________________
+	// ________________________________ EVALUATION _______________________________
+	pos.evalPosAfter()
+	var nodeEval int
+	pos.logSearch.depthLogs[nodeType].evalNode++
+
+	if pos.isWhiteTurn {
+		nodeEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+	} else {
+		nodeEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
+	}
+
+	// ________________________________ QS LEAF NODES _______________________________
 	// if the game is not over, and we are at the leaf nodes, we return the eval score
-	// we return the eval relative to the side to move (not an absolute eval)
 	if currentDepth <= qsDepth {
-		pos.evalPosAfter()
-		pos.logSearch.depthLogs[nodeType].evalLeafNodes++
+		pos.logSearch.depthLogs[nodeType].qsLeafNodes++
+		return nodeEval, false
 
-		if pos.isWhiteTurn {
-			return pos.evalMaterial + pos.evalHeatmaps + pos.evalOther, false
-		} else {
-			return 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther), false
-		}
-
-		// _____________________________ QUIESCENCE NODE EVALUATION _____________________________
-		// if we are at a quiescence node but not a leaf node, we use a standPat score as a floor on the evaluation for alpha
+		// _____________________________ QS OTHER NODES _____________________________
+		// if we are at a quiescence node but not a leaf node, we use the evaluation as a floor for alpha
 		// this is done for the case that there is no threat/capture moves, so we at least return the evaluation
-		// this also allows standPat beta cutoffs before we loop over all the moves
+		// this also allows beta cutoffs before we loop over all the moves
 	} else if currentDepth <= 0 {
-		pos.evalPosAfter()
-		pos.logSearch.depthLogs[nodeType].evalQSNodes++
-
-		var standPat int
-		if pos.isWhiteTurn {
-			standPat = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
-		} else {
-			standPat = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
-		}
+		pos.logSearch.depthLogs[nodeType].qsOtherNodes++
 
 		// beta (UPPERBOUND) is not changed in this node, so if it is already above that, return beta
-		if standPat >= beta {
-			pos.logSearch.depthLogs[nodeType].evalQSStandPatBetaCuts++
+		if nodeEval >= beta {
+			pos.logSearch.depthLogs[nodeType].qsStandPatBetaCuts++
 			return beta, false
 		}
 
 		// else, set alpha (LOWERBOUND) to be at least the evaluation score
 		// because we assume captures can either improve the position, otherwise we won't make the capture
-		if alpha < standPat {
-			pos.logSearch.depthLogs[nodeType].evalQSStandPatAlphaRaises++
-			alpha = standPat
+		if alpha < nodeEval {
+			pos.logSearch.depthLogs[nodeType].qsStandPatAlphaRaises++
+			alpha = nodeEval
 		}
 	}
 
@@ -355,20 +349,11 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	if currentDepth > 0 && !inCheck && initialDepth > 2 && beta < MAX_CHECKMATE && currentDepth != initialDepth {
 
-		// get the static eval
-		pos.evalPosAfter()
-		var staticEval int
-		if pos.isWhiteTurn {
-			staticEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
-		} else {
-			staticEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
-		}
-
 		// set the pruning margin
 		pruningMargin := currentDepth * VALUE_PAWN
 
 		// check whether we can prune
-		if staticEval-pruningMargin > beta {
+		if nodeEval-pruningMargin > beta {
 			pos.logSearch.depthLogs[nodeType].staticNullMovePrunes++
 			return beta, false
 		}
@@ -388,37 +373,24 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// we implemented special code that allows making a null move
 	// the undo move code will still work with null moves, no need for a special undo null move function
 
-	// ___ Restrictions: General ___
+	// ___ Restrictions ___
 	// we cannot try a null move when we are in check (because then the position would be illegal after the null move)
 	// a null move will also not work in zugzwang positions (because there a null move is actually better than all other moves)
 	// zugzwang positions are most common in endgames, so we only try a null move when we are not in the endgame as determined by the game stage
 	// we also don't do null moves while in QS
 	// we also don't try null moves at the root
-	// we also don't try null moves if the depth reduction would put us at a remaining depth below 1
 	// we also don't allow CONSECUTIVE null moves (two null moves after each other)
 
 	// ___ Restrictions: Eval ___
-	// we also only try null moves if the simple eval (material + heatmaps) >= (beta - margin):
-	// because we then say in this case our eval is good enough that we can give our opponent a free move
-	// this will also prevent beta mate scores from influencing the result, because beta is much smaller than the mate score
-	// also, we use material + heatmaps because those are updated incrementally and therefore cheap and already available
+	// we also only try null moves if the eval is above beta
+	// because we then say in this case our eval is generally good enough that we can give our opponent a free move
+	// this will also prevent beta mate scores from influencing the result, because eval is much smaller than the mate score
 
 	// ___ Null Move Pruning ___
-	// we test for null moves at these nodes
-	// we set the limit so null move pruning has at least 1 full depth remaining until qsearch
-	// that way we still allow all replies by the opponent and not only captures
 	if currentDepth >= 4 && currentDepth != initialDepth {
 
-		// get the simple eval
-		var simpleEval int
-		if pos.isWhiteTurn {
-			simpleEval = pos.evalMaterial + pos.evalHeatmaps
-		} else {
-			simpleEval = 0 - (pos.evalMaterial + pos.evalHeatmaps)
-		}
-
 		// check whether we can do a null move
-		if !inCheck && pos.evalMidVsEndStage >= 6 && simpleEval >= (beta-30) && !parentWasNull {
+		if !inCheck && pos.evalMidVsEndStage >= 6 && nodeEval >= (beta-30) && !parentWasNull {
 
 			nullMoveReduction := 2
 			if currentDepth >= 5 {

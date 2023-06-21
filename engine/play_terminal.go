@@ -152,7 +152,8 @@ func (pos *Position) printBoardToTerminal() {
 			fmt.Printf("< ALL >      %v%v\n", pos.logSearch.getOverallSummary(), pos.logSearch.getBranchingFactorSummary())
 
 		case 6:
-			fmt.Printf("< ALL >      %v%v%v\n", pos.logSearch.getMoveOrderingSummary(), pos.logSearch.getMoveGenerationSummary(), pos.logSearch.getCheckExtensionsSummary())
+			fmt.Printf("< ALL >      %v%v%v%v\n", pos.logSearch.getMoveOrderingSummary(), pos.logSearch.getMoveGenerationSummary(),
+				pos.logSearch.getCheckExtensionsSummary(), pos.logSearch.getEvalSummary())
 
 		case 5:
 			fmt.Printf("< NON-QS >   %v\n", pos.logSearch.getTTNormalSummary())
@@ -164,7 +165,7 @@ func (pos *Position) printBoardToTerminal() {
 			fmt.Printf("< NON-QS >   %v\n", pos.logSearch.getPruningAndReductionSummary())
 
 		case 2:
-			fmt.Printf("< QS >       %v\n", pos.logSearch.getEvalSummary())
+			fmt.Printf("< QS >       %v\n", pos.logSearch.getQsSummary())
 
 		case 1:
 			fmt.Printf("< NON-QS >   %v\n", pos.logSearch.getMoveLoopsNormalSummary())
