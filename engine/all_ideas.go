@@ -5,6 +5,103 @@ package main
 Ideas to consider / implement
 =============================
 
+--- MVV LVA ---
+Just for the queen, if the queen is captured, give another 1000 point bonus.
+It can never be a bad capture, and will possibly reduce qs queen plunder raids.
+
+--- Root Better Move Ordering ---
+Better move ordering for the root, because it is called only once at the start of each search, we can afford more time consuming calcs.
+We also want to save time if the best move changes from the previous iteration suddenly.
+Use node count to sort moves (longer node count means more difficult to refute).
+
+--- History Ordering and LMR ---
+Don't do LMR on say the first x other quiet moves once we have history ordering.
+
+--- History Ordering ---
+
+To better sort quiet moves (other than killer moves), we have a history table for each search.
+A history table is independent on depth (whereas killer moves are dependent on the depth).
+The table stores moves in [side][piece][toSq].
+If a move causes either a beta cutoff (very good) or an alpha improvement (quite good cause it was better than any capture or killer so far),
+we give that move a bonus in the table.
+If the move did not improve alpha, we reduce the current score in the table by depth.
+The aim is in general to catch good quiet moves.
+We also only do this for depths > 4 (where an earlier cutoff will actually have a big effect).
+The time impact will be negligible because at least 90%+ of normal nodes are at depth <= 4.
+
+type HistoryTable struct {
+	entries [2][6][64]int
+}
+
+func getBlankHistoryTable () *HistoryTable {
+	return &HistoryTable{}
+}
+
+// give a big bonus for moves causing a beta cutoff
+func (h *HistoryTable) goodBetaMove(move Move, currentDepth int) {
+	side := SIDE_BLACK
+	if pos.isWhiteTurn {
+		side := SIDE_WHITE
+	}
+	h.entries[side][move.getPiece()][move.getToSq()] += currentDepth * currentDepth
+}
+
+// give a small bonus for moves causing an alpha improvement
+func (h *HistoryTable) goodAlphaMove(move Move, currentDepth int) {
+	side := SIDE_BLACK
+	if pos.isWhiteTurn {
+		side := SIDE_WHITE
+	}
+	h.entries[side][move.getPiece()][move.getToSq()] += currentDepth
+}
+
+// reduce the score of moves searched that did not give an alpha improvement
+func (h *HistoryTable) badHistoryMove(move Move, currentDepth int) {
+	side := SIDE_BLACK
+	if pos.isWhiteTurn {
+		side := SIDE_WHITE
+	}
+	h.entries[side][move.getPiece()][move.getToSq()] -= currentDepth
+}
+
+// returns a slice of other quiet moves ordered from best to worst based on history scores
+func (pos *Position) orderQuietHistoryMoves(moves[]Move, historyTable *HistoryTable) {
+
+	// get the side
+	side := SIDE_BLACK
+	if pos.isWhiteTurn {
+		side := SIDE_WHITE
+	}
+
+	// loop over moves to score them
+	for i, move := range moves {
+
+		// set the score of the move to zero
+		moveOrderScore := 0
+
+		// get the relevant move information
+		piece := move.getPiece()
+		toSq := move.getToSq()
+
+		// we only update the score if the history score is > 0
+		historyScore := historyTable.entries[side][piece][toSq]
+		if historyScore > 0 {
+			moves[i].setMoveOrderingScore(moveOrderScore)
+		}
+	}
+
+	// now sort the moves
+	// define the custom comparator function
+	// sort the moves based on the scores using the comparator function
+	sort.Slice(moves, func(i, j int) bool { return moves[i].getMoveOrderingScore() > moves[j].getMoveOrderingScore() })
+
+	// finally clear the move ordering scores (to make comparison easier later to other moves)
+	for _, move := range moves {
+		move.clearMoveOrderingScore()
+	}
+}
+
+
 --- Eval Normalizing ---
 The eval terms should be "normalized" around zero.
 For example, don't give a mobility bonus for each knight move,
@@ -81,11 +178,6 @@ That way it can be passed from the Python match manager.
 
 --- TT Size ---
 Test whether increasing the TT size helps improve play at longer time controls (vs lower cache hits)?
-
---- Root Better Move Ordering ---
-Better move ordering for the root, because it is called only once at the start of each search, we can afford more time consuming calcs.
-We also want to save time if the best move changes from the previous iteration suddenly.
-Use node count to sort moves (longer node count means more difficult to refute).
 
 --- Draw by insufficient material ---
 Especially king vs king (eval game stage count == 0: all pieces off, then also just check pawn count == 0), king vs king and knight etc.

@@ -299,22 +299,22 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	}
 
 	// ------------------------------------------------------------- Evaluation --------------------------------------------------------
-	// we now evaluate the position (we need this for all normal and qs nodes in some way)
-
-	// ________________________________ EVALUATION _______________________________
-	pos.evalPosAfter()
-	var nodeEval int
-	pos.logSearch.depthLogs[nodeType].evalNode++
-
-	if pos.isWhiteTurn {
-		nodeEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
-	} else {
-		nodeEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
-	}
+	// we now evaluate the position at qs nodes
 
 	// ________________________________ QS LEAF NODES _______________________________
 	// if the game is not over, and we are at the leaf nodes, we return the eval score
 	if currentDepth <= qsDepth {
+
+		pos.evalPosAfter()
+		var nodeEval int
+		pos.logSearch.depthLogs[nodeType].evalNode++
+
+		if pos.isWhiteTurn {
+			nodeEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+		} else {
+			nodeEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
+		}
+
 		pos.logSearch.depthLogs[nodeType].qsLeafNodes++
 		return nodeEval, false
 
@@ -323,6 +323,17 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// this is done for the case that there is no threat/capture moves, so we at least return the evaluation
 		// this also allows beta cutoffs before we loop over all the moves
 	} else if currentDepth <= 0 {
+
+		pos.evalPosAfter()
+		var nodeEval int
+		pos.logSearch.depthLogs[nodeType].evalNode++
+
+		if pos.isWhiteTurn {
+			nodeEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+		} else {
+			nodeEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
+		}
+
 		pos.logSearch.depthLogs[nodeType].qsOtherNodes++
 
 		// beta (UPPERBOUND) is not changed in this node, so if it is already above that, return beta
@@ -348,6 +359,17 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	// we do this for all nodes that are not qs, however the margin increases for each depth
 
 	if currentDepth > 0 && !inCheck && initialDepth > 2 && beta < MAX_CHECKMATE && currentDepth != initialDepth {
+
+		// evaluate the node
+		pos.evalPosAfter()
+		var nodeEval int
+		pos.logSearch.depthLogs[nodeType].evalNode++
+
+		if pos.isWhiteTurn {
+			nodeEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+		} else {
+			nodeEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
+		}
 
 		// set the pruning margin
 		pruningMargin := currentDepth * VALUE_PAWN
@@ -388,6 +410,17 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 	// ___ Null Move Pruning ___
 	if currentDepth >= 4 && currentDepth != initialDepth {
+
+		// evaluate the node
+		pos.evalPosAfter()
+		var nodeEval int
+		pos.logSearch.depthLogs[nodeType].evalNode++
+
+		if pos.isWhiteTurn {
+			nodeEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+		} else {
+			nodeEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
+		}
 
 		// check whether we can do a null move
 		if !inCheck && pos.evalMidVsEndStage >= 6 && nodeEval >= (beta-30) && !parentWasNull {
