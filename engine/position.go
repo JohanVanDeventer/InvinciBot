@@ -109,7 +109,7 @@ type Position struct {
 	timeTotalAllowedTime int       // in milliseconds, what is the total allowed time for the search
 
 	// killer heuristic variables
-	killerMoves [MAX_DEPTH][2]Move // table to save killer moves
+	killerMoves [KILLER_TABLE_SIZE][2]Move // table to save killer moves
 
 	// logs details about function times and search results
 	logSearch SearchLogger
@@ -218,7 +218,7 @@ func (pos *Position) reset() {
 
 // function to reset the killer moves table in the position
 func (pos *Position) resetKillerMoveTable() {
-	for depth := 0; depth < MAX_DEPTH; depth++ {
+	for depth := 0; depth < KILLER_TABLE_SIZE; depth++ {
 		for entry := 0; entry < 2; entry++ {
 			pos.killerMoves[depth][entry] = BLANK_MOVE
 		}

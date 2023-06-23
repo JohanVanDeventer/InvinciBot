@@ -196,11 +196,12 @@ func (pos *Position) printBoardToTerminal() {
 	avgOrderThreat := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_THREAT_MOVES].getAverageNsPerCall()
 	avgOrderKiller1 := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_1].getAverageNsPerCall()
 	avgOrderKiller2 := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_KILLER_2].getAverageNsPerCall()
+	avgOrderOtherQuiet := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_OTHER_QUIET_MOVES].getAverageNsPerCall()
 	avgOrderHash := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_HASH_MOVES].getAverageNsPerCall()
 	avgOrderPrevIter := pos.logTime.allLogTypes[LOG_SEARCH_ORDER_PREVIOUS_ITERATION_MOVES].getAverageNsPerCall()
 
-	fmt.Printf("< AVG TIME > Copy Moves (threat: %v, quiet: %v). Order Moves (threat: %v, killer1: %v, killer2: %v, hash: %v, prev iter: %v). ",
-		avgCopyThreatMoves, avgCopyQuietMoves, avgOrderThreat, avgOrderKiller1, avgOrderKiller2, avgOrderHash, avgOrderPrevIter)
+	fmt.Printf("< AVG TIME > Copy Moves (threat: %v, quiet: %v). Order Moves (threat: %v, killer1: %v, killer2: %v, othQuiet: %v, hash: %v, prev iter: %v). ",
+		avgCopyThreatMoves, avgCopyQuietMoves, avgOrderThreat, avgOrderKiller1, avgOrderKiller2, avgOrderOtherQuiet, avgOrderHash, avgOrderPrevIter)
 
 	avgStartupFen := pos.logTime.allLogTypes[LOG_ONCE_LOAD_FEN].getAverageNsPerCall()
 	avgStartupHash := pos.logTime.allLogTypes[LOG_ONCE_HASH].getAverageNsPerCall()

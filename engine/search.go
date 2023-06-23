@@ -25,7 +25,12 @@ Deeper depth searches have longer quiescence depths.
 */
 
 const (
-	MAX_DEPTH int = 100 // we set a max depth for the search (otherwise messes with assigning a best move)
+	MAX_DEPTH    int = 100 // we set a max depth for the search (otherwise messes with assigning a best move)
+	MIN_QS_DEPTH int = -8  // we set the minimum qs depth as a limit on qs
+
+	// remember, with check extensions (and possibly generating check evasions in qs), the ply can be 2x as big as depth
+	// because with check extensions the ply keeps on increasing but the depth remains the same for an extra ply
+	KILLER_TABLE_SIZE int = (MAX_DEPTH-MIN_QS_DEPTH)*2 + 1
 )
 
 var qsDepthLimitTable [MAX_DEPTH + 1]int
@@ -54,13 +59,13 @@ func initQSDepthLimits() {
 			qsDepthLimitTable[depth] = -7
 
 		} else if depth <= 14 {
-			qsDepthLimitTable[depth] = -8
+			qsDepthLimitTable[depth] = MIN_QS_DEPTH
 
 		} else if depth <= 16 {
-			qsDepthLimitTable[depth] = -8
+			qsDepthLimitTable[depth] = MIN_QS_DEPTH
 
 		} else {
-			qsDepthLimitTable[depth] = -8
+			qsDepthLimitTable[depth] = MIN_QS_DEPTH
 		}
 	}
 }
@@ -103,8 +108,11 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 	// reset the killer moves table
 	pos.resetKillerMoveTable()
 
-	// create a new transposition table for the search (cleanest for now, later test whether we can keep it between searches)
+	// create a new transposition table for the search
 	tt := getNewTT()
+
+	// create a new history table for the search
+	ht := getNewHistoryTable()
 
 	pos.logTime.allLogTypes[LOG_ONCE_SEARCH_STARTUP].stop()
 
@@ -124,7 +132,7 @@ func (pos *Position) searchForBestMove(timeLimitMs int) {
 		ply := 0
 
 		// do the search
-		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, tt, qsDepth, ply, false)
+		_, terminated := pos.negamax(depth, depth, 0-INFINITY, INFINITY, tt, ht, qsDepth, ply, false)
 
 		// store the best move from the search only after each iteration, and continue with the next iteration
 		// in case of terminated searches in the middle of a search, we can't use that move, and exit immediately
@@ -164,7 +172,7 @@ const (
 )
 
 // return the score, along with a flag for whether the search was aborted
-func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta int, tt *TranspositionTable, qsDepth int, ply int, parentWasNull bool) (int, bool) {
+func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta int, tt *TranspositionTable, ht *HistoryTable, qsDepth int, ply int, parentWasNull bool) (int, bool) {
 
 	// -------------------------------------------------------- Ply -----------------------------------------------------
 	// ply is the depth since the root, independent of any changes to currentDepth (such as check extensions)
@@ -412,14 +420,13 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	if currentDepth >= 4 && currentDepth != initialDepth {
 
 		// evaluate the node
-		pos.evalPosAfter()
 		var nodeEval int
 		pos.logSearch.depthLogs[nodeType].evalNode++
 
 		if pos.isWhiteTurn {
-			nodeEval = pos.evalMaterial + pos.evalHeatmaps + pos.evalOther
+			nodeEval = pos.evalMaterial + pos.evalHeatmaps
 		} else {
-			nodeEval = 0 - (pos.evalMaterial + pos.evalHeatmaps + pos.evalOther)
+			nodeEval = 0 - (pos.evalMaterial + pos.evalHeatmaps)
 		}
 
 		// check whether we can do a null move
@@ -432,7 +439,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 			// make the null move, get the search score, and undo the null move
 			pos.makeNullMove()
-			nullMoveScore, terminated := pos.negamax(initialDepth, currentDepth-nullMoveReduction-1, 0-beta, 0-beta+1, tt, qsDepth, ply, true)
+			nullMoveScore, terminated := pos.negamax(initialDepth, currentDepth-nullMoveReduction-1, 0-beta, 0-beta+1, tt, ht, qsDepth, ply, true)
 			nullMoveValue := 0 - nullMoveScore
 			pos.undoMove()
 
@@ -712,6 +719,12 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	bestMove := BLANK_MOVE
 	pos.logSearch.depthLogs[nodeType].loopedOverMoves++
 
+	// get the side for storing history moves
+	side := SIDE_BLACK
+	if pos.isWhiteTurn {
+		side = SIDE_WHITE
+	}
+
 	// ------------------------------------------------------- Main Search: Best Moves --------------------------------------------------
 	// start the search and iterate over each move
 	bestMovesTried := 0
@@ -721,7 +734,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// ___________________________________________ Make and Undo Move ___________________________________
 		// play the move, get the score of the node, and undo the move again
 		pos.makeMove(move)
-		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
+		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, ht, qsDepth, ply, false)
 		moveValue := 0 - score
 		pos.undoMove()
 
@@ -740,19 +753,28 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 		// ___________________________________________ Alpha-Beta Cutoffs ___________________________________
 
+		// ___________ KILLER AND HISTORY MOVES ___________
+		// for best moves, we don't know if the move was a quiet move or a threat move
+		// so first test for that before storing it as a killer move or in the history table
+		moveType := move.getMoveType()
+		promotionType := move.getPromotionType()
+		isQuiet := false
+		if (moveType == MOVE_TYPE_QUIET || moveType == MOVE_TYPE_CASTLE) && (promotionType == PROMOTION_NONE) {
+			isQuiet = true
+		}
+
 		// beta cutoff
 		if moveValue >= beta {
 
-			// ___________ KILLER MOVES ___________
-			// for best moves, we don't know if the move was a quiet move or a threat move (we only store quiet killers)
-			// so first test for that before storing it
-			moveType := move.getMoveType()
-			promotionType := move.getPromotionType()
-			if (moveType == MOVE_TYPE_QUIET || moveType == MOVE_TYPE_CASTLE) && (promotionType == PROMOTION_NONE) {
+			if isQuiet {
+				// ___________ KILLER MOVES ___________
 				if move != pos.killerMoves[ply][0] { // if we have a unique new killer move
 					pos.killerMoves[ply][1] = pos.killerMoves[ply][0] // move the previous new move to the old move slot
 					pos.killerMoves[ply][0] = move                    // save the current killer move in the new move slot
 				}
+
+				// ___________ HISTORY MOVES ___________
+				ht.goodBetaMove(move, currentDepth, side)
 			}
 
 			// ___________ NORMAL CODE ___________
@@ -765,7 +787,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 				pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
-				pos.logSearch.depthLogs[nodeType].ttStore++
+				pos.logSearch.depthLogs[nodeType].ttStoreLower++
 			}
 
 			pos.logSearch.depthLogs[nodeType].bestMovesCutoffs++
@@ -775,8 +797,21 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 		// improvement of alpha
 		if moveValue > alpha {
+
+			// ___________ NORMAL CODE ___________
 			alpha = moveValue
 			bestMove = move
+
+			if isQuiet {
+				// ___________ HISTORY MOVES ___________
+				ht.goodAlphaMove(move, currentDepth, side)
+			}
+
+		} else {
+			if isQuiet {
+				// ___________ HISTORY MOVES ___________
+				ht.badAlphaMove(move, currentDepth, side)
+			}
 		}
 	}
 
@@ -794,7 +829,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// ___________________________________________ Make and Undo Move ___________________________________
 		// play the move, get the score of the node, and undo the move again
 		pos.makeMove(move)
-		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
+		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, ht, qsDepth, ply, false)
 		moveValue := 0 - score
 		pos.undoMove()
 
@@ -825,7 +860,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 				pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
-				pos.logSearch.depthLogs[nodeType].ttStore++
+				pos.logSearch.depthLogs[nodeType].ttStoreLower++
 			}
 
 			pos.logSearch.depthLogs[nodeType].threatGoodMovesCutoffs++
@@ -934,7 +969,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			// ___________________________________________ Make and Undo Move ___________________________________
 			// play the move, get the score of the node, and undo the move again
 			pos.makeMove(move)
-			score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
+			score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, ht, qsDepth, ply, false)
 			moveValue := 0 - score
 			pos.undoMove()
 
@@ -962,6 +997,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					pos.killerMoves[ply][0] = move                    // save the current killer move in the new move slot
 				}
 
+				// ___________ HISTORY MOVES ___________
+				ht.goodBetaMove(move, currentDepth, side)
+
 				// ___________ NORMAL CODE ___________
 				if currentDepth > 0 {
 					// store TT entries for non-quiescence nodes
@@ -972,7 +1010,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 					pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
-					pos.logSearch.depthLogs[nodeType].ttStore++
+					pos.logSearch.depthLogs[nodeType].ttStoreLower++
 				}
 
 				pos.logSearch.depthLogs[nodeType].quietKillerMovesCutoffs++
@@ -982,8 +1020,17 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 			// improvement of alpha
 			if moveValue > alpha {
+				// ___________ NORMAL CODE ___________
 				alpha = moveValue
 				bestMove = move
+
+				// ___________ HISTORY MOVES ___________
+				ht.goodAlphaMove(move, currentDepth, side)
+
+			} else {
+
+				// ___________ HISTORY MOVES ___________
+				ht.badAlphaMove(move, currentDepth, side)
 			}
 		}
 
@@ -1002,7 +1049,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 		// ___________________________________________ Make and Undo Move ___________________________________
 		// play the move, get the score of the node, and undo the move again
 		pos.makeMove(move)
-		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
+		score, terminated := pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, ht, qsDepth, ply, false)
 		moveValue := 0 - score
 		pos.undoMove()
 
@@ -1033,7 +1080,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 				pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
-				pos.logSearch.depthLogs[nodeType].ttStore++
+				pos.logSearch.depthLogs[nodeType].ttStoreLower++
 			}
 
 			pos.logSearch.depthLogs[nodeType].threatBadMovesCutoffs++
@@ -1051,6 +1098,17 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 	if threatBadMovesTried > 0 {
 		pos.logSearch.depthLogs[nodeType].threatBadMovesNoCutoffs++
 		pos.logSearch.depthLogs[nodeType].threatBadMovesTriedWhenNoCuts += threatBadMovesTried
+	}
+
+	// ------------------------------------------------------- Order Moves: Other Quiet Moves --------------------------------------------------
+	// we order other quiet moves based on their history score
+	if currentDepth > 0 && currentDepth != initialDepth {
+		pos.logTime.allLogTypes[LOG_SEARCH_ORDER_OTHER_QUIET_MOVES].start()
+
+		pos.orderQuietHistoryMoves(copyOfQuietMoves, ht)
+
+		pos.logTime.allLogTypes[LOG_SEARCH_ORDER_OTHER_QUIET_MOVES].stop()
+		pos.logSearch.depthLogs[nodeType].orderOtherQuietMoves++
 	}
 
 	// ------------------------------------------------------- Main Search: Other Quiet Moves --------------------------------------------------
@@ -1120,7 +1178,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			if canDoLMR {
 				// ___________ LMR: Zero-Width Window ___________
 				pos.makeMove(move)
-				score, terminated = pos.negamax(initialDepth, currentDepth-lmr-1, 0-(alpha+1), 0-alpha, tt, qsDepth, ply, false)
+				score, terminated = pos.negamax(initialDepth, currentDepth-lmr-1, 0-(alpha+1), 0-alpha, tt, ht, qsDepth, ply, false)
 				moveValue = 0 - score
 				pos.undoMove()
 
@@ -1129,7 +1187,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 				// ___________ LMR: Fail-High Research ___________
 				if moveValue > alpha {
 					pos.makeMove(move)
-					score, terminated = pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
+					score, terminated = pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, ht, qsDepth, ply, false)
 					moveValue = 0 - score
 					pos.undoMove()
 
@@ -1139,7 +1197,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			} else {
 				// ___________ No LMR ___________
 				pos.makeMove(move)
-				score, terminated = pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, qsDepth, ply, false)
+				score, terminated = pos.negamax(initialDepth, currentDepth-1, 0-beta, 0-alpha, tt, ht, qsDepth, ply, false)
 				moveValue = 0 - score
 				pos.undoMove()
 
@@ -1170,6 +1228,9 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					pos.killerMoves[ply][0] = move                    // save the current killer move in the new move slot
 				}
 
+				// ___________ HISTORY MOVES ___________
+				ht.goodBetaMove(move, currentDepth, side)
+
 				// ___________ NORMAL CODE ___________
 				if currentDepth > 0 {
 					// store TT entries for non-quiescence nodes
@@ -1180,7 +1241,7 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 					tt.storeNewTTEntry(pos.hashOfPos, move, int32(beta), uint8(currentDepth), TT_FLAG_LOWERBOUND)
 
 					pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
-					pos.logSearch.depthLogs[nodeType].ttStore++
+					pos.logSearch.depthLogs[nodeType].ttStoreLower++
 				}
 
 				pos.logSearch.depthLogs[nodeType].quietOtherMovesCutoffs++
@@ -1190,8 +1251,16 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 
 			// improvement of alpha
 			if moveValue > alpha {
+				// ___________ NORMAL CODE ___________
 				alpha = moveValue
 				bestMove = move
+
+				// ___________ HISTORY MOVES ___________
+				ht.goodAlphaMove(move, currentDepth, side)
+
+			} else {
+				// ___________ HISTORY MOVES ___________
+				ht.badAlphaMove(move, currentDepth, side)
 			}
 		}
 
@@ -1213,16 +1282,17 @@ func (pos *Position) negamax(initialDepth int, currentDepth int, alpha int, beta
 			// if alpha increased in the search, we know the exact value of the node, because:
 			// we did not fail high, because we already would have had a beta cut before this code
 			tt.storeNewTTEntry(pos.hashOfPos, bestMove, int32(alpha), uint8(currentDepth), TT_FLAG_EXACT)
+			pos.logSearch.depthLogs[nodeType].ttStoreExact++
 
 		} else {
 			// if alpha did not increase in the search, this node failed low
 			// it did not fail high, because no beta cut was found
 			// this node value is therefore the upper bound for next searches
 			tt.storeNewTTEntry(pos.hashOfPos, BLANK_MOVE, int32(alpha), uint8(currentDepth), TT_FLAG_UPPERBOUND)
+			pos.logSearch.depthLogs[nodeType].ttStoreUpper++
 		}
 
 		pos.logTime.allLogTypes[LOG_SEARCH_TT_STORE].stop()
-		pos.logSearch.depthLogs[nodeType].ttStore++
 	}
 
 	// ---------------------------------------------------- Return Final Value -----------------------------------------------

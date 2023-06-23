@@ -16,11 +16,13 @@ type SearchDepthLog struct {
 	nodes int // total number of nodes visited at this depth
 
 	// transposition table details
-	ttProbe    int // number of times the TT was checked for a position
-	ttHitExact int // number of times a TT entry was used as EXACT
-	ttHitLower int // number of times a TT entry was used as LOWERBOUND
-	ttHitUpper int // number of times a TT entry was used as UPPERBOUND
-	ttStore    int // number of times a TT entry was stored
+	ttProbe      int // number of times the TT was checked for a position
+	ttHitExact   int // number of times a TT entry was used as EXACT
+	ttHitLower   int // number of times a TT entry was used as LOWERBOUND
+	ttHitUpper   int // number of times a TT entry was used as UPPERBOUND
+	ttStoreExact int // number of times a TT entry was stored with an exact bound
+	ttStoreLower int // number of times a TT entry was stored with a lower bound
+	ttStoreUpper int // number of times a TT entry was stored with an upper bound
 
 	// hash move from TT details
 	ttRetrievedHashMove      int // number of times a hash move was obtained from the TT
@@ -34,6 +36,7 @@ type SearchDepthLog struct {
 	orderKiller1                int // number of times 1st killer moves were ordered
 	orderKiller2                int // number of times 2nd killer moves were ordered
 	orderIterativeDeepeningMove int // number of times the best iterative deepening moves were ordered
+	orderOtherQuietMoves        int // number of times the other quit moves were ordered
 
 	// move generation details
 	generatedLegalMovesFull int // nodes where full legal moves were generated
@@ -271,8 +274,20 @@ func (log *SearchLogger) getTTNormalSummary() string {
 	summary += "TT Order Hash: " + strconv.Itoa(ttUsedAndOrderedHashMoveTotalPercent) + "%. "
 
 	// tt store
-	ttStoreTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].ttStore)
-	summary += "TT Store: " + strconv.Itoa(ttStoreTotalPercent) + "%. "
+	ttStoreExactTotal := log.depthLogs[NODE_TYPE_NORMAL].ttStoreExact
+	ttStoreLowerTotal := log.depthLogs[NODE_TYPE_NORMAL].ttStoreLower
+	ttStoreUpperTotal := log.depthLogs[NODE_TYPE_NORMAL].ttStoreUpper
+	ttStoreTotal := ttStoreExactTotal + ttStoreLowerTotal + ttStoreUpperTotal
+
+	ttStoreExactPercent := getPercent(ttStoreTotal, ttStoreExactTotal)
+	ttStoreLowerPercent := getPercent(ttStoreTotal, ttStoreLowerTotal)
+	ttStoreUpperPercent := getPercent(ttStoreTotal, ttStoreUpperTotal)
+	ttStoreTotalPercent := getPercent(totalNodes, ttStoreTotal)
+
+	summary += "TT Store: " + strconv.Itoa(ttStoreTotalPercent) + "% ("
+	summary += "exact: " + strconv.Itoa(ttStoreExactPercent) + "%, "
+	summary += "lower (beta cut): " + strconv.Itoa(ttStoreLowerPercent) + "%, "
+	summary += "upper (no alpha impr): " + strconv.Itoa(ttStoreUpperPercent) + "%). "
 
 	return summary
 }
@@ -318,8 +333,20 @@ func (log *SearchLogger) getTTQsSummary() string {
 	summary += "TT Order Hash: " + strconv.Itoa(ttUsedAndOrderedHashMoveTotalPercent) + "%. "
 
 	// tt store
-	ttStoreTotalPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_QS].ttStore)
-	summary += "TT Store: " + strconv.Itoa(ttStoreTotalPercent) + "%. "
+	ttStoreExactTotal := log.depthLogs[NODE_TYPE_QS].ttStoreExact
+	ttStoreLowerTotal := log.depthLogs[NODE_TYPE_QS].ttStoreLower
+	ttStoreUpperTotal := log.depthLogs[NODE_TYPE_QS].ttStoreUpper
+	ttStoreTotal := ttStoreExactTotal + ttStoreLowerTotal + ttStoreUpperTotal
+
+	ttStoreExactPercent := getPercent(ttStoreTotal, ttStoreExactTotal)
+	ttStoreLowerPercent := getPercent(ttStoreTotal, ttStoreLowerTotal)
+	ttStoreUpperPercent := getPercent(ttStoreTotal, ttStoreUpperTotal)
+	ttStoreTotalPercent := getPercent(totalNodes, ttStoreTotal)
+
+	summary += "TT Store: " + strconv.Itoa(ttStoreTotalPercent) + "% ("
+	summary += "exact: " + strconv.Itoa(ttStoreExactPercent) + "%, "
+	summary += "lower (beta cut): " + strconv.Itoa(ttStoreLowerPercent) + "%, "
+	summary += "upper (no alpha impr): " + strconv.Itoa(ttStoreUpperPercent) + "%). "
 
 	return summary
 }
@@ -334,27 +361,31 @@ func (log *SearchLogger) getMoveOrderingSummary() string {
 
 	// copy threat moves
 	copyThreatMovesPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].copyThreatMoves+log.depthLogs[NODE_TYPE_QS].copyThreatMoves)
-	summary += "Copy Threat: " + strconv.Itoa(copyThreatMovesPercent) + "%. "
+	summary += "Cpy Thr: " + strconv.Itoa(copyThreatMovesPercent) + "%. "
 
 	// order threat moves
 	orderThreatMovesPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].orderThreatMoves+log.depthLogs[NODE_TYPE_QS].orderThreatMoves)
-	summary += "Order Threat: " + strconv.Itoa(orderThreatMovesPercent) + "%. "
+	summary += "Ord Thr: " + strconv.Itoa(orderThreatMovesPercent) + "%. "
 
 	// copy quiet moves
 	copyQuietMovesPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].copyQuietMoves+log.depthLogs[NODE_TYPE_QS].copyQuietMoves)
-	summary += "Copy Quiet: " + strconv.Itoa(copyQuietMovesPercent) + "%. "
+	summary += "Cpy Quiet: " + strconv.Itoa(copyQuietMovesPercent) + "%. "
 
 	// order killer 1
 	orderKiller1Percent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].orderKiller1+log.depthLogs[NODE_TYPE_QS].orderKiller1)
-	summary += "Order Killer 1: " + strconv.Itoa(orderKiller1Percent) + "%. "
+	summary += "Ord Kil1: " + strconv.Itoa(orderKiller1Percent) + "%. "
 
 	// order killer 2
 	orderKiller2Percent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].orderKiller2+log.depthLogs[NODE_TYPE_QS].orderKiller2)
-	summary += "Order Killer 2: " + strconv.Itoa(orderKiller2Percent) + "%. "
+	summary += "Ord Kil2: " + strconv.Itoa(orderKiller2Percent) + "%. "
+
+	// order other quiet
+	orderOtherQuietPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].orderOtherQuietMoves)
+	summary += "Ord OthQuiet: " + strconv.Itoa(orderOtherQuietPercent) + "%. "
 
 	// order iterative deepening move
 	orderIterDeepPercent := getPercent(totalNodes, log.depthLogs[NODE_TYPE_NORMAL].orderIterativeDeepeningMove+log.depthLogs[NODE_TYPE_QS].orderIterativeDeepeningMove)
-	summary += "Order Iter Deep: " + strconv.Itoa(orderIterDeepPercent) + "%. "
+	summary += "Ord IterDeep: " + strconv.Itoa(orderIterDeepPercent) + "%. "
 
 	return summary
 }

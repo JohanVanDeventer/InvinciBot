@@ -79,8 +79,8 @@ func (pos *Position) getOrderedThreatMovesQsNodes() ([]Move, []Move) {
 	sort.Slice(moves, func(i, j int) bool { return moves[i].getMoveOrderingScore() > moves[j].getMoveOrderingScore() })
 
 	// finally clear the move ordering scores (to make comparison easier later to other moves)
-	for _, move := range moves {
-		move.clearMoveOrderingScore()
+	for i := range moves {
+		moves[i].clearMoveOrderingScore()
 	}
 
 	return moves, []Move{}
@@ -152,17 +152,17 @@ func (pos *Position) getOrderedThreatMovesNormalNodes() ([]Move, []Move) {
 	// finally clear the move ordering scores (to make comparison easier later to other moves)
 	// we also catch the index of the moves where the "bad" captures start, to search them later
 	badCapturesStartIndex := -1 // set to -1 to catch bugs
-	for index, move := range moves {
+	for i, move := range moves {
 
 		// if we have not yet got the index of bad captures, get that
 		if badCapturesStartIndex == -1 {
 			if move.getMoveOrderingScore() < MOVE_ORDERING_SCORE_OFFSET {
-				badCapturesStartIndex = index
+				badCapturesStartIndex = i
 			}
 		}
 
 		// finally clear the move ordering score
-		move.clearMoveOrderingScore()
+		moves[i].clearMoveOrderingScore()
 	}
 
 	// split the moves into good and bad captures

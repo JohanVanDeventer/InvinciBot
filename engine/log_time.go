@@ -93,24 +93,25 @@ const (
 	LOG_SEARCH_ORDER_KILLER_2                 int = 22
 	LOG_SEARCH_ORDER_HASH_MOVES               int = 23
 	LOG_SEARCH_ORDER_PREVIOUS_ITERATION_MOVES int = 24
+	LOG_SEARCH_ORDER_OTHER_QUIET_MOVES        int = 25
 
 	// ------------------------------- ONCE-OFF FUNCTIONS -------------------------------
 	// load a position from a fen string
-	LOG_ONCE_LOAD_FEN int = 25
+	LOG_ONCE_LOAD_FEN int = 26
 
 	// hashing
-	LOG_ONCE_HASH int = 26
+	LOG_ONCE_HASH int = 27
 
 	// eval
-	LOG_ONCE_EVAL int = 27
+	LOG_ONCE_EVAL int = 28
 
 	// search startup
-	LOG_ONCE_SEARCH_STARTUP int = 28
+	LOG_ONCE_SEARCH_STARTUP int = 29
 )
 
 // logging manager to manage all the LoggedType structs for a position
 type TimeLogger struct {
-	allLogTypes [29]TimeLogHolder
+	allLogTypes [30]TimeLogHolder
 }
 
 // print all logged details
